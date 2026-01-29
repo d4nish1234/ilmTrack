@@ -93,6 +93,7 @@ export default function AddStudentScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           <Text variant="titleMedium" style={styles.sectionTitle}>
             Student Information

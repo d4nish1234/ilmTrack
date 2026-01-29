@@ -84,6 +84,7 @@ export default function SignupScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         <View style={styles.header}>
           <Text variant="displaySmall" style={styles.title}>

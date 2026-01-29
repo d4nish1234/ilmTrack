@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { Snackbar } from 'react-native-paper';
+import { Snackbar, Portal } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -66,6 +66,7 @@ export default function AddHomeworkScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           <Input
             control={control}
@@ -104,13 +105,15 @@ export default function AddHomeworkScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <Snackbar
-        visible={!!error}
-        onDismiss={() => setError(null)}
-        duration={4000}
-      >
-        {error}
-      </Snackbar>
+      <Portal>
+        <Snackbar
+          visible={!!error}
+          onDismiss={() => setError(null)}
+          duration={4000}
+        >
+          {error}
+        </Snackbar>
+      </Portal>
     </SafeAreaView>
   );
 }

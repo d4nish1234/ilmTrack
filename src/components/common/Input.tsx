@@ -1,5 +1,10 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { ReactNode } from 'react';
+import {
+  StyleSheet,
+  View,
+  Keyboard,
+  TouchableWithoutFeedback,
+} from 'react-native';
 import { TextInput, HelperText } from 'react-native-paper';
 import { Control, Controller, FieldValues, Path } from 'react-hook-form';
 
@@ -15,6 +20,7 @@ interface InputProps<T extends FieldValues> {
   multiline?: boolean;
   numberOfLines?: number;
   disabled?: boolean;
+  returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send' | 'default';
 }
 
 export function Input<T extends FieldValues>({
@@ -29,6 +35,7 @@ export function Input<T extends FieldValues>({
   multiline = false,
   numberOfLines = 1,
   disabled = false,
+  returnKeyType = 'done',
 }: InputProps<T>) {
   return (
     <Controller
@@ -55,6 +62,7 @@ export function Input<T extends FieldValues>({
             disabled={disabled}
             error={!!error}
             style={styles.input}
+            returnKeyType={multiline ? undefined : returnKeyType}
           />
           {error && (
             <HelperText type="error" visible={!!error}>
@@ -67,11 +75,32 @@ export function Input<T extends FieldValues>({
   );
 }
 
+// Wrapper component that dismisses keyboard when tapping outside inputs
+interface DismissKeyboardViewProps {
+  children: ReactNode;
+}
+
+export function DismissKeyboardView({ children }: DismissKeyboardViewProps) {
+  return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <View style={styles.dismissContainer}>{children}</View>
+    </TouchableWithoutFeedback>
+  );
+}
+
+// Empty component for backwards compatibility - InputAccessoryView doesn't work reliably in Expo Go
+export function KeyboardAccessory() {
+  return null;
+}
+
 const styles = StyleSheet.create({
   container: {
     marginBottom: 8,
   },
   input: {
     backgroundColor: '#fff',
+  },
+  dismissContainer: {
+    flex: 1,
   },
 });

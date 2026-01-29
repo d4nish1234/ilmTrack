@@ -5,7 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
 import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
-import { LoadingSpinner } from '../src/components/common';
+import { LoadingSpinner, KeyboardAccessory } from '../src/components/common';
 
 const theme = {
   ...MD3LightTheme,
@@ -77,6 +77,8 @@ export default function RootLayout() {
           </AuthProvider>
         </PaperProvider>
       </SafeAreaProvider>
+      {/* iOS keyboard accessory with "Done" button */}
+      <KeyboardAccessory />
     </GestureHandlerRootView>
   );
 }

@@ -1,4 +1,5 @@
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
+import { IconButton } from 'react-native-paper';
 
 export default function AttendanceLayout() {
   return (
@@ -17,6 +18,13 @@ export default function AttendanceLayout() {
         name="index"
         options={{
           title: 'Attendance History',
+          headerLeft: () => (
+            <IconButton
+              icon="arrow-left"
+              iconColor="#fff"
+              onPress={() => router.back()}
+            />
+          ),
         }}
       />
       <Stack.Screen

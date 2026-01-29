@@ -218,6 +218,7 @@ export default function AddAttendanceScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           <View style={styles.dateContainer}>
             <Text variant="titleMedium">Date</Text>
