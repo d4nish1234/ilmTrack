@@ -20,7 +20,7 @@ A mobile app for teachers and parents to manage students, homework, and attendan
 ## Tech Stack
 
 - **Frontend:** Expo (React Native) with TypeScript
-- **Backend:** Firebase (Authentication, Firestore, Cloud Functions)
+- **Backend:** Firebase JS SDK (Authentication, Firestore)
 - **UI:** React Native Paper
 - **Navigation:** Expo Router
 
@@ -28,11 +28,8 @@ A mobile app for teachers and parents to manage students, homework, and attendan
 
 - Node.js 18+
 - npm or yarn
-- Expo CLI (`npm install -g expo-cli`)
-- EAS CLI (`npm install -g eas-cli`)
+- Expo Go app on your mobile device (for testing)
 - Firebase account
-- Apple Developer account (for iOS builds)
-- Google Play Console account (for Android builds)
 
 ## Getting Started
 
@@ -55,16 +52,32 @@ npm install
    - Start in production mode
    - Choose your preferred region
 
-4. **Download config files:**
+4. **Add a Web App:**
    - Go to Project Settings > Your apps
-   - Add an iOS app (bundle ID: `com.danishmahboob.ilmtrack`)
-   - Download `GoogleService-Info.plist` and place it in the project root
-   - Add an Android app (package name: `com.danishmahboob.ilmtrack`)
-   - Download `google-services.json` and place it in the project root
+   - Click "Add app" and select Web (`</>`)
+   - Register your app (you can skip Firebase Hosting)
+   - Copy the config values for the next step
 
-   > **Note:** These files are gitignored for security. You'll need to set up EAS environment variables for cloud builds (see step 4).
+### 3. Configure Environment Variables
 
-### 3. Deploy Firestore Security Rules
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Open `.env` and fill in your Firebase config values:
+   ```
+   EXPO_PUBLIC_FIREBASE_API_KEY=your-api-key-here
+   EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+   EXPO_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+   EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+   EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
+   EXPO_PUBLIC_FIREBASE_APP_ID=1:123456789:web:abc123def456
+   ```
+
+   > **Note:** The `.env` file is gitignored for security. Never commit your actual Firebase credentials.
+
+### 4. Deploy Firestore Security Rules
 
 ```bash
 # Install Firebase CLI if you haven't
@@ -82,38 +95,16 @@ firebase init firestore
 firebase deploy --only firestore:rules
 ```
 
-### 4. Create Development Build
-
-Since this app uses native Firebase modules, you need a development build (not Expo Go).
-
-```bash
-# Login to EAS
-eas login
-
-# Configure your project (first time only)
-eas build:configure
-
-# Upload Firebase config files as EAS environment variables (required for cloud builds)
-eas env:create --scope project --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json
-eas env:create --scope project --name GOOGLE_SERVICES_PLIST --type file --value ./GoogleService-Info.plist
-
-# Build for iOS Simulator
-eas build --profile development --platform ios
-
-# OR build for Android Emulator
-eas build --profile development --platform android
-```
-
 ### 5. Run the App
-
-After the build completes:
 
 ```bash
 # Start the development server
-npx expo start --dev-client
+npm run start
 
-# Press 'i' for iOS or 'a' for Android
+# Scan the QR code with Expo Go app on your phone
 ```
+
+Press `i` for iOS simulator or `a` for Android emulator (if you have them set up).
 
 ## Project Structure
 
@@ -150,7 +141,7 @@ ilmTrack/
 │   ├── types/                    # TypeScript types
 │   └── utils/                    # Utility functions
 ├── firestore.rules               # Firestore security rules
-├── eas.json                      # EAS Build configuration
+├── .env                          # Environment variables (gitignored)
 └── app.json                      # Expo configuration
 ```
 
@@ -199,16 +190,37 @@ firebase deploy --only functions
 
 ```bash
 # Start development server
-npx expo start --dev-client
+npm run start
+
+# Start with cache cleared
+npm run start -- --clear
 
 # Run on iOS simulator
-npx expo start --dev-client --ios
+npm run ios
 
 # Run on Android emulator
-npx expo start --dev-client --android
+npm run android
 
-# Build for development
-eas build --profile development --platform all
+# Deploy Firestore rules
+firebase deploy --only firestore:rules
+
+# Run linter
+npm run lint
+```
+
+## Production Builds (EAS)
+
+For production builds, you'll need EAS:
+
+```bash
+# Install EAS CLI
+npm install -g eas-cli
+
+# Login to EAS
+eas login
+
+# Configure your project
+eas build:configure
 
 # Build for production
 eas build --profile production --platform all
@@ -216,28 +228,23 @@ eas build --profile production --platform all
 # Submit to app stores
 eas submit --platform ios
 eas submit --platform android
-
-# Deploy Firestore rules
-firebase deploy --only firestore:rules
-
-# Run TypeScript check
-npx tsc --noEmit
-
-# Run linter
-npm run lint
 ```
 
 ## Troubleshooting
 
-### "Firebase app not initialized"
-Make sure `google-services.json` and `GoogleService-Info.plist` are in the project root and you've created a new development build.
+### "Firebase: Error (auth/api-key-not-valid)"
+Make sure your `.env` file has the correct Firebase config values. After updating `.env`, restart Metro with cache cleared:
+```bash
+npm run start -- --clear
+```
 
 ### "Missing Firestore index"
 When you see index errors in the console, click the link provided to create the required composite index in Firebase Console.
 
-### Build fails on EAS
-- Ensure you have the correct bundle ID/package name in `app.json`
-- Check that Firebase config files are not in `.gitignore` if building on EAS servers
+### Environment variables not loading
+- Ensure your `.env` file is in the project root
+- Variable names must start with `EXPO_PUBLIC_` to be accessible in the app
+- Restart Metro with `--clear` flag after changing `.env`
 
 ## Contributing
 

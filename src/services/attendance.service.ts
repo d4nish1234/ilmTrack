@@ -1,7 +1,21 @@
-import firestore from '@react-native-firebase/firestore';
+import { firestore } from '../config/firebase';
+import {
+  collection,
+  doc,
+  addDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  serverTimestamp,
+  Timestamp,
+} from 'firebase/firestore';
 import { Attendance, CreateAttendanceData, UpdateAttendanceData } from '../types';
 
-const attendanceCollection = firestore().collection('attendance');
+const attendanceRef = collection(firestore, 'attendance');
 
 export async function createAttendance(
   studentId: string,
@@ -9,25 +23,27 @@ export async function createAttendance(
   teacherId: string,
   data: CreateAttendanceData
 ): Promise<string> {
-  const docRef = await attendanceCollection.add({
+  const docRef = await addDoc(attendanceRef, {
     studentId,
     classId,
     teacherId,
-    date: firestore.Timestamp.fromDate(data.date),
+    date: Timestamp.fromDate(data.date),
     status: data.status,
     notes: data.notes || null,
-    createdAt: firestore.FieldValue.serverTimestamp(),
-    updatedAt: firestore.FieldValue.serverTimestamp(),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 
   return docRef.id;
 }
 
 export async function getAttendance(studentId: string): Promise<Attendance[]> {
-  const snapshot = await attendanceCollection
-    .where('studentId', '==', studentId)
-    .orderBy('date', 'desc')
-    .get();
+  const q = query(
+    attendanceRef,
+    where('studentId', '==', studentId),
+    orderBy('date', 'desc')
+  );
+  const snapshot = await getDocs(q);
 
   return snapshot.docs.map((doc) => ({
     id: doc.id,
@@ -40,35 +56,41 @@ export function subscribeToAttendance(
   onUpdate: (attendance: Attendance[]) => void,
   onError: (error: Error) => void
 ): () => void {
-  return attendanceCollection
-    .where('studentId', '==', studentId)
-    .orderBy('date', 'desc')
-    .onSnapshot(
-      (snapshot) => {
-        const attendance = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Attendance[];
-        onUpdate(attendance);
-      },
-      (error) => {
-        onError(error);
-      }
-    );
+  const q = query(
+    attendanceRef,
+    where('studentId', '==', studentId),
+    orderBy('date', 'desc')
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const attendance = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Attendance[];
+      onUpdate(attendance);
+    },
+    (error) => {
+      onError(error);
+    }
+  );
 }
 
 export async function updateAttendance(
   attendanceId: string,
   data: UpdateAttendanceData
 ): Promise<void> {
-  await attendanceCollection.doc(attendanceId).update({
+  const docRef = doc(firestore, 'attendance', attendanceId);
+  await updateDoc(docRef, {
     ...data,
-    updatedAt: firestore.FieldValue.serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 }
 
 export async function deleteAttendance(attendanceId: string): Promise<void> {
-  await attendanceCollection.doc(attendanceId).delete();
+  const docRef = doc(firestore, 'attendance', attendanceId);
+  await deleteDoc(docRef);
 }
 
 export async function getAttendanceByDate(
@@ -81,11 +103,13 @@ export async function getAttendanceByDate(
   const endOfDay = new Date(date);
   endOfDay.setHours(23, 59, 59, 999);
 
-  const snapshot = await attendanceCollection
-    .where('classId', '==', classId)
-    .where('date', '>=', firestore.Timestamp.fromDate(startOfDay))
-    .where('date', '<=', firestore.Timestamp.fromDate(endOfDay))
-    .get();
+  const q = query(
+    attendanceRef,
+    where('classId', '==', classId),
+    where('date', '>=', Timestamp.fromDate(startOfDay)),
+    where('date', '<=', Timestamp.fromDate(endOfDay))
+  );
+  const snapshot = await getDocs(q);
 
   return snapshot.docs.map((doc) => ({
     id: doc.id,

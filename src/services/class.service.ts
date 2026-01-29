@@ -1,36 +1,54 @@
-import firestore from '@react-native-firebase/firestore';
+import { firestore } from '../config/firebase';
+import {
+  collection,
+  doc,
+  addDoc,
+  getDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  serverTimestamp,
+  arrayUnion,
+  arrayRemove,
+  increment,
+  writeBatch,
+} from 'firebase/firestore';
 import { Class, CreateClassData, UpdateClassData } from '../types';
 
-const classesCollection = firestore().collection('classes');
+const classesRef = collection(firestore, 'classes');
 
 export async function createClass(
   teacherId: string,
   data: CreateClassData
 ): Promise<string> {
-  const docRef = await classesCollection.add({
+  const docRef = await addDoc(classesRef, {
     ...data,
     teacherId,
     studentCount: 0,
-    createdAt: firestore.FieldValue.serverTimestamp(),
-    updatedAt: firestore.FieldValue.serverTimestamp(),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 
   // Add class ID to teacher's classIds array
-  await firestore()
-    .collection('users')
-    .doc(teacherId)
-    .update({
-      classIds: firestore.FieldValue.arrayUnion(docRef.id),
-    });
+  const userRef = doc(firestore, 'users', teacherId);
+  await updateDoc(userRef, {
+    classIds: arrayUnion(docRef.id),
+  });
 
   return docRef.id;
 }
 
 export async function getClasses(teacherId: string): Promise<Class[]> {
-  const snapshot = await classesCollection
-    .where('teacherId', '==', teacherId)
-    .orderBy('createdAt', 'desc')
-    .get();
+  const q = query(
+    classesRef,
+    where('teacherId', '==', teacherId),
+    orderBy('createdAt', 'desc')
+  );
+  const snapshot = await getDocs(q);
 
   return snapshot.docs.map((doc) => ({
     id: doc.id,
@@ -43,36 +61,42 @@ export function subscribeToClasses(
   onUpdate: (classes: Class[]) => void,
   onError: (error: Error) => void
 ): () => void {
-  return classesCollection
-    .where('teacherId', '==', teacherId)
-    .orderBy('createdAt', 'desc')
-    .onSnapshot(
-      (snapshot) => {
-        const classes = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Class[];
-        onUpdate(classes);
-      },
-      (error) => {
-        onError(error);
-      }
-    );
+  const q = query(
+    classesRef,
+    where('teacherId', '==', teacherId),
+    orderBy('createdAt', 'desc')
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const classes = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Class[];
+      onUpdate(classes);
+    },
+    (error) => {
+      onError(error);
+    }
+  );
 }
 
 export async function getClass(classId: string): Promise<Class | null> {
-  const doc = await classesCollection.doc(classId).get();
-  if (!doc.exists) return null;
-  return { id: doc.id, ...doc.data() } as Class;
+  const docRef = doc(firestore, 'classes', classId);
+  const docSnap = await getDoc(docRef);
+  if (!docSnap.exists()) return null;
+  return { id: docSnap.id, ...docSnap.data() } as Class;
 }
 
 export async function updateClass(
   classId: string,
   data: UpdateClassData
 ): Promise<void> {
-  await classesCollection.doc(classId).update({
+  const docRef = doc(firestore, 'classes', classId);
+  await updateDoc(docRef, {
     ...data,
-    updatedAt: firestore.FieldValue.serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 }
 
@@ -81,38 +105,38 @@ export async function deleteClass(
   teacherId: string
 ): Promise<void> {
   // Remove class ID from teacher's classIds array
-  await firestore()
-    .collection('users')
-    .doc(teacherId)
-    .update({
-      classIds: firestore.FieldValue.arrayRemove(classId),
-    });
+  const userRef = doc(firestore, 'users', teacherId);
+  await updateDoc(userRef, {
+    classIds: arrayRemove(classId),
+  });
 
   // Delete all students in the class
-  const studentsSnapshot = await firestore()
-    .collection('students')
-    .where('classId', '==', classId)
-    .get();
+  const studentsRef = collection(firestore, 'students');
+  const studentsQuery = query(studentsRef, where('classId', '==', classId));
+  const studentsSnapshot = await getDocs(studentsQuery);
 
-  const batch = firestore().batch();
-  studentsSnapshot.docs.forEach((doc) => {
-    batch.delete(doc.ref);
+  const batch = writeBatch(firestore);
+  studentsSnapshot.docs.forEach((docSnap) => {
+    batch.delete(docSnap.ref);
   });
 
   // Delete the class
-  batch.delete(classesCollection.doc(classId));
+  const classRef = doc(firestore, 'classes', classId);
+  batch.delete(classRef);
 
   await batch.commit();
 }
 
 export async function incrementStudentCount(classId: string): Promise<void> {
-  await classesCollection.doc(classId).update({
-    studentCount: firestore.FieldValue.increment(1),
+  const docRef = doc(firestore, 'classes', classId);
+  await updateDoc(docRef, {
+    studentCount: increment(1),
   });
 }
 
 export async function decrementStudentCount(classId: string): Promise<void> {
-  await classesCollection.doc(classId).update({
-    studentCount: firestore.FieldValue.increment(-1),
+  const docRef = doc(firestore, 'classes', classId);
+  await updateDoc(docRef, {
+    studentCount: increment(-1),
   });
 }

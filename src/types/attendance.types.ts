@@ -1,4 +1,4 @@
-import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+import { Timestamp } from 'firebase/firestore';
 
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 
@@ -7,11 +7,11 @@ export interface Attendance {
   studentId: string;
   classId: string;
   teacherId: string;
-  date: FirebaseFirestoreTypes.Timestamp;
+  date: Timestamp;
   status: AttendanceStatus;
   notes?: string;
-  createdAt: FirebaseFirestoreTypes.Timestamp;
-  updatedAt: FirebaseFirestoreTypes.Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export interface CreateAttendanceData {

@@ -1,7 +1,21 @@
-import firestore from '@react-native-firebase/firestore';
+import { firestore } from '../config/firebase';
+import {
+  collection,
+  doc,
+  addDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  serverTimestamp,
+  Timestamp,
+} from 'firebase/firestore';
 import { Homework, CreateHomeworkData, UpdateHomeworkData } from '../types';
 
-const homeworkCollection = firestore().collection('homework');
+const homeworkRef = collection(firestore, 'homework');
 
 export async function createHomework(
   studentId: string,
@@ -9,29 +23,31 @@ export async function createHomework(
   teacherId: string,
   data: CreateHomeworkData
 ): Promise<string> {
-  const docRef = await homeworkCollection.add({
+  const docRef = await addDoc(homeworkRef, {
     studentId,
     classId,
     teacherId,
     title: data.title,
     description: data.description || null,
     dueDate: data.dueDate
-      ? firestore.Timestamp.fromDate(data.dueDate)
+      ? Timestamp.fromDate(data.dueDate)
       : null,
     notes: data.notes || null,
     status: 'assigned',
-    createdAt: firestore.FieldValue.serverTimestamp(),
-    updatedAt: firestore.FieldValue.serverTimestamp(),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 
   return docRef.id;
 }
 
 export async function getHomework(studentId: string): Promise<Homework[]> {
-  const snapshot = await homeworkCollection
-    .where('studentId', '==', studentId)
-    .orderBy('createdAt', 'desc')
-    .get();
+  const q = query(
+    homeworkRef,
+    where('studentId', '==', studentId),
+    orderBy('createdAt', 'desc')
+  );
+  const snapshot = await getDocs(q);
 
   return snapshot.docs.map((doc) => ({
     id: doc.id,
@@ -44,43 +60,49 @@ export function subscribeToHomework(
   onUpdate: (homework: Homework[]) => void,
   onError: (error: Error) => void
 ): () => void {
-  return homeworkCollection
-    .where('studentId', '==', studentId)
-    .orderBy('createdAt', 'desc')
-    .onSnapshot(
-      (snapshot) => {
-        const homework = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Homework[];
-        onUpdate(homework);
-      },
-      (error) => {
-        onError(error);
-      }
-    );
+  const q = query(
+    homeworkRef,
+    where('studentId', '==', studentId),
+    orderBy('createdAt', 'desc')
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const homework = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Homework[];
+      onUpdate(homework);
+    },
+    (error) => {
+      onError(error);
+    }
+  );
 }
 
 export async function updateHomework(
   homeworkId: string,
   data: UpdateHomeworkData
 ): Promise<void> {
-  const updateData: any = {
+  const updateData: Record<string, unknown> = {
     ...data,
-    updatedAt: firestore.FieldValue.serverTimestamp(),
+    updatedAt: serverTimestamp(),
   };
 
   if (data.dueDate) {
-    updateData.dueDate = firestore.Timestamp.fromDate(data.dueDate);
+    updateData.dueDate = Timestamp.fromDate(data.dueDate);
   }
 
   if (data.status === 'completed') {
-    updateData.completedAt = firestore.FieldValue.serverTimestamp();
+    updateData.completedAt = serverTimestamp();
   }
 
-  await homeworkCollection.doc(homeworkId).update(updateData);
+  const docRef = doc(firestore, 'homework', homeworkId);
+  await updateDoc(docRef, updateData);
 }
 
 export async function deleteHomework(homeworkId: string): Promise<void> {
-  await homeworkCollection.doc(homeworkId).delete();
+  const docRef = doc(firestore, 'homework', homeworkId);
+  await deleteDoc(docRef);
 }

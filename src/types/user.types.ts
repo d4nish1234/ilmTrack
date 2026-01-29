@@ -1,4 +1,4 @@
-import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+import { Timestamp } from 'firebase/firestore';
 
 export type UserRole = 'teacher' | 'parent';
 
@@ -8,14 +8,14 @@ export interface User {
   firstName: string;
   lastName: string;
   role: UserRole;
-  createdAt: FirebaseFirestoreTypes.Timestamp;
-  updatedAt: FirebaseFirestoreTypes.Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
   // Teacher-specific fields
   classIds?: string[];
   // Parent-specific fields
   studentIds?: string[];
   invitedBy?: string;
-  inviteAcceptedAt?: FirebaseFirestoreTypes.Timestamp;
+  inviteAcceptedAt?: Timestamp;
 }
 
 export interface CreateUserData {

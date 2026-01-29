@@ -1,4 +1,4 @@
-import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+import { Timestamp } from 'firebase/firestore';
 
 export type HomeworkStatus = 'assigned' | 'completed' | 'incomplete' | 'late';
 
@@ -9,12 +9,12 @@ export interface Homework {
   teacherId: string;
   title: string;
   description?: string;
-  dueDate?: FirebaseFirestoreTypes.Timestamp;
+  dueDate?: Timestamp;
   status: HomeworkStatus;
-  completedAt?: FirebaseFirestoreTypes.Timestamp;
+  completedAt?: Timestamp;
   notes?: string;
-  createdAt: FirebaseFirestoreTypes.Timestamp;
-  updatedAt: FirebaseFirestoreTypes.Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export interface CreateHomeworkData {

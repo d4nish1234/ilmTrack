@@ -1,4 +1,4 @@
-import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+import { Timestamp } from 'firebase/firestore';
 
 export interface Class {
   id: string;
@@ -6,8 +6,8 @@ export interface Class {
   description?: string;
   teacherId: string;
   studentCount: number;
-  createdAt: FirebaseFirestoreTypes.Timestamp;
-  updatedAt: FirebaseFirestoreTypes.Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export interface CreateClassData {

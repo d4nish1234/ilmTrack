@@ -8,7 +8,8 @@ import { useSelectedClass } from '../../src/hooks/useSelectedClass';
 import { ClassDropdown } from '../../src/components/teacher';
 import { LoadingSpinner } from '../../src/components/common';
 import { Student } from '../../src/types';
-import firestore from '@react-native-firebase/firestore';
+import { firestore } from '../../src/config/firebase';
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 
 export default function TeacherHomeScreen() {
   const { user } = useAuth();
@@ -28,25 +29,29 @@ export default function TeacherHomeScreen() {
     }
 
     setLoading(true);
-    const unsubscribe = firestore()
-      .collection('students')
-      .where('classId', '==', selectedClassId)
-      .orderBy('lastName', 'asc')
-      .onSnapshot(
-        (snapshot) => {
-          const studentList = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as Student[];
-          setStudents(studentList);
-          setFilteredStudents(studentList);
-          setLoading(false);
-        },
-        (error) => {
-          console.error('Error fetching students:', error);
-          setLoading(false);
-        }
-      );
+    const studentsRef = collection(firestore, 'students');
+    const q = query(
+      studentsRef,
+      where('classId', '==', selectedClassId),
+      orderBy('lastName', 'asc')
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const studentList = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Student[];
+        setStudents(studentList);
+        setFilteredStudents(studentList);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error fetching students:', error);
+        setLoading(false);
+      }
+    );
 
     return unsubscribe;
   }, [selectedClassId]);

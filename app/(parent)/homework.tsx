@@ -4,7 +4,8 @@ import { Text, Card, Chip } from 'react-native-paper';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { LoadingSpinner } from '../../src/components/common';
 import { Student, Homework } from '../../src/types';
-import firestore from '@react-native-firebase/firestore';
+import { firestore } from '../../src/config/firebase';
+import { collection, doc, getDoc, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { format } from 'date-fns';
 
 export default function ParentHomeworkScreen() {
@@ -24,13 +25,13 @@ export default function ParentHomeworkScreen() {
         // Fetch students
         const studentDocs = await Promise.all(
           user.studentIds!.map((id) =>
-            firestore().collection('students').doc(id).get()
+            getDoc(doc(firestore, 'students', id))
           )
         );
 
         const studentList = studentDocs
-          .filter((doc) => doc.exists)
-          .map((doc) => ({ id: doc.id, ...doc.data() })) as Student[];
+          .filter((docSnap) => docSnap.exists())
+          .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })) as Student[];
 
         setStudents(studentList);
 
@@ -38,25 +39,29 @@ export default function ParentHomeworkScreen() {
         if (studentList.length > 0) {
           const studentIds = studentList.map((s) => s.id);
 
-          const unsubscribe = firestore()
-            .collection('homework')
-            .where('studentId', 'in', studentIds)
-            .orderBy('createdAt', 'desc')
-            .onSnapshot(
-              (snapshot) => {
-                setHomework(
-                  snapshot.docs.map((doc) => ({
-                    id: doc.id,
-                    ...doc.data(),
-                  })) as Homework[]
-                );
-                setLoading(false);
-              },
-              (error) => {
-                console.error('Error fetching homework:', error);
-                setLoading(false);
-              }
-            );
+          const homeworkRef = collection(firestore, 'homework');
+          const q = query(
+            homeworkRef,
+            where('studentId', 'in', studentIds),
+            orderBy('createdAt', 'desc')
+          );
+
+          const unsubscribe = onSnapshot(
+            q,
+            (snapshot) => {
+              setHomework(
+                snapshot.docs.map((docSnap) => ({
+                  id: docSnap.id,
+                  ...docSnap.data(),
+                })) as Homework[]
+              );
+              setLoading(false);
+            },
+            (error) => {
+              console.error('Error fetching homework:', error);
+              setLoading(false);
+            }
+          );
 
           return unsubscribe;
         } else {

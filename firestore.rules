@@ -2,8 +2,78 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Users collection - users can read/write their own profile
+    match /users/{userId} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isAuthenticated() && isOwner(userId);
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Classes collection - teachers can manage their own classes
+    match /classes/{classId} {
+      allow read: if isAuthenticated() &&
+        resource.data.teacherId == request.auth.uid;
+      allow create: if isAuthenticated() &&
+        request.resource.data.teacherId == request.auth.uid;
+      allow update, delete: if isAuthenticated() &&
+        resource.data.teacherId == request.auth.uid;
+    }
+
+    // Students collection
+    match /students/{studentId} {
+      // Teachers can manage students in their classes
+      // Parents can read students they're linked to
+      allow read: if isAuthenticated() && (
+        resource.data.teacherId == request.auth.uid ||
+        request.auth.uid in resource.data.parentIds
+      );
+      allow create: if isAuthenticated() &&
+        request.resource.data.teacherId == request.auth.uid;
+      allow update, delete: if isAuthenticated() &&
+        resource.data.teacherId == request.auth.uid;
+    }
+
+    // Homework collection
+    match /homework/{homeworkId} {
+      // Teachers can manage homework they created
+      // Parents can read homework for their linked students
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+        request.resource.data.teacherId == request.auth.uid;
+      allow update, delete: if isAuthenticated() &&
+        resource.data.teacherId == request.auth.uid;
+    }
+
+    // Attendance collection
+    match /attendance/{attendanceId} {
+      // Teachers can manage attendance they recorded
+      // Parents can read attendance for their linked students
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+        request.resource.data.teacherId == request.auth.uid;
+      allow update, delete: if isAuthenticated() &&
+        resource.data.teacherId == request.auth.uid;
+    }
+
+    // Invites collection - for parent invitation tracking
+    match /invites/{inviteId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated() &&
+        resource.data.teacherId == request.auth.uid;
     }
   }
 }

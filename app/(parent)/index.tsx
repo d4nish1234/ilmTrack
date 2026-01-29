@@ -4,7 +4,8 @@ import { Text, Card, Chip } from 'react-native-paper';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { LoadingSpinner } from '../../src/components/common';
 import { Student, Homework, Attendance } from '../../src/types';
-import firestore from '@react-native-firebase/firestore';
+import { firestore } from '../../src/config/firebase';
+import { collection, doc, getDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { format } from 'date-fns';
 
 export default function ParentHomeScreen() {
@@ -25,13 +26,13 @@ export default function ParentHomeScreen() {
       try {
         const studentDocs = await Promise.all(
           user.studentIds!.map((id) =>
-            firestore().collection('students').doc(id).get()
+            getDoc(doc(firestore, 'students', id))
           )
         );
 
         const studentList = studentDocs
-          .filter((doc) => doc.exists)
-          .map((doc) => ({ id: doc.id, ...doc.data() })) as Student[];
+          .filter((docSnap) => docSnap.exists())
+          .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })) as Student[];
 
         setStudents(studentList);
 
@@ -39,31 +40,35 @@ export default function ParentHomeScreen() {
         if (studentList.length > 0) {
           const studentIds = studentList.map((s) => s.id);
 
-          const homeworkSnapshot = await firestore()
-            .collection('homework')
-            .where('studentId', 'in', studentIds)
-            .orderBy('createdAt', 'desc')
-            .limit(5)
-            .get();
+          const homeworkRef = collection(firestore, 'homework');
+          const homeworkQuery = query(
+            homeworkRef,
+            where('studentId', 'in', studentIds),
+            orderBy('createdAt', 'desc'),
+            limit(5)
+          );
+          const homeworkSnapshot = await getDocs(homeworkQuery);
 
           setRecentHomework(
-            homeworkSnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
+            homeworkSnapshot.docs.map((docSnap) => ({
+              id: docSnap.id,
+              ...docSnap.data(),
             })) as Homework[]
           );
 
-          const attendanceSnapshot = await firestore()
-            .collection('attendance')
-            .where('studentId', 'in', studentIds)
-            .orderBy('date', 'desc')
-            .limit(5)
-            .get();
+          const attendanceRef = collection(firestore, 'attendance');
+          const attendanceQuery = query(
+            attendanceRef,
+            where('studentId', 'in', studentIds),
+            orderBy('date', 'desc'),
+            limit(5)
+          );
+          const attendanceSnapshot = await getDocs(attendanceQuery);
 
           setRecentAttendance(
-            attendanceSnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
+            attendanceSnapshot.docs.map((docSnap) => ({
+              id: docSnap.id,
+              ...docSnap.data(),
             })) as Attendance[]
           );
         }

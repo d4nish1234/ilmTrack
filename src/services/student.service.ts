@@ -1,8 +1,22 @@
-import firestore from '@react-native-firebase/firestore';
+import { firestore } from '../config/firebase';
+import {
+  collection,
+  doc,
+  addDoc,
+  getDoc,
+  getDocs,
+  updateDoc,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  serverTimestamp,
+  writeBatch,
+} from 'firebase/firestore';
 import { Student, CreateStudentData, UpdateStudentData, Parent } from '../types';
 import { incrementStudentCount, decrementStudentCount } from './class.service';
 
-const studentsCollection = firestore().collection('students');
+const studentsRef = collection(firestore, 'students');
 
 export async function createStudent(
   classId: string,
@@ -16,26 +30,27 @@ export async function createStudent(
     inviteStatus: 'pending' as const,
   }));
 
-  const docRef = await studentsCollection.add({
+  const docRef = await addDoc(studentsRef, {
     ...data,
     classId,
     teacherId,
     parents,
-    createdAt: firestore.FieldValue.serverTimestamp(),
-    updatedAt: firestore.FieldValue.serverTimestamp(),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 
   // Increment student count in class
   await incrementStudentCount(classId);
 
   // Create invite documents for each parent (triggers Cloud Function)
+  const invitesRef = collection(firestore, 'invites');
   for (const parent of parents) {
-    await firestore().collection('invites').add({
+    await addDoc(invitesRef, {
       email: parent.email,
       studentId: docRef.id,
       teacherId,
       status: 'pending',
-      createdAt: firestore.FieldValue.serverTimestamp(),
+      createdAt: serverTimestamp(),
     });
   }
 
@@ -43,10 +58,12 @@ export async function createStudent(
 }
 
 export async function getStudents(classId: string): Promise<Student[]> {
-  const snapshot = await studentsCollection
-    .where('classId', '==', classId)
-    .orderBy('lastName', 'asc')
-    .get();
+  const q = query(
+    studentsRef,
+    where('classId', '==', classId),
+    orderBy('lastName', 'asc')
+  );
+  const snapshot = await getDocs(q);
 
   return snapshot.docs.map((doc) => ({
     id: doc.id,
@@ -59,27 +76,32 @@ export function subscribeToStudents(
   onUpdate: (students: Student[]) => void,
   onError: (error: Error) => void
 ): () => void {
-  return studentsCollection
-    .where('classId', '==', classId)
-    .orderBy('lastName', 'asc')
-    .onSnapshot(
-      (snapshot) => {
-        const students = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Student[];
-        onUpdate(students);
-      },
-      (error) => {
-        onError(error);
-      }
-    );
+  const q = query(
+    studentsRef,
+    where('classId', '==', classId),
+    orderBy('lastName', 'asc')
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const students = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Student[];
+      onUpdate(students);
+    },
+    (error) => {
+      onError(error);
+    }
+  );
 }
 
 export async function getStudent(studentId: string): Promise<Student | null> {
-  const doc = await studentsCollection.doc(studentId).get();
-  if (!doc.exists) return null;
-  return { id: doc.id, ...doc.data() } as Student;
+  const docRef = doc(firestore, 'students', studentId);
+  const docSnap = await getDoc(docRef);
+  if (!docSnap.exists()) return null;
+  return { id: docSnap.id, ...docSnap.data() } as Student;
 }
 
 export function subscribeToStudent(
@@ -87,10 +109,13 @@ export function subscribeToStudent(
   onUpdate: (student: Student | null) => void,
   onError: (error: Error) => void
 ): () => void {
-  return studentsCollection.doc(studentId).onSnapshot(
-    (doc) => {
-      if (doc.exists) {
-        onUpdate({ id: doc.id, ...doc.data() } as Student);
+  const docRef = doc(firestore, 'students', studentId);
+
+  return onSnapshot(
+    docRef,
+    (docSnap) => {
+      if (docSnap.exists()) {
+        onUpdate({ id: docSnap.id, ...docSnap.data() } as Student);
       } else {
         onUpdate(null);
       }
@@ -105,9 +130,10 @@ export async function updateStudent(
   studentId: string,
   data: UpdateStudentData
 ): Promise<void> {
-  await studentsCollection.doc(studentId).update({
+  const docRef = doc(firestore, 'students', studentId);
+  await updateDoc(docRef, {
     ...data,
-    updatedAt: firestore.FieldValue.serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 }
 
@@ -116,28 +142,27 @@ export async function deleteStudent(
   classId: string
 ): Promise<void> {
   // Delete all homework for this student
-  const homeworkSnapshot = await firestore()
-    .collection('homework')
-    .where('studentId', '==', studentId)
-    .get();
+  const homeworkRef = collection(firestore, 'homework');
+  const homeworkQuery = query(homeworkRef, where('studentId', '==', studentId));
+  const homeworkSnapshot = await getDocs(homeworkQuery);
 
   // Delete all attendance for this student
-  const attendanceSnapshot = await firestore()
-    .collection('attendance')
-    .where('studentId', '==', studentId)
-    .get();
+  const attendanceRef = collection(firestore, 'attendance');
+  const attendanceQuery = query(attendanceRef, where('studentId', '==', studentId));
+  const attendanceSnapshot = await getDocs(attendanceQuery);
 
-  const batch = firestore().batch();
+  const batch = writeBatch(firestore);
 
-  homeworkSnapshot.docs.forEach((doc) => {
-    batch.delete(doc.ref);
+  homeworkSnapshot.docs.forEach((docSnap) => {
+    batch.delete(docSnap.ref);
   });
 
-  attendanceSnapshot.docs.forEach((doc) => {
-    batch.delete(doc.ref);
+  attendanceSnapshot.docs.forEach((docSnap) => {
+    batch.delete(docSnap.ref);
   });
 
-  batch.delete(studentsCollection.doc(studentId));
+  const studentDocRef = doc(firestore, 'students', studentId);
+  batch.delete(studentDocRef);
 
   await batch.commit();
 
@@ -147,12 +172,12 @@ export async function deleteStudent(
 
 export async function searchStudents(
   classId: string,
-  query: string
+  queryStr: string
 ): Promise<Student[]> {
   // For simple search, we fetch all and filter client-side
   // For production, consider using Algolia or similar
   const students = await getStudents(classId);
-  const lowerQuery = query.toLowerCase();
+  const lowerQuery = queryStr.toLowerCase();
 
   return students.filter(
     (student) =>
@@ -164,9 +189,11 @@ export async function searchStudents(
 export async function getStudentsByParentEmail(
   email: string
 ): Promise<Student[]> {
-  const snapshot = await studentsCollection
-    .where('parents', 'array-contains', { email: email.toLowerCase() })
-    .get();
+  const q = query(
+    studentsRef,
+    where('parents', 'array-contains', { email: email.toLowerCase() })
+  );
+  const snapshot = await getDocs(q);
 
   return snapshot.docs.map((doc) => ({
     id: doc.id,
