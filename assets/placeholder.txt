@@ -1,0 +1,11 @@
+Add your app icons and splash images here:
+
+- icon.png (1024x1024) - App icon
+- splash-icon.png (200x200) - Splash screen icon  
+- adaptive-icon.png (1024x1024) - Android adaptive icon
+- favicon.png (48x48) - Web favicon
+
+You can generate these using tools like:
+- https://www.appicon.co/
+- https://icon.kitchen/
+- Figma with export presets

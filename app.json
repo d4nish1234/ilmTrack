@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "IlmTrack",
+    "slug": "ilmtrack",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "ilmtrack",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#1a73e8"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.danishmahboob.ilmtrack",
+      "googleServicesFile": "./GoogleService-Info.plist"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1a73e8"
+      },
+      "package": "com.danishmahboob.ilmtrack",
+      "googleServicesFile": "./google-services.json"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1a73e8"
+        }
+      ],
+      "expo-asset"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "fb8be349-09a5-41e1-87ea-168a77ad6191"
+      }
+    },
+    "owner": "d4nish1234"
+  }
+}
