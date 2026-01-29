@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, ScrollView, Alert } from 'react-native';
-import { Text, Card, List, Chip, Divider, IconButton, Menu } from 'react-native-paper';
+import { StyleSheet, View, ScrollView, Alert, useWindowDimensions } from 'react-native';
+import { Text, Card, List, Chip, Divider, IconButton, Menu, Portal } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { subscribeToStudent, deleteStudent } from '../../../../../../src/services/student.service';
 import { subscribeToHomework } from '../../../../../../src/services/homework.service';
@@ -14,6 +14,7 @@ export default function StudentDetailScreen() {
     classId: string;
     studentId: string;
   }>();
+  const { width: windowWidth } = useWindowDimensions();
   const [student, setStudent] = useState<Student | null>(null);
   const [recentHomework, setRecentHomework] = useState<Homework[]>([]);
   const [recentAttendance, setRecentAttendance] = useState<Attendance[]>([]);
@@ -111,30 +112,35 @@ export default function StudentDetailScreen() {
         options={{
           title: `${student.firstName} ${student.lastName}`,
           headerRight: () => (
-            <Menu
-              visible={menuVisible}
-              onDismiss={() => setMenuVisible(false)}
-              anchor={
-                <IconButton
-                  icon="dots-vertical"
-                  iconColor="#fff"
-                  onPress={() => setMenuVisible(true)}
-                />
-              }
-            >
-              <Menu.Item
-                onPress={() => {
-                  setMenuVisible(false);
-                  handleDelete();
-                }}
-                title="Delete Student"
-                leadingIcon="delete"
-                titleStyle={{ color: '#d32f2f' }}
-              />
-            </Menu>
+            <IconButton
+              icon="dots-vertical"
+              iconColor="#fff"
+              onPress={() => setMenuVisible(true)}
+            />
           ),
         }}
       />
+
+      {/* Menu rendered with Portal for proper z-index */}
+      <Portal>
+        <Menu
+          visible={menuVisible}
+          onDismiss={() => setMenuVisible(false)}
+          anchor={{ x: windowWidth - 16, y: 56 }}
+          anchorPosition="bottom"
+          contentStyle={styles.menuContent}
+        >
+          <Menu.Item
+            onPress={() => {
+              setMenuVisible(false);
+              handleDelete();
+            }}
+            title="Delete Student"
+            leadingIcon="delete"
+            titleStyle={{ color: '#d32f2f' }}
+          />
+        </Menu>
+      </Portal>
 
       <ScrollView style={styles.container}>
         {/* Quick Actions */}
@@ -350,5 +356,8 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#666',
     fontStyle: 'italic',
+  },
+  menuContent: {
+    backgroundColor: '#fff',
   },
 });

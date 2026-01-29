@@ -116,3 +116,50 @@ export async function getAttendanceByDate(
     ...doc.data(),
   })) as Attendance[];
 }
+
+export async function getStudentAttendanceForDate(
+  studentId: string,
+  date: Date
+): Promise<Attendance | null> {
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const q = query(
+    attendanceRef,
+    where('studentId', '==', studentId),
+    where('date', '>=', Timestamp.fromDate(startOfDay)),
+    where('date', '<=', Timestamp.fromDate(endOfDay))
+  );
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    return null;
+  }
+
+  const doc = snapshot.docs[0];
+  return { id: doc.id, ...doc.data() } as Attendance;
+}
+
+export async function toggleAttendance(
+  studentId: string,
+  classId: string,
+  teacherId: string,
+  date: Date
+): Promise<{ action: 'created' | 'updated'; status: 'present' | 'absent' }> {
+  const existing = await getStudentAttendanceForDate(studentId, date);
+
+  if (existing) {
+    const newStatus = existing.status === 'present' ? 'absent' : 'present';
+    await updateAttendance(existing.id, { status: newStatus });
+    return { action: 'updated', status: newStatus };
+  } else {
+    await createAttendance(studentId, classId, teacherId, {
+      date,
+      status: 'present',
+    });
+    return { action: 'created', status: 'present' };
+  }
+}

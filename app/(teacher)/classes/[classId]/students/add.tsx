@@ -6,7 +6,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { Text, Snackbar, Divider, IconButton } from 'react-native-paper';
+import { Text, Snackbar, Divider, IconButton, Portal } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -196,13 +196,15 @@ export default function AddStudentScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <Snackbar
-        visible={!!error}
-        onDismiss={() => setError(null)}
-        duration={4000}
-      >
-        {error}
-      </Snackbar>
+      <Portal>
+        <Snackbar
+          visible={!!error}
+          onDismiss={() => setError(null)}
+          duration={4000}
+        >
+          {error}
+        </Snackbar>
+      </Portal>
     </SafeAreaView>
   );
 }

@@ -5,8 +5,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
-import { Text, Snackbar, SegmentedButtons } from 'react-native-paper';
+import { Text, Snackbar, SegmentedButtons, Portal } from 'react-native-paper';
 import { Link } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -14,6 +15,7 @@ import * as yup from 'yup';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { Button, Input } from '../../src/components/common';
 import { UserRole } from '../../src/types';
+import { getAuthErrorMessage } from '../../src/utils/authErrors';
 
 const schema = yup.object({
   firstName: yup.string().required('First name is required'),
@@ -64,17 +66,11 @@ export default function SignupScreen() {
         data.lastName
       );
       // Navigation is handled by the root layout based on user role
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Signup error:', err);
-      if (err.code === 'auth/email-already-in-use') {
-        setError('An account with this email already exists');
-      } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email address');
-      } else if (err.code === 'auth/weak-password') {
-        setError('Password is too weak');
-      } else {
-        setError('Failed to create account. Please try again');
-      }
+      const errorMessage = getAuthErrorMessage(err as { code?: string; message?: string });
+      setError(errorMessage);
+      Alert.alert('Sign Up Failed', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -174,17 +170,19 @@ export default function SignupScreen() {
         </View>
       </ScrollView>
 
-      <Snackbar
-        visible={!!error}
-        onDismiss={() => setError(null)}
-        duration={4000}
-        action={{
-          label: 'Dismiss',
-          onPress: () => setError(null),
-        }}
-      >
-        {error}
-      </Snackbar>
+      <Portal>
+        <Snackbar
+          visible={!!error}
+          onDismiss={() => setError(null)}
+          duration={4000}
+          action={{
+            label: 'Dismiss',
+            onPress: () => setError(null),
+          }}
+        >
+          {error}
+        </Snackbar>
+      </Portal>
     </KeyboardAvoidingView>
   );
 }

@@ -5,14 +5,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
-import { Text, Snackbar } from 'react-native-paper';
+import { Text, Snackbar, Portal } from 'react-native-paper';
 import { Link, router } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { Button, Input } from '../../src/components/common';
+import { getAuthErrorMessage } from '../../src/utils/authErrors';
 
 const schema = yup.object({
   email: yup
@@ -43,15 +45,11 @@ export default function ForgotPasswordScreen() {
     try {
       await resetPassword(data.email);
       setSuccess(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Password reset error:', err);
-      if (err.code === 'auth/user-not-found') {
-        setError('No account found with this email');
-      } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email address');
-      } else {
-        setError('Failed to send reset email. Please try again');
-      }
+      const errorMessage = getAuthErrorMessage(err as { code?: string; message?: string });
+      setError(errorMessage);
+      Alert.alert('Password Reset Failed', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -120,17 +118,19 @@ export default function ForgotPasswordScreen() {
         </View>
       </ScrollView>
 
-      <Snackbar
-        visible={!!error}
-        onDismiss={() => setError(null)}
-        duration={4000}
-        action={{
-          label: 'Dismiss',
-          onPress: () => setError(null),
-        }}
-      >
-        {error}
-      </Snackbar>
+      <Portal>
+        <Snackbar
+          visible={!!error}
+          onDismiss={() => setError(null)}
+          duration={4000}
+          action={{
+            label: 'Dismiss',
+            onPress: () => setError(null),
+          }}
+        >
+          {error}
+        </Snackbar>
+      </Portal>
     </KeyboardAvoidingView>
   );
 }

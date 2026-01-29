@@ -106,3 +106,27 @@ export async function deleteHomework(homeworkId: string): Promise<void> {
   const docRef = doc(firestore, 'homework', homeworkId);
   await deleteDoc(docRef);
 }
+
+export async function getHomeworkAssignedToday(
+  studentId: string,
+  date: Date
+): Promise<Homework[]> {
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const q = query(
+    homeworkRef,
+    where('studentId', '==', studentId),
+    where('createdAt', '>=', Timestamp.fromDate(startOfDay)),
+    where('createdAt', '<=', Timestamp.fromDate(endOfDay))
+  );
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Homework[];
+}
