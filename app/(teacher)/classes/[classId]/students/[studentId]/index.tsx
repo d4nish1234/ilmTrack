@@ -111,11 +111,22 @@ export default function StudentDetailScreen() {
       <Stack.Screen
         options={{
           title: `${student.firstName} ${student.lastName}`,
+          headerLeft: () => (
+            <IconButton
+              icon="arrow-left"
+              iconColor="#fff"
+              size={24}
+              onPress={() => router.back()}
+              style={styles.headerButton}
+            />
+          ),
           headerRight: () => (
             <IconButton
               icon="dots-vertical"
               iconColor="#fff"
+              size={24}
               onPress={() => setMenuVisible(true)}
+              style={styles.headerButton}
             />
           ),
         }}
@@ -173,7 +184,21 @@ export default function StudentDetailScreen() {
 
         {/* Parents Section */}
         <Card style={styles.card}>
-          <Card.Title title="Parents/Guardians" />
+          <Card.Title
+            title="Parents/Guardians"
+            right={() => (
+              <Button
+                mode="text"
+                onPress={() =>
+                  router.push(
+                    `/(teacher)/classes/${classId}/students/${studentId}/parents`
+                  )
+                }
+              >
+                Edit
+              </Button>
+            )}
+          />
           <Card.Content>
             {student.parents.map((parent, index) => (
               <View key={index} style={styles.parentItem}>
@@ -359,5 +384,8 @@ const styles = StyleSheet.create({
   },
   menuContent: {
     backgroundColor: '#fff',
+  },
+  headerButton: {
+    margin: 0,
   },
 });

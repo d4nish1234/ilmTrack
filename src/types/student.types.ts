@@ -31,4 +31,5 @@ export interface CreateStudentData {
 export interface UpdateStudentData {
   firstName?: string;
   lastName?: string;
+  parents?: Parent[];
 }

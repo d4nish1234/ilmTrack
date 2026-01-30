@@ -78,7 +78,7 @@ export default function CreateClassScreen() {
             Create Class
           </Button>
 
-          <Button mode="outlined" onPress={() => router.back()}>
+          <Button mode="outlined" onPress={() => router.dismiss()}>
             Cancel
           </Button>
         </View>

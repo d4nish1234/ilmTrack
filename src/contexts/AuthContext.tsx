@@ -18,7 +18,13 @@ import {
   doc,
   getDoc,
   setDoc,
+  getDocs,
+  updateDoc,
+  collection,
+  query,
+  where,
   serverTimestamp,
+  arrayUnion,
 } from 'firebase/firestore';
 import { auth, firestore } from '../config/firebase';
 import { User, UserRole } from '../types';
@@ -41,6 +47,83 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Check for invites and link parent to students
+// Handles both pending invites AND already-accepted invites that weren't fully processed
+async function acceptPendingInvites(
+  userId: string,
+  email: string,
+  existingStudentIds: string[] = []
+): Promise<string[]> {
+  const invitesRef = collection(firestore, 'invites');
+
+  // Query ALL invites for this email (not just pending)
+  const q = query(
+    invitesRef,
+    where('email', '==', email.toLowerCase())
+  );
+
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) {
+    return [];
+  }
+
+  const studentIds: string[] = [];
+
+  // Process each invite
+  for (const inviteDoc of snapshot.docs) {
+    const invite = inviteDoc.data();
+    const studentId = invite.studentId;
+
+    // Skip if parent already has this student linked
+    if (existingStudentIds.includes(studentId)) {
+      continue;
+    }
+
+    studentIds.push(studentId);
+
+    // Update invite status to accepted (if not already)
+    if (invite.status === 'pending') {
+      await updateDoc(inviteDoc.ref, {
+        status: 'accepted',
+        acceptedAt: serverTimestamp(),
+        parentId: userId,
+      });
+    }
+
+    // Always update the student's parent inviteStatus (handles case where invite was
+    // marked accepted but student doc wasn't updated due to previous permission error)
+    const studentRef = doc(firestore, 'students', studentId);
+    const studentDoc = await getDoc(studentRef);
+    if (studentDoc.exists()) {
+      const studentData = studentDoc.data();
+      const needsUpdate = studentData.parents.some(
+        (parent: { email: string; inviteStatus: string }) =>
+          parent.email.toLowerCase() === email.toLowerCase() &&
+          parent.inviteStatus !== 'accepted'
+      );
+      if (needsUpdate) {
+        const updatedParents = studentData.parents.map((parent: { email: string; inviteStatus: string }) => {
+          if (parent.email.toLowerCase() === email.toLowerCase()) {
+            return { ...parent, inviteStatus: 'accepted' };
+          }
+          return parent;
+        });
+        await updateDoc(studentRef, { parents: updatedParents });
+      }
+    }
+  }
+
+  // Add studentIds to user profile
+  if (studentIds.length > 0) {
+    const userRef = doc(firestore, 'users', userId);
+    await updateDoc(userRef, {
+      studentIds: arrayUnion(...studentIds),
+    });
+  }
+
+  return studentIds;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -55,7 +138,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const userDoc = await getDoc(doc(firestore, 'users', fbUser.uid));
           if (userDoc.exists()) {
-            setUser({ uid: fbUser.uid, ...userDoc.data() } as User);
+            const userData = { uid: fbUser.uid, ...userDoc.data() } as User;
+
+            // If parent, check for invites and accept them
+            if (userData.role === 'parent' && fbUser.email) {
+              const existingStudentIds = userData.studentIds || [];
+              const newStudentIds = await acceptPendingInvites(
+                fbUser.uid,
+                fbUser.email,
+                existingStudentIds
+              );
+              if (newStudentIds.length > 0) {
+                // Refresh user data to include new studentIds
+                const refreshedDoc = await getDoc(doc(firestore, 'users', fbUser.uid));
+                if (refreshedDoc.exists()) {
+                  setUser({ uid: fbUser.uid, ...refreshedDoc.data() } as User);
+                  setLoading(false);
+                  return;
+                }
+              }
+            }
+
+            setUser(userData);
           } else {
             setUser(null);
           }
@@ -104,6 +208,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
 
       await setDoc(doc(firestore, 'users', fbUser.uid), userData);
+
+      // If parent, immediately check and accept any pending invites
+      if (role === 'parent') {
+        await acceptPendingInvites(fbUser.uid, email);
+      }
     },
     []
   );

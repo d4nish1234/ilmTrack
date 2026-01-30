@@ -22,6 +22,8 @@ export default function HomeworkLayout() {
             <IconButton
               icon="arrow-left"
               iconColor="#fff"
+              size={24}
+              style={{ margin: 0 }}
               onPress={() => router.back()}
             />
           ),

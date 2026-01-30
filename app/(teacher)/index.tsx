@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   Animated,
   Alert,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import {
   Text,
@@ -439,54 +441,60 @@ export default function TeacherHomeScreen() {
       <Portal>
         <Modal
           visible={homeworkModalVisible}
-          onDismiss={() => setHomeworkModalVisible(false)}
+          onDismiss={Keyboard.dismiss}
+          dismissable={true}
           contentContainerStyle={styles.modalContainer}
         >
-          <Text variant="titleLarge" style={styles.modalTitle}>
-            Assign Homework
-          </Text>
-          {selectedStudent && (
-            <Text variant="bodyMedium" style={styles.modalSubtitle}>
-              For: {selectedStudent.firstName} {selectedStudent.lastName}
-            </Text>
-          )}
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View>
+              <Text variant="titleLarge" style={styles.modalTitle}>
+                Assign Homework
+              </Text>
+              {selectedStudent && (
+                <Text variant="bodyMedium" style={styles.modalSubtitle}>
+                  For: {selectedStudent.firstName} {selectedStudent.lastName}
+                </Text>
+              )}
 
-          <TextInput
-            label="Title *"
-            value={homeworkTitle}
-            onChangeText={setHomeworkTitle}
-            mode="outlined"
-            style={styles.input}
-          />
+              <TextInput
+                label="Title *"
+                value={homeworkTitle}
+                onChangeText={setHomeworkTitle}
+                mode="outlined"
+                style={styles.input}
+                returnKeyType="done"
+              />
 
-          <TextInput
-            label="Description (optional)"
-            value={homeworkDescription}
-            onChangeText={setHomeworkDescription}
-            mode="outlined"
-            multiline
-            numberOfLines={3}
-            style={styles.input}
-          />
+              <TextInput
+                label="Description (optional)"
+                value={homeworkDescription}
+                onChangeText={setHomeworkDescription}
+                mode="outlined"
+                multiline
+                numberOfLines={3}
+                style={styles.input}
+              />
 
-          <View style={styles.modalActions}>
-            <Button
-              mode="outlined"
-              onPress={() => setHomeworkModalVisible(false)}
-              style={styles.modalButton}
-            >
-              Cancel
-            </Button>
-            <Button
-              mode="contained"
-              onPress={handleSubmitHomework}
-              loading={submittingHomework}
-              disabled={submittingHomework || !homeworkTitle.trim()}
-              style={styles.modalButton}
-            >
-              Assign
-            </Button>
-          </View>
+              <View style={styles.modalActions}>
+                <Button
+                  mode="outlined"
+                  onPress={() => setHomeworkModalVisible(false)}
+                  style={styles.modalButton}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={handleSubmitHomework}
+                  loading={submittingHomework}
+                  disabled={submittingHomework || !homeworkTitle.trim()}
+                  style={styles.modalButton}
+                >
+                  Assign
+                </Button>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
         </Modal>
       </Portal>
     </GestureHandlerRootView>
