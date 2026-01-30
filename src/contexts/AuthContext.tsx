@@ -29,6 +29,11 @@ import {
 } from 'firebase/firestore';
 import { auth, firestore } from '../config/firebase';
 import { User, UserRole } from '../types';
+import {
+  registerForPushNotifications,
+  savePushToken,
+  removePushToken,
+} from '../services/notification.service';
 
 interface AuthContextType {
   user: User | null;
@@ -48,6 +53,7 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   resendVerificationEmail: () => Promise<void>;
   reloadFirebaseUser: () => Promise<void>;
+  registerPushNotifications: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -321,8 +327,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    // Remove push token before signing out
+    if (firebaseUser) {
+      await removePushToken(firebaseUser.uid);
+    }
     await firebaseSignOut(auth);
-  }, []);
+  }, [firebaseUser]);
 
   const resetPassword = useCallback(async (email: string) => {
     await sendPasswordResetEmail(auth, email);
@@ -352,6 +362,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setFirebaseUser({ ...firebaseUser } as FirebaseUser);
   }, [firebaseUser]);
 
+  const registerPushNotifications = useCallback(async () => {
+    if (!firebaseUser) return;
+    try {
+      const token = await registerForPushNotifications();
+      if (token) {
+        await savePushToken(firebaseUser.uid, token);
+      }
+    } catch (error) {
+      console.error('Error registering push notifications:', error);
+    }
+  }, [firebaseUser]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -366,6 +388,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshUser,
         resendVerificationEmail,
         reloadFirebaseUser,
+        registerPushNotifications,
       }}
     >
       {children}

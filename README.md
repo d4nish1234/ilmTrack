@@ -16,13 +16,15 @@ A mobile app for teachers and parents to manage students, homework, and attendan
 - Sign up after receiving an email invite
 - View their child's homework assignments
 - View their child's attendance records
+- Receive push notifications when homework is assigned
 
 ## Tech Stack
 
 - **Frontend:** Expo (React Native) with TypeScript
-- **Backend:** Firebase JS SDK (Authentication, Firestore)
+- **Backend:** Firebase JS SDK (Authentication, Firestore, Cloud Functions)
 - **UI:** React Native Paper
 - **Navigation:** Expo Router
+- **Push Notifications:** Expo Notifications + Firebase Cloud Functions
 
 ## Prerequisites
 
@@ -137,9 +139,12 @@ ilmTrack/
 │   ├── config/                   # Firebase configuration
 │   ├── contexts/                 # React contexts (Auth)
 │   ├── hooks/                    # Custom hooks
-│   ├── services/                 # Firebase CRUD operations
+│   ├── services/                 # Firebase CRUD & notifications
 │   ├── types/                    # TypeScript types
 │   └── utils/                    # Utility functions
+├── functions/                    # Firebase Cloud Functions
+│   └── src/
+│       └── index.ts              # Notification triggers
 ├── firestore.rules               # Firestore security rules
 ├── .env                          # Environment variables (gitignored)
 └── app.json                      # Expo configuration
@@ -156,6 +161,46 @@ ilmTrack/
 - **attendance** - Attendance records
 - **invites** - Parent invitation tracking
 
+## Setting Up Push Notifications
+
+Push notifications alert parents when teachers assign new homework.
+
+### 1. Upgrade to Firebase Blaze Plan
+
+Cloud Functions require the Blaze (pay-as-you-go) plan. Don't worry - there's a generous free tier:
+- 2 million Cloud Function invocations/month free
+- 50,000 Firestore reads/day free
+- Expo Push Notifications are completely free
+
+### 2. Install Cloud Functions Dependencies
+
+```bash
+cd functions
+npm install
+cd ..
+```
+
+### 3. Deploy Cloud Functions
+
+```bash
+firebase deploy --only functions
+```
+
+### How It Works
+
+1. When a parent logs in, their Expo push token is saved to Firestore
+2. When a teacher creates homework, a Cloud Function triggers
+3. The function looks up the student's parents and their push tokens
+4. Notifications are sent via Expo's Push API
+
+### Testing Notifications
+
+Push notifications only work on **physical devices**, not simulators. To test:
+1. Install the app on a real device via Expo Go
+2. Log in as a parent
+3. Have a teacher account create homework for that parent's student
+4. The parent should receive a push notification
+
 ## Setting Up Parent Email Invites (Optional)
 
 To send email invites to parents when a student is added:
@@ -166,15 +211,11 @@ To send email invites to parents when a student is added:
 2. Verify your domain or use the sandbox domain for testing
 3. Get your API key
 
-### 2. Create Cloud Functions
+### 2. Add Mailgun to Cloud Functions
 
 ```bash
-# Navigate to functions directory
-mkdir functions && cd functions
-
-# Initialize
-npm init -y
-npm install firebase-functions firebase-admin mailgun-js
+cd functions
+npm install mailgun-js
 
 # Set Mailgun config
 firebase functions:config:set mailgun.key="YOUR_API_KEY" mailgun.domain="YOUR_DOMAIN"

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { PaperProvider, MD3LightTheme } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -6,6 +6,10 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
 import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
 import { LoadingSpinner, KeyboardAccessory } from '../src/components/common';
+import {
+  setupNotificationChannel,
+  addNotificationListeners,
+} from '../src/services/notification.service';
 
 const theme = {
   ...MD3LightTheme,
@@ -17,9 +21,42 @@ const theme = {
 };
 
 function RootLayoutNav() {
-  const { user, loading, emailVerified } = useAuth();
+  const { user, loading, emailVerified, registerPushNotifications } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const notificationsRegistered = useRef(false);
+
+  // Set up notification channel and listeners
+  useEffect(() => {
+    setupNotificationChannel();
+
+    const cleanup = addNotificationListeners(
+      (notification) => {
+        console.log('Notification received:', notification);
+      },
+      (response) => {
+        console.log('Notification tapped:', response);
+        // Navigate based on notification data if needed
+        const data = response.notification.request.content.data;
+        if (data?.type === 'homework' && data?.studentId) {
+          // Could navigate to homework screen
+        }
+      }
+    );
+
+    return cleanup;
+  }, []);
+
+  // Register for push notifications when user is verified
+  useEffect(() => {
+    if (user && emailVerified && !notificationsRegistered.current) {
+      notificationsRegistered.current = true;
+      registerPushNotifications();
+    }
+    if (!user) {
+      notificationsRegistered.current = false;
+    }
+  }, [user, emailVerified, registerPushNotifications]);
 
   useEffect(() => {
     if (loading) return;

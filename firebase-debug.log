@@ -1,0 +1,150 @@
+[debug] [2026-01-30T13:29:15.339Z] ----------------------------------------------------------------------
+[debug] [2026-01-30T13:29:15.341Z] Command:       /Users/danishmahboob/.nvm/versions/node/v24.13.0/bin/node /Users/danishmahboob/.nvm/versions/node/v24.13.0/bin/firebase deploy --only functions
+[debug] [2026-01-30T13:29:15.341Z] CLI Version:   15.5.1
+[debug] [2026-01-30T13:29:15.341Z] Platform:      darwin
+[debug] [2026-01-30T13:29:15.341Z] Node Version:  v24.13.0
+[debug] [2026-01-30T13:29:15.341Z] Time:          Fri Jan 30 2026 08:29:15 GMT-0500 (Eastern Standard Time)
+[debug] [2026-01-30T13:29:15.341Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-01-30T13:29:16.019Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-30T13:29:16.020Z] > authorizing via signed-in user (danishsumroo@gmail.com)
+[debug] [2026-01-30T13:29:16.020Z] [iam] checking project ilmtrack-f6c8c for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2026-01-30T13:29:16.021Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:16.021Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:16.021Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/ilmtrack-f6c8c:testIamPermissions [none]
+[debug] [2026-01-30T13:29:16.021Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/ilmtrack-f6c8c:testIamPermissions  x-goog-user-project=ilmtrack-f6c8c
+[debug] [2026-01-30T13:29:16.021Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/ilmtrack-f6c8c:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-01-30T13:29:16.269Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/ilmtrack-f6c8c:testIamPermissions 200
+[debug] [2026-01-30T13:29:16.271Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/ilmtrack-f6c8c:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-01-30T13:29:16.272Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:16.272Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:16.272Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/ilmtrack-f6c8c/serviceAccounts/ilmtrack-f6c8c@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-01-30T13:29:16.272Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/ilmtrack-f6c8c/serviceAccounts/ilmtrack-f6c8c@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-01-30T13:29:16.459Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/ilmtrack-f6c8c/serviceAccounts/ilmtrack-f6c8c@appspot.gserviceaccount.com:testIamPermissions 200
+[debug] [2026-01-30T13:29:16.459Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/ilmtrack-f6c8c/serviceAccounts/ilmtrack-f6c8c@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[info] 
+[info] === Deploying to 'ilmtrack-f6c8c'...
+[info] 
+[info] i  deploying functions 
+[info] Running command: npm --prefix "$RESOURCE_DIR" run build
+[info] ✔  functions: Finished running predeploy script. 
+[debug] [2026-01-30T13:29:17.371Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:17.371Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:17.371Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/ilmtrack-f6c8c [none]
+[debug] [2026-01-30T13:29:17.481Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/ilmtrack-f6c8c 200
+[debug] [2026-01-30T13:29:17.482Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/ilmtrack-f6c8c {"projectNumber":"698370474025","projectId":"ilmtrack-f6c8c","lifecycleState":"ACTIVE","name":"ilmTrack","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-01-29T03:08:23.159319Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2026-01-30T13:29:17.482Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:17.482Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:17.482Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/ilmtrack-f6c8c/adminSdkConfig [none]
+[debug] [2026-01-30T13:29:17.755Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/ilmtrack-f6c8c/adminSdkConfig 200
+[debug] [2026-01-30T13:29:17.755Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/ilmtrack-f6c8c/adminSdkConfig {"projectId":"ilmtrack-f6c8c","storageBucket":"ilmtrack-f6c8c.firebasestorage.app"}
+[debug] [2026-01-30T13:29:17.755Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:17.755Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:17.755Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/ilmtrack-f6c8c/configs [none]
+[debug] [2026-01-30T13:29:17.947Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/ilmtrack-f6c8c/configs 200
+[debug] [2026-01-30T13:29:17.947Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/ilmtrack-f6c8c/configs {}
+[debug] [2026-01-30T13:29:17.948Z] Validating nodejs source
+[warn] ⚠  functions: Runtime Node.js 20 will be deprecated on 2026-04-30 and will be decommissioned on 2026-10-30, after which you will not be able to deploy without upgrading. Consider upgrading now to avoid disruption. See https://cloud.google.com/functions/docs/runtime-support for full details on the lifecycle policy 
+[warn] ⚠  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory. 
+[warn] ⚠  functions: Please note that there will be breaking changes when you upgrade. 
+[debug] [2026-01-30T13:29:18.406Z] > [functions] package.json contents: {
+  "name": "ilmtrack-functions",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "expo-server-sdk": "^3.7.0",
+    "firebase-admin": "^11.11.0",
+    "firebase-functions": "^4.5.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  },
+  "private": true
+}
+[debug] [2026-01-30T13:29:18.406Z] Building nodejs source
+[info] i  functions: Loading and analyzing source code for codebase default to determine what to deploy 
+[info] i  functions: You are using a version of firebase-functions SDK (4.9.0) that does not have support for the newest Firebase Extensions features. Please update firebase-functions SDK to >=5.1.0 to use them correctly 
+[debug] [2026-01-30T13:29:18.406Z] Could not find functions.yaml. Must use http discovery
+[debug] [2026-01-30T13:29:18.410Z] Found firebase-functions binary at '/Users/danishmahboob/Documents/repos/ilmTrack/functions/node_modules/.bin/firebase-functions'
+[info] Serving at port 8406
+
+[debug] [2026-01-30T13:29:19.008Z] Got response from /__/functions.yaml {"endpoints":{"onHomeworkCreated":{"platform":"gcfv1","availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"serviceAccountEmail":null,"vpc":null,"eventTrigger":{"eventType":"providers/cloud.firestore/eventTypes/document.create","eventFilters":{"resource":"projects/ilmtrack-f6c8c/databases/(default)/documents/homework/{homeworkId}"},"retry":false},"labels":{},"entryPoint":"onHomeworkCreated"}},"specVersion":"v1alpha1","requiredAPIs":[]}
+[info] i  functions: preparing functions directory for uploading... 
+[info] i  functions: packaged /Users/danishmahboob/Documents/repos/ilmTrack/functions (40.82 KB) for uploading 
+[debug] [2026-01-30T13:29:23.065Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:23.065Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:23.065Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/projects/ilmtrack-f6c8c/locations/-/functions [none]
+[debug] [2026-01-30T13:29:23.917Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/projects/ilmtrack-f6c8c/locations/-/functions 200
+[debug] [2026-01-30T13:29:23.917Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/projects/ilmtrack-f6c8c/locations/-/functions {}
+[debug] [2026-01-30T13:29:23.917Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:23.917Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:23.918Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v2/projects/ilmtrack-f6c8c/locations/-/functions filter=environment%3D%22GEN_2%22
+[debug] [2026-01-30T13:29:24.406Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v2/projects/ilmtrack-f6c8c/locations/-/functions 200
+[debug] [2026-01-30T13:29:24.406Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v2/projects/ilmtrack-f6c8c/locations/-/functions {}
+[debug] [2026-01-30T13:29:24.409Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:24.409Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:24.409Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/ilmtrack-f6c8c [none]
+[debug] [2026-01-30T13:29:24.715Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/ilmtrack-f6c8c 200
+[debug] [2026-01-30T13:29:24.716Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/ilmtrack-f6c8c {"projectNumber":"698370474025","projectId":"ilmtrack-f6c8c","lifecycleState":"ACTIVE","name":"ilmTrack","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-01-29T03:08:23.159319Z"}
+[debug] [2026-01-30T13:29:24.717Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:24.718Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:24.718Z] >>> [apiv2][query] POST https://cloudfunctions.googleapis.com/v1/projects/ilmtrack-f6c8c/locations/us-central1/functions:generateUploadUrl [none]
+[debug] [2026-01-30T13:29:24.718Z] >>> [apiv2][body] POST https://cloudfunctions.googleapis.com/v1/projects/ilmtrack-f6c8c/locations/us-central1/functions:generateUploadUrl {}
+[debug] [2026-01-30T13:29:41.496Z] <<< [apiv2][status] POST https://cloudfunctions.googleapis.com/v1/projects/ilmtrack-f6c8c/locations/us-central1/functions:generateUploadUrl 200
+[debug] [2026-01-30T13:29:41.497Z] <<< [apiv2][body] POST https://cloudfunctions.googleapis.com/v1/projects/ilmtrack-f6c8c/locations/us-central1/functions:generateUploadUrl {"uploadUrl":"https://storage.googleapis.com/uploads-793098670899.us-central1.cloudfunctions.appspot.com/e8924669-fed2-4213-a358-6ae3a6b5447d.zip?GoogleAccessId=service-698370474025@gcf-admin-robot.iam.gserviceaccount.com&Expires=1769781581&Signature=X%2BZIWprJNkcppAm5uyddMKWkqivQri7KkkzNkvSFh0rx5MzgKqrBrzwsvzJLKfKVD2cJZQ824vi%2FGyStmD3KXIWStSsUEmJI81hPQD%2FllxqGtEWPXzvkPfu6EqgVBWMWgQMLQno4i%2B8Ta6IAGwDguHnb7k0OQESZnarVlSonqgTr7hdlbir1LJ43v9muUl3bJRn%2FVcKo1cNe0yyU7mhGUnbGlMjYsVWPtGdjyvXlqsRXyRDXWiihKb9xRFs8%2FQ8HVaY9BzVKOYt4373KSqS7LJ4OEpTa8rBHPy0lFp5L1gLX161se6XaWNMjszTe%2BZGoO1yq%2B%2FTv9Fw1Q2hOu%2BK%2ByA%3D%3D"}
+[debug] [2026-01-30T13:29:41.499Z] >>> [apiv2][query] PUT https://storage.googleapis.com/uploads-793098670899.us-central1.cloudfunctions.appspot.com/e8924669-fed2-4213-a358-6ae3a6b5447d.zip GoogleAccessId=service-698370474025%40gcf-admin-robot.iam.gserviceaccount.com&Expires=1769781581&Signature=X%2BZIWprJNkcppAm5uyddMKWkqivQri7KkkzNkvSFh0rx5MzgKqrBrzwsvzJLKfKVD2cJZQ824vi%2FGyStmD3KXIWStSsUEmJI81hPQD%2FllxqGtEWPXzvkPfu6EqgVBWMWgQMLQno4i%2B8Ta6IAGwDguHnb7k0OQESZnarVlSonqgTr7hdlbir1LJ43v9muUl3bJRn%2FVcKo1cNe0yyU7mhGUnbGlMjYsVWPtGdjyvXlqsRXyRDXWiihKb9xRFs8%2FQ8HVaY9BzVKOYt4373KSqS7LJ4OEpTa8rBHPy0lFp5L1gLX161se6XaWNMjszTe%2BZGoO1yq%2B%2FTv9Fw1Q2hOu%2BK%2ByA%3D%3D
+[debug] [2026-01-30T13:29:41.499Z] >>> [apiv2][body] PUT https://storage.googleapis.com/uploads-793098670899.us-central1.cloudfunctions.appspot.com/e8924669-fed2-4213-a358-6ae3a6b5447d.zip [stream]
+[debug] [2026-01-30T13:29:42.028Z] <<< [apiv2][status] PUT https://storage.googleapis.com/uploads-793098670899.us-central1.cloudfunctions.appspot.com/e8924669-fed2-4213-a358-6ae3a6b5447d.zip 200
+[debug] [2026-01-30T13:29:42.029Z] <<< [apiv2][body] PUT https://storage.googleapis.com/uploads-793098670899.us-central1.cloudfunctions.appspot.com/e8924669-fed2-4213-a358-6ae3a6b5447d.zip [omitted]
+[info] ✔  functions: functions source uploaded successfully 
+[info] i  functions: creating Node.js 20 (1st Gen) function onHomeworkCreated(us-central1)... 
+[debug] [2026-01-30T13:29:42.051Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:42.051Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:42.051Z] >>> [apiv2][query] POST https://cloudfunctions.googleapis.com/v1/projects/ilmtrack-f6c8c/locations/us-central1/functions [none]
+[debug] [2026-01-30T13:29:42.051Z] >>> [apiv2][body] POST https://cloudfunctions.googleapis.com/v1/projects/ilmtrack-f6c8c/locations/us-central1/functions {"name":"projects/ilmtrack-f6c8c/locations/us-central1/functions/onHomeworkCreated","sourceUploadUrl":"https://storage.googleapis.com/uploads-793098670899.us-central1.cloudfunctions.appspot.com/e8924669-fed2-4213-a358-6ae3a6b5447d.zip?GoogleAccessId=service-698370474025@gcf-admin-robot.iam.gserviceaccount.com&Expires=1769781581&Signature=X%2BZIWprJNkcppAm5uyddMKWkqivQri7KkkzNkvSFh0rx5MzgKqrBrzwsvzJLKfKVD2cJZQ824vi%2FGyStmD3KXIWStSsUEmJI81hPQD%2FllxqGtEWPXzvkPfu6EqgVBWMWgQMLQno4i%2B8Ta6IAGwDguHnb7k0OQESZnarVlSonqgTr7hdlbir1LJ43v9muUl3bJRn%2FVcKo1cNe0yyU7mhGUnbGlMjYsVWPtGdjyvXlqsRXyRDXWiihKb9xRFs8%2FQ8HVaY9BzVKOYt4373KSqS7LJ4OEpTa8rBHPy0lFp5L1gLX161se6XaWNMjszTe%2BZGoO1yq%2B%2FTv9Fw1Q2hOu%2BK%2ByA%3D%3D","entryPoint":"onHomeworkCreated","runtime":"nodejs20","dockerRegistry":"ARTIFACT_REGISTRY","labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"4f8a6102a273d5d2b3d794dc682e077c9d502c76"},"eventTrigger":{"eventType":"providers/cloud.firestore/eventTypes/document.create","resource":"projects/ilmtrack-f6c8c/databases/(default)/documents/homework/{homeworkId}"},"minInstances":null,"maxInstances":null,"ingressSettings":null,"environmentVariables":{"FIREBASE_CONFIG":"{\"projectId\":\"ilmtrack-f6c8c\",\"storageBucket\":\"ilmtrack-f6c8c.firebasestorage.app\"}","GCLOUD_PROJECT":"ilmtrack-f6c8c","EVENTARC_CLOUD_EVENT_SOURCE":"projects/ilmtrack-f6c8c/locations/us-central1/functions/onHomeworkCreated"},"serviceAccountEmail":null,"availableMemoryMb":null,"timeout":null,"vpcConnector":null,"vpcConnectorEgressSettings":null,"buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""}}
+[debug] [2026-01-30T13:29:43.698Z] <<< [apiv2][status] POST https://cloudfunctions.googleapis.com/v1/projects/ilmtrack-f6c8c/locations/us-central1/functions 200
+[debug] [2026-01-30T13:29:43.698Z] <<< [apiv2][body] POST https://cloudfunctions.googleapis.com/v1/projects/ilmtrack-f6c8c/locations/us-central1/functions {"name":"operations/cHJvamVjdHMvaWxtdHJhY2stZjZjOGMvbG9jYXRpb25zL3VzLWNlbnRyYWwxL29wZXJhdGlvbnMvb3BlcmF0aW9uLTE3Njk3Nzk3ODIxODgtNjQ5OWFmNzNmN2Y4NS02MTdhNTY1OC1hNWFkZjllMg","metadata":{"@type":"type.googleapis.com/google.cloud.functions.v1.OperationMetadataV1","target":"projects/ilmtrack-f6c8c/locations/us-central1/functions/onHomeworkCreated","updateTime":"2026-01-30T13:29:43.651118135Z"}}
+[debug] [2026-01-30T13:29:43.699Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:43.699Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:29:43.699Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/operations/cHJvamVjdHMvaWxtdHJhY2stZjZjOGMvbG9jYXRpb25zL3VzLWNlbnRyYWwxL29wZXJhdGlvbnMvb3BlcmF0aW9uLTE3Njk3Nzk3ODIxODgtNjQ5OWFmNzNmN2Y4NS02MTdhNTY1OC1hNWFkZjllMg [none]
+[debug] [2026-01-30T13:29:43.928Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/operations/cHJvamVjdHMvaWxtdHJhY2stZjZjOGMvbG9jYXRpb25zL3VzLWNlbnRyYWwxL29wZXJhdGlvbnMvb3BlcmF0aW9uLTE3Njk3Nzk3ODIxODgtNjQ5OWFmNzNmN2Y4NS02MTdhNTY1OC1hNWFkZjllMg 200
+[debug] [2026-01-30T13:29:43.929Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/operations/cHJvamVjdHMvaWxtdHJhY2stZjZjOGMvbG9jYXRpb25zL3VzLWNlbnRyYWwxL29wZXJhdGlvbnMvb3BlcmF0aW9uLTE3Njk3Nzk3ODIxODgtNjQ5OWFmNzNmN2Y4NS02MTdhNTY1OC1hNWFkZjllMg {"name":"operations/cHJvamVjdHMvaWxtdHJhY2stZjZjOGMvbG9jYXRpb25zL3VzLWNlbnRyYWwxL29wZXJhdGlvbnMvb3BlcmF0aW9uLTE3Njk3Nzk3ODIxODgtNjQ5OWFmNzNmN2Y4NS02MTdhNTY1OC1hNWFkZjllMg","metadata":{"@type":"type.googleapis.com/google.cloud.functions.v1.OperationMetadataV1","target":"projects/ilmtrack-f6c8c/locations/us-central1/functions/onHomeworkCreated","updateTime":"2026-01-30T13:29:43.651118135Z"}}
+[debug] [2026-01-30T13:45:30.170Z] [create-default-us-central1-onHomeworkCreated] Retrying task index 0
+[debug] [2026-01-30T13:45:30.170Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:45:30.170Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:45:30.170Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/operations/cHJvamVjdHMvaWxtdHJhY2stZjZjOGMvbG9jYXRpb25zL3VzLWNlbnRyYWwxL29wZXJhdGlvbnMvb3BlcmF0aW9uLTE3Njk3Nzk3ODIxODgtNjQ5OWFmNzNmN2Y4NS02MTdhNTY1OC1hNWFkZjllMg [none]
+[debug] [2026-01-30T13:45:30.770Z] *** [apiv2] error from fetch(https://cloudfunctions.googleapis.com/v1/operations/cHJvamVjdHMvaWxtdHJhY2stZjZjOGMvbG9jYXRpb25zL3VzLWNlbnRyYWwxL29wZXJhdGlvbnMvb3BlcmF0aW9uLTE3Njk3Nzk3ODIxODgtNjQ5OWFmNzNmN2Y4NS02MTdhNTY1OC1hNWFkZjllMg, {"headers":{},"method":"GET"}): FetchError: request to https://cloudfunctions.googleapis.com/v1/operations/cHJvamVjdHMvaWxtdHJhY2stZjZjOGMvbG9jYXRpb25zL3VzLWNlbnRyYWwxL29wZXJhdGlvbnMvb3BlcmF0aW9uLTE3Njk3Nzk3ODIxODgtNjQ5OWFmNzNmN2Y4NS02MTdhNTY1OC1hNWFkZjllMg failed, reason: read ECONNRESET
+[debug] [2026-01-30T13:45:31.772Z] [create-default-us-central1-onHomeworkCreated] Retrying task index 0
+[debug] [2026-01-30T13:45:31.772Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:45:31.772Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:45:31.772Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/operations/cHJvamVjdHMvaWxtdHJhY2stZjZjOGMvbG9jYXRpb25zL3VzLWNlbnRyYWwxL29wZXJhdGlvbnMvb3BlcmF0aW9uLTE3Njk3Nzk3ODIxODgtNjQ5OWFmNzNmN2Y4NS02MTdhNTY1OC1hNWFkZjllMg [none]
+[debug] [2026-01-30T13:45:32.015Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/operations/cHJvamVjdHMvaWxtdHJhY2stZjZjOGMvbG9jYXRpb25zL3VzLWNlbnRyYWwxL29wZXJhdGlvbnMvb3BlcmF0aW9uLTE3Njk3Nzk3ODIxODgtNjQ5OWFmNzNmN2Y4NS02MTdhNTY1OC1hNWFkZjllMg 200
+[debug] [2026-01-30T13:45:32.016Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/operations/cHJvamVjdHMvaWxtdHJhY2stZjZjOGMvbG9jYXRpb25zL3VzLWNlbnRyYWwxL29wZXJhdGlvbnMvb3BlcmF0aW9uLTE3Njk3Nzk3ODIxODgtNjQ5OWFmNzNmN2Y4NS02MTdhNTY1OC1hNWFkZjllMg {"name":"operations/cHJvamVjdHMvaWxtdHJhY2stZjZjOGMvbG9jYXRpb25zL3VzLWNlbnRyYWwxL29wZXJhdGlvbnMvb3BlcmF0aW9uLTE3Njk3Nzk3ODIxODgtNjQ5OWFmNzNmN2Y4NS02MTdhNTY1OC1hNWFkZjllMg","metadata":{"@type":"type.googleapis.com/google.cloud.functions.v1.OperationMetadataV1","target":"projects/ilmtrack-f6c8c/locations/us-central1/functions/onHomeworkCreated","type":"CREATE_FUNCTION","request":{"@type":"type.googleapis.com/google.cloud.functions.v1.CloudFunction","name":"projects/ilmtrack-f6c8c/locations/us-central1/functions/onHomeworkCreated","eventTrigger":{"eventType":"providers/cloud.firestore/eventTypes/document.create","resource":"projects/ilmtrack-f6c8c/databases/(default)/documents/homework/{homeworkId}","failurePolicy":{}},"entryPoint":"onHomeworkCreated","updateTime":"1970-01-01T00:00:00Z","labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"4f8a6102a273d5d2b3d794dc682e077c9d502c76"},"sourceUploadUrl":"https://storage.googleapis.com/uploads-793098670899.us-central1.cloudfunctions.appspot.com/e8924669-fed2-4213-a358-6ae3a6b5447d.zip?GoogleAccessId=service-698370474025@gcf-admin-robot.iam.gserviceaccount.com&Expires=1769781581&Signature=X%2BZIWprJNkcppAm5uyddMKWkqivQri7KkkzNkvSFh0rx5MzgKqrBrzwsvzJLKfKVD2cJZQ824vi%2FGyStmD3KXIWStSsUEmJI81hPQD%2FllxqGtEWPXzvkPfu6EqgVBWMWgQMLQno4i%2B8Ta6IAGwDguHnb7k0OQESZnarVlSonqgTr7hdlbir1LJ43v9muUl3bJRn%2FVcKo1cNe0yyU7mhGUnbGlMjYsVWPtGdjyvXlqsRXyRDXWiihKb9xRFs8%2FQ8HVaY9BzVKOYt4373KSqS7LJ4OEpTa8rBHPy0lFp5L1gLX161se6XaWNMjszTe%2BZGoO1yq%2B%2FTv9Fw1Q2hOu%2BK%2ByA%3D%3D","environmentVariables":{"FIREBASE_CONFIG":"{\"projectId\":\"ilmtrack-f6c8c\",\"storageBucket\":\"ilmtrack-f6c8c.firebasestorage.app\"}","GCLOUD_PROJECT":"ilmtrack-f6c8c","EVENTARC_CLOUD_EVENT_SOURCE":"projects/ilmtrack-f6c8c/locations/us-central1/functions/onHomeworkCreated"},"runtime":"nodejs20","buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""},"dockerRegistry":"ARTIFACT_REGISTRY"},"versionId":"1","updateTime":"2026-01-30T13:36:49.984898211Z","buildId":"a438607c-7042-4d28-a6f2-d3149d9214e9","sourceToken":"f2dc0e14-9f2c-4b29-8495-47bfb56d5420","buildName":"projects/698370474025/locations/us-central1/builds/a438607c-7042-4d28-a6f2-d3149d9214e9"},"done":true,"response":{"@type":"type.googleapis.com/google.cloud.functions.v1.CloudFunction","name":"projects/ilmtrack-f6c8c/locations/us-central1/functions/onHomeworkCreated","eventTrigger":{"eventType":"providers/cloud.firestore/eventTypes/document.create","resource":"projects/ilmtrack-f6c8c/databases/(default)/documents/homework/{homeworkId}","service":"firestore.googleapis.com","failurePolicy":{}},"status":"ACTIVE","entryPoint":"onHomeworkCreated","timeout":"60s","availableMemoryMb":256,"serviceAccountEmail":"ilmtrack-f6c8c@appspot.gserviceaccount.com","updateTime":"2026-01-30T13:29:43.647135329Z","versionId":"1","labels":{"firebase-functions-hash":"4f8a6102a273d5d2b3d794dc682e077c9d502c76","deployment-tool":"cli-firebase"},"sourceUploadUrl":"https://storage.googleapis.com/uploads-793098670899.us-central1.cloudfunctions.appspot.com/e8924669-fed2-4213-a358-6ae3a6b5447d.zip","environmentVariables":{"FIREBASE_CONFIG":"{\"projectId\":\"ilmtrack-f6c8c\",\"storageBucket\":\"ilmtrack-f6c8c.firebasestorage.app\"}","GCLOUD_PROJECT":"ilmtrack-f6c8c","EVENTARC_CLOUD_EVENT_SOURCE":"projects/ilmtrack-f6c8c/locations/us-central1/functions/onHomeworkCreated"},"runtime":"nodejs20","maxInstances":3000,"ingressSettings":"ALLOW_ALL","buildId":"a438607c-7042-4d28-a6f2-d3149d9214e9","buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""},"buildName":"projects/698370474025/locations/us-central1/builds/a438607c-7042-4d28-a6f2-d3149d9214e9","dockerRegistry":"ARTIFACT_REGISTRY","automaticUpdatePolicy":{},"buildServiceAccount":"projects/ilmtrack-f6c8c/serviceAccounts/698370474025-compute@developer.gserviceaccount.com","satisfiesPzi":true}}
+[debug] [2026-01-30T13:45:32.016Z] Got source token f2dc0e14-9f2c-4b29-8495-47bfb56d5420 for region us-central1
+[info] ✔  functions[onHomeworkCreated(us-central1)] Successful create operation. 
+[debug] [2026-01-30T13:45:32.025Z] Total Function Deployment time: 949974
+[debug] [2026-01-30T13:45:32.025Z] 1 Functions Deployed
+[debug] [2026-01-30T13:45:32.025Z] 0 Functions Errored
+[debug] [2026-01-30T13:45:32.025Z] 0 Function Deployments Aborted
+[debug] [2026-01-30T13:45:32.025Z] Average Function Deployment time: 949972
+[debug] [2026-01-30T13:45:32.210Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:45:32.210Z] Checked if tokens are valid: true, expires at: 1769783066719
+[debug] [2026-01-30T13:45:32.210Z] >>> [apiv2][query] GET https://artifactregistry.googleapis.com/v1/projects/ilmtrack-f6c8c/locations/us-central1/repositories/gcf-artifacts [none]
+[debug] [2026-01-30T13:45:32.637Z] <<< [apiv2][status] GET https://artifactregistry.googleapis.com/v1/projects/ilmtrack-f6c8c/locations/us-central1/repositories/gcf-artifacts 200
+[debug] [2026-01-30T13:45:32.637Z] <<< [apiv2][body] GET https://artifactregistry.googleapis.com/v1/projects/ilmtrack-f6c8c/locations/us-central1/repositories/gcf-artifacts {"name":"projects/ilmtrack-f6c8c/locations/us-central1/repositories/gcf-artifacts","format":"DOCKER","description":"This repository is created and used by Cloud Functions for storing function docker images.","labels":{"goog-managed-by":"cloudfunctions"},"createTime":"2026-01-30T13:29:59.819314Z","updateTime":"2026-01-30T13:31:01.595181Z","mode":"STANDARD_REPOSITORY","sizeBytes":"510949826","vulnerabilityScanningConfig":{"lastEnableTime":"2026-01-30T13:29:45.400460256Z","enablementState":"SCANNING_DISABLED","enablementStateReason":"API containerscanning.googleapis.com is not enabled."},"satisfiesPzi":true,"registryUri":"us-central1-docker.pkg.dev/ilmtrack-f6c8c/gcf-artifacts"}
+[warn] ⚠  functions: No cleanup policy detected for repositories in us-central1. This may result in a small monthly bill as container images accumulate over time. 
