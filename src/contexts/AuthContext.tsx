@@ -358,8 +358,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const reloadFirebaseUser = useCallback(async () => {
     if (!firebaseUser) return;
     await firebaseUser.reload();
-    // Force a re-render by updating the firebaseUser state
-    setFirebaseUser({ ...firebaseUser } as FirebaseUser);
+    // Get fresh reference from auth.currentUser to preserve methods
+    const freshUser = auth.currentUser;
+    if (freshUser) {
+      setFirebaseUser(freshUser);
+    }
   }, [firebaseUser]);
 
   const registerPushNotifications = useCallback(async () => {

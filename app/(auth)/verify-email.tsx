@@ -4,6 +4,7 @@ import { Text, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { Button } from '../../src/components/common';
+import { auth } from '../../src/config/firebase';
 
 export default function VerifyEmailScreen() {
   const { firebaseUser, signOut, resendVerificationEmail, reloadFirebaseUser } =
@@ -38,9 +39,18 @@ export default function VerifyEmailScreen() {
     setChecking(true);
     try {
       await reloadFirebaseUser();
-      // The root layout will automatically redirect if verified
+      // Check fresh auth state directly
+      const currentUser = auth.currentUser;
+      if (!currentUser?.emailVerified) {
+        Alert.alert(
+          'Not Verified Yet',
+          'Your email has not been verified yet. Please click the link in the verification email first, then try again.'
+        );
+      }
+      // If verified, the root layout will automatically redirect
     } catch (error) {
       console.error('Error checking verification:', error);
+      Alert.alert('Error', 'Failed to check verification status. Please try again.');
     } finally {
       setChecking(false);
     }
