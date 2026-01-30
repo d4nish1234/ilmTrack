@@ -43,6 +43,7 @@ interface AuthContextType {
   ) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -320,6 +321,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await sendPasswordResetEmail(auth, email);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    if (!firebaseUser) return;
+    try {
+      const userDoc = await getDoc(doc(firestore, 'users', firebaseUser.uid));
+      if (userDoc.exists()) {
+        setUser({ uid: firebaseUser.uid, ...userDoc.data() } as User);
+      }
+    } catch (error) {
+      console.error('Error refreshing user:', error);
+    }
+  }, [firebaseUser]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -330,6 +343,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         signOut,
         resetPassword,
+        refreshUser,
       }}
     >
       {children}
