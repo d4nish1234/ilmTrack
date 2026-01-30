@@ -17,11 +17,38 @@ import { firestore } from '../../src/config/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 
 export default function ParentSettingsScreen() {
-  const { user, signOut, refreshUser } = useAuth();
+  const { user, signOut, refreshUser, resetPassword } = useAuth();
   const [showEditName, setShowEditName] = useState(false);
   const [firstName, setFirstName] = useState(user?.firstName || '');
   const [lastName, setLastName] = useState(user?.lastName || '');
   const [saving, setSaving] = useState(false);
+
+  const handleChangePassword = () => {
+    if (!user?.email) return;
+
+    Alert.alert(
+      'Change Password',
+      `We'll send a password reset link to ${user.email}. You can use that link to set a new password.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send Link',
+          onPress: async () => {
+            try {
+              await resetPassword(user.email);
+              Alert.alert(
+                'Email Sent',
+                'Check your inbox for the password reset link. Remember to check spam/junk folder.'
+              );
+            } catch (error) {
+              console.error('Error sending password reset:', error);
+              Alert.alert('Error', 'Failed to send password reset email. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleSignOut = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -104,7 +131,7 @@ export default function ParentSettingsScreen() {
           title="Change Password"
           left={(props) => <List.Icon {...props} icon="lock" />}
           right={(props) => <List.Icon {...props} icon="chevron-right" />}
-          onPress={() => {}}
+          onPress={handleChangePassword}
         />
       </List.Section>
 

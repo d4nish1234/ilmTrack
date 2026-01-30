@@ -17,7 +17,7 @@ const theme = {
 };
 
 function RootLayoutNav() {
-  const { user, loading } = useAuth();
+  const { user, loading, emailVerified } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -27,14 +27,20 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === '(auth)';
     const inTeacherGroup = segments[0] === '(teacher)';
     const inParentGroup = segments[0] === '(parent)';
+    const onVerifyPage = segments[1] === 'verify-email';
 
     if (!user && !inAuthGroup) {
       // User is not signed in, redirect to login
       router.replace('/(auth)/login');
     } else if (user) {
-      // User is signed in
-      if (inAuthGroup) {
-        // Redirect from auth pages to appropriate home
+      // Check if email is verified
+      if (!emailVerified) {
+        // User needs to verify email
+        if (!onVerifyPage) {
+          router.replace('/(auth)/verify-email');
+        }
+      } else if (inAuthGroup) {
+        // Email is verified, redirect from auth pages to appropriate home
         if (user.role === 'teacher') {
           router.replace('/(teacher)');
         } else {
@@ -48,7 +54,7 @@ function RootLayoutNav() {
         router.replace('/(parent)');
       }
     }
-  }, [user, loading, segments]);
+  }, [user, loading, emailVerified, segments]);
 
   if (loading) {
     return <LoadingSpinner message="Loading..." />;

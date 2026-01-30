@@ -13,6 +13,7 @@ import {
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
+  sendEmailVerification,
 } from 'firebase/auth';
 import {
   doc,
@@ -33,6 +34,7 @@ interface AuthContextType {
   user: User | null;
   firebaseUser: FirebaseUser | null;
   loading: boolean;
+  emailVerified: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (
     email: string,
@@ -44,6 +46,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   refreshUser: () => Promise<void>;
+  resendVerificationEmail: () => Promise<void>;
+  reloadFirebaseUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -305,6 +309,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       await setDoc(doc(firestore, 'users', fbUser.uid), userData);
 
+      // Send email verification
+      await sendEmailVerification(fbUser);
+
       // If parent, immediately check and accept any pending invites
       if (role === 'parent') {
         await acceptPendingInvites(fbUser.uid, email);
@@ -333,17 +340,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [firebaseUser]);
 
+  const resendVerificationEmail = useCallback(async () => {
+    if (!firebaseUser) throw new Error('No user logged in');
+    await sendEmailVerification(firebaseUser);
+  }, [firebaseUser]);
+
+  const reloadFirebaseUser = useCallback(async () => {
+    if (!firebaseUser) return;
+    await firebaseUser.reload();
+    // Force a re-render by updating the firebaseUser state
+    setFirebaseUser({ ...firebaseUser } as FirebaseUser);
+  }, [firebaseUser]);
+
   return (
     <AuthContext.Provider
       value={{
         user,
         firebaseUser,
         loading,
+        emailVerified: firebaseUser?.emailVerified ?? false,
         signIn,
         signUp,
         signOut,
         resetPassword,
         refreshUser,
+        resendVerificationEmail,
+        reloadFirebaseUser,
       }}
     >
       {children}
