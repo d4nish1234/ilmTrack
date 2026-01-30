@@ -1,12 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, FlatList } from 'react-native';
-import { Text, Card, Chip } from 'react-native-paper';
+import { Text, Card, Chip, IconButton } from 'react-native-paper';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { LoadingSpinner } from '../../src/components/common';
-import { Student, Homework } from '../../src/types';
+import { Student, Homework, HomeworkEvaluation, EVALUATION_LABELS } from '../../src/types';
 import { firestore } from '../../src/config/firebase';
 import { collection, doc, getDoc, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { format } from 'date-fns';
+
+// Star display component for parent view
+function EvaluationDisplay({ evaluation }: { evaluation: HomeworkEvaluation }) {
+  const stars = [1, 2, 3, 4, 5] as HomeworkEvaluation[];
+
+  return (
+    <View style={evaluationStyles.container}>
+      <View style={evaluationStyles.starsRow}>
+        {stars.map((star) => (
+          <IconButton
+            key={star}
+            icon={star <= evaluation ? 'star' : 'star-outline'}
+            iconColor={star <= evaluation ? '#ffc107' : '#ddd'}
+            size={18}
+            style={{ margin: 0, padding: 0 }}
+          />
+        ))}
+      </View>
+      <Text variant="bodySmall" style={evaluationStyles.label}>
+        {EVALUATION_LABELS[evaluation]}
+      </Text>
+    </View>
+  );
+}
+
+const evaluationStyles = StyleSheet.create({
+  container: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  starsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  label: {
+    color: '#666',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+});
 
 export default function ParentHomeworkScreen() {
   const { user } = useAuth();
@@ -129,6 +171,8 @@ export default function ParentHomeworkScreen() {
             Due: {format(item.dueDate.toDate(), 'MMM d, yyyy')}
           </Text>
         )}
+
+        {item.evaluation && <EvaluationDisplay evaluation={item.evaluation} />}
 
         {item.notes && (
           <Text variant="bodySmall" style={styles.notes}>

@@ -12,6 +12,7 @@ export interface User {
   updatedAt: Timestamp;
   // Teacher-specific fields
   classIds?: string[];
+  adminClassIds?: string[]; // Classes where user is an admin (not owner)
   // Parent-specific fields
   studentIds?: string[];
   invitedBy?: string;

@@ -124,6 +124,82 @@ async function acceptPendingInvites(
   return studentIds;
 }
 
+// Check for admin invites and link teacher to classes they administer
+async function acceptPendingAdminInvites(
+  userId: string,
+  email: string,
+  existingAdminClassIds: string[] = []
+): Promise<string[]> {
+  const adminInvitesRef = collection(firestore, 'adminInvites');
+
+  // Query ALL admin invites for this email
+  const q = query(
+    adminInvitesRef,
+    where('email', '==', email.toLowerCase())
+  );
+
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) {
+    return [];
+  }
+
+  const classIds: string[] = [];
+
+  // Process each admin invite
+  for (const inviteDoc of snapshot.docs) {
+    const invite = inviteDoc.data();
+    const classId = invite.classId;
+
+    // Skip if user already has this class in adminClassIds
+    if (existingAdminClassIds.includes(classId)) {
+      continue;
+    }
+
+    classIds.push(classId);
+
+    // Update invite status to accepted (if not already)
+    if (invite.status === 'pending') {
+      await updateDoc(inviteDoc.ref, {
+        status: 'accepted',
+        acceptedAt: serverTimestamp(),
+        userId,
+      });
+    }
+
+    // Update the class's admin record
+    const classRef = doc(firestore, 'classes', classId);
+    const classDoc = await getDoc(classRef);
+    if (classDoc.exists()) {
+      const classData = classDoc.data();
+      const admins = classData.admins || [];
+      const needsUpdate = admins.some(
+        (admin: { email: string; inviteStatus: string }) =>
+          admin.email.toLowerCase() === email.toLowerCase() &&
+          admin.inviteStatus !== 'accepted'
+      );
+      if (needsUpdate) {
+        const updatedAdmins = admins.map((admin: { email: string; inviteStatus: string; userId?: string }) => {
+          if (admin.email.toLowerCase() === email.toLowerCase()) {
+            return { ...admin, inviteStatus: 'accepted', userId };
+          }
+          return admin;
+        });
+        await updateDoc(classRef, { admins: updatedAdmins });
+      }
+    }
+  }
+
+  // Add classIds to user's adminClassIds
+  if (classIds.length > 0) {
+    const userRef = doc(firestore, 'users', userId);
+    await updateDoc(userRef, {
+      adminClassIds: arrayUnion(...classIds),
+    });
+  }
+
+  return classIds;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -150,6 +226,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               );
               if (newStudentIds.length > 0) {
                 // Refresh user data to include new studentIds
+                const refreshedDoc = await getDoc(doc(firestore, 'users', fbUser.uid));
+                if (refreshedDoc.exists()) {
+                  setUser({ uid: fbUser.uid, ...refreshedDoc.data() } as User);
+                  setLoading(false);
+                  return;
+                }
+              }
+            }
+
+            // If teacher, check for admin invites and accept them
+            if (userData.role === 'teacher' && fbUser.email) {
+              const existingAdminClassIds = userData.adminClassIds || [];
+              const newAdminClassIds = await acceptPendingAdminInvites(
+                fbUser.uid,
+                fbUser.email,
+                existingAdminClassIds
+              );
+              if (newAdminClassIds.length > 0) {
+                // Refresh user data to include new adminClassIds
                 const refreshedDoc = await getDoc(doc(firestore, 'users', fbUser.uid));
                 if (refreshedDoc.exists()) {
                   setUser({ uid: fbUser.uid, ...refreshedDoc.data() } as User);

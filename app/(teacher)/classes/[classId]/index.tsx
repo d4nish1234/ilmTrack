@@ -16,6 +16,9 @@ export default function ClassDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
 
+  const openMenu = () => setMenuVisible(true);
+  const closeMenu = () => setMenuVisible(false);
+
   useEffect(() => {
     if (!classId) return;
 
@@ -95,26 +98,36 @@ export default function ClassDetailScreen() {
           headerRight: () => (
             <Menu
               visible={menuVisible}
-              onDismiss={() => setMenuVisible(false)}
+              onDismiss={closeMenu}
               anchor={
                 <IconButton
                   icon="dots-vertical"
                   iconColor="#fff"
-                  onPress={() => setMenuVisible(true)}
+                  size={24}
+                  style={{ margin: 0 }}
+                  onPress={openMenu}
                 />
               }
             >
               <Menu.Item
                 onPress={() => {
-                  setMenuVisible(false);
-                  // TODO: Edit class
+                  closeMenu();
+                  router.push(`/(teacher)/classes/${classId}/edit`);
                 }}
                 title="Edit Class"
                 leadingIcon="pencil"
               />
               <Menu.Item
                 onPress={() => {
-                  setMenuVisible(false);
+                  closeMenu();
+                  router.push(`/(teacher)/classes/${classId}/reports`);
+                }}
+                title="Reports"
+                leadingIcon="file-document"
+              />
+              <Menu.Item
+                onPress={() => {
+                  closeMenu();
                   handleDeleteClass();
                 }}
                 title="Delete Class"

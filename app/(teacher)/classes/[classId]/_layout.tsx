@@ -25,6 +25,20 @@ export default function ClassDetailLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="edit"
+        options={{
+          title: 'Edit Class',
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
+        name="reports"
+        options={{
+          title: 'Reports',
+          presentation: 'modal',
+        }}
+      />
     </Stack>
   );
 }
