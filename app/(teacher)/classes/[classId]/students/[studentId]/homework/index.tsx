@@ -158,7 +158,7 @@ export default function HomeworkListScreen() {
               {item.title}
             </Text>
             <Text variant="bodySmall" style={styles.date}>
-              {format(item.createdAt.toDate(), 'MMM d, yyyy')}
+              {item.createdAt ? format(item.createdAt.toDate(), 'MMM d, yyyy') : 'Just now'}
             </Text>
           </View>
           <Menu

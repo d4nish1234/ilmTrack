@@ -248,7 +248,7 @@ export default function StudentDetailScreen() {
               recentAttendance.map((record) => (
                 <View key={record.id} style={styles.recordItem}>
                   <Text variant="bodyMedium">
-                    {format(record.date.toDate(), 'MMM d, yyyy')}
+                    {record.date ? format(record.date.toDate(), 'MMM d, yyyy') : 'Today'}
                   </Text>
                   <Chip
                     compact
@@ -289,7 +289,7 @@ export default function StudentDetailScreen() {
                   <View style={styles.homeworkInfo}>
                     <Text variant="titleSmall">{hw.title}</Text>
                     <Text variant="bodySmall" style={styles.date}>
-                      {format(hw.createdAt.toDate(), 'MMM d, yyyy')}
+                      {hw.createdAt ? format(hw.createdAt.toDate(), 'MMM d, yyyy') : 'Just now'}
                     </Text>
                   </View>
                   <Chip compact mode="outlined">

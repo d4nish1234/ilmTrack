@@ -167,15 +167,15 @@ export default function ReportsScreen() {
 
       // Sort attendance by date
       attendance.sort((a, b) => {
-        const aDate = a.date.toDate().getTime();
-        const bDate = b.date.toDate().getTime();
+        const aDate = a.date?.toDate().getTime() || 0;
+        const bDate = b.date?.toDate().getTime() || 0;
         return aDate - bDate;
       });
 
       // Generate CSV
       const headers = ['Date', 'Student', 'Status', 'Notes'];
       const rows = attendance.map((a) => [
-        format(a.date.toDate(), 'yyyy-MM-dd'),
+        a.date ? format(a.date.toDate(), 'yyyy-MM-dd') : '',
         studentMap.get(a.studentId) || 'Unknown',
         a.status,
         a.notes || '',
@@ -214,8 +214,8 @@ export default function ReportsScreen() {
 
       // Sort homework by date
       homework.sort((a, b) => {
-        const aDate = a.createdAt.toDate().getTime();
-        const bDate = b.createdAt.toDate().getTime();
+        const aDate = a.createdAt?.toDate().getTime() || 0;
+        const bDate = b.createdAt?.toDate().getTime() || 0;
         return aDate - bDate;
       });
 
@@ -230,7 +230,7 @@ export default function ReportsScreen() {
         'Notes',
       ];
       const rows = homework.map((h) => [
-        format(h.createdAt.toDate(), 'yyyy-MM-dd'),
+        h.createdAt ? format(h.createdAt.toDate(), 'yyyy-MM-dd') : '',
         studentMap.get(h.studentId) || 'Unknown',
         h.title,
         h.status,

@@ -148,7 +148,7 @@ export default function ParentHomeworkScreen() {
               {getStudentName(item.studentId)}
             </Text>
             <Text variant="bodySmall" style={styles.date}>
-              {format(item.createdAt.toDate(), 'MMM d, yyyy')}
+              {item.createdAt ? format(item.createdAt.toDate(), 'MMM d, yyyy') : 'Just now'}
             </Text>
           </View>
           <Chip

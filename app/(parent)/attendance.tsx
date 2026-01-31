@@ -102,7 +102,7 @@ export default function ParentAttendanceScreen() {
         <View style={styles.row}>
           <View style={styles.info}>
             <Text variant="titleMedium">
-              {format(item.date.toDate(), 'EEEE, MMMM d, yyyy')}
+              {item.date ? format(item.date.toDate(), 'EEEE, MMMM d, yyyy') : 'Today'}
             </Text>
             <Text variant="bodySmall" style={styles.studentName}>
               {getStudentName(item.studentId)}

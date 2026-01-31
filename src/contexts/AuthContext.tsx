@@ -113,9 +113,9 @@ async function acceptPendingInvites(
           parent.inviteStatus !== 'accepted'
       );
       if (needsUpdate) {
-        const updatedParents = studentData.parents.map((parent: { email: string; inviteStatus: string }) => {
+        const updatedParents = studentData.parents.map((parent: { email: string; inviteStatus: string; userId?: string }) => {
           if (parent.email.toLowerCase() === email.toLowerCase()) {
-            return { ...parent, inviteStatus: 'accepted' };
+            return { ...parent, inviteStatus: 'accepted', userId };
           }
           return parent;
         });

@@ -1,9 +1,10 @@
-import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
+import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 import { Expo, ExpoPushMessage } from 'expo-server-sdk';
 
-admin.initializeApp();
-const db = admin.firestore();
+initializeApp();
+const db = getFirestore();
 const expo = new Expo();
 
 interface Parent {
@@ -24,20 +25,32 @@ interface User {
   lastName: string;
 }
 
-// Trigger when homework is created
-export const onHomeworkCreated = functions.firestore
-  .document('homework/{homeworkId}')
-  .onCreate(async (snap, context) => {
-    const homework = snap.data();
+interface HomeworkData {
+  studentId: string;
+  title: string;
+}
+
+// Trigger when homework is created (v2)
+export const notifyParentsOnHomework = onDocumentCreated(
+  'homework/{homeworkId}',
+  async (event) => {
+    const snap = event.data;
+    if (!snap) {
+      console.log('No data in event');
+      return;
+    }
+
+    const homework = snap.data() as HomeworkData;
     const studentId = homework.studentId;
     const homeworkTitle = homework.title;
+    const homeworkId = event.params.homeworkId;
 
     try {
       // Get student document
       const studentDoc = await db.collection('students').doc(studentId).get();
       if (!studentDoc.exists) {
         console.log('Student not found:', studentId);
-        return null;
+        return;
       }
 
       const student = studentDoc.data() as Student;
@@ -50,7 +63,7 @@ export const onHomeworkCreated = functions.firestore
 
       if (parentUserIds.length === 0) {
         console.log('No accepted parents found for student:', studentId);
-        return null;
+        return;
       }
 
       // Get push tokens for all parents
@@ -67,7 +80,7 @@ export const onHomeworkCreated = functions.firestore
 
       if (pushTokens.length === 0) {
         console.log('No valid push tokens found for parents');
-        return null;
+        return;
       }
 
       // Create notification messages
@@ -78,7 +91,7 @@ export const onHomeworkCreated = functions.firestore
         body: `${studentName} has new homework: ${homeworkTitle}`,
         data: {
           type: 'homework',
-          homeworkId: context.params.homeworkId,
+          homeworkId,
           studentId,
         },
         channelId: 'homework',
@@ -96,9 +109,8 @@ export const onHomeworkCreated = functions.firestore
       }
 
       console.log(`Sent ${pushTokens.length} notifications for homework: ${homeworkTitle}`);
-      return null;
     } catch (error) {
       console.error('Error in onHomeworkCreated:', error);
-      return null;
     }
-  });
+  }
+);

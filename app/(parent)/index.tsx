@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, FlatList } from 'react-native';
+import { StyleSheet, View, ScrollView } from 'react-native';
 import { Text, Card, Chip } from 'react-native-paper';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { LoadingSpinner } from '../../src/components/common';
@@ -124,7 +124,7 @@ export default function ParentHomeScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       <View style={styles.header}>
         <Text variant="headlineSmall" style={styles.greeting}>
           Welcome, {user?.firstName}!
@@ -156,7 +156,7 @@ export default function ParentHomeScreen() {
                   <Text variant="titleSmall">{hw.title}</Text>
                   <Text variant="bodySmall" style={styles.subtext}>
                     {getStudentName(hw.studentId)} -{' '}
-                    {format(hw.createdAt.toDate(), 'MMM d')}
+                    {hw.createdAt ? format(hw.createdAt.toDate(), 'MMM d') : 'Just now'}
                   </Text>
                 </View>
                 <Chip
@@ -183,7 +183,7 @@ export default function ParentHomeScreen() {
               <View key={att.id} style={styles.listItem}>
                 <View style={styles.itemInfo}>
                   <Text variant="titleSmall">
-                    {format(att.date.toDate(), 'EEEE, MMM d')}
+                    {att.date ? format(att.date.toDate(), 'EEEE, MMM d') : 'Today'}
                   </Text>
                   <Text variant="bodySmall" style={styles.subtext}>
                     {getStudentName(att.studentId)}
@@ -203,7 +203,7 @@ export default function ParentHomeScreen() {
           )}
         </Card.Content>
       </Card>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -211,6 +211,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  scrollContent: {
+    paddingBottom: 24,
   },
   header: {
     padding: 16,
