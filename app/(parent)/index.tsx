@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, ScrollView } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, View, ScrollView, RefreshControl } from 'react-native';
 import { Text, Card, Chip } from 'react-native-paper';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { LoadingSpinner } from '../../src/components/common';
@@ -8,79 +8,99 @@ import { firestore } from '../../src/config/firebase';
 import { collection, doc, getDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { format } from 'date-fns';
 
+// Deduplicate students by name (same child in multiple classes)
+function deduplicateStudentsByName(students: Student[]): Student[] {
+  const seen = new Map<string, Student>();
+  for (const student of students) {
+    const key = `${student.firstName.toLowerCase()}-${student.lastName.toLowerCase()}`;
+    if (!seen.has(key)) {
+      seen.set(key, student);
+    }
+  }
+  return Array.from(seen.values());
+}
+
 export default function ParentHomeScreen() {
-  const { user } = useAuth();
+  const { user, checkForNewInvites } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [recentHomework, setRecentHomework] = useState<Homework[]>([]);
   const [recentAttendance, setRecentAttendance] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
+  const fetchData = useCallback(async () => {
     if (!user?.studentIds?.length) {
       setLoading(false);
       return;
     }
 
-    // Fetch linked students
-    const fetchStudents = async () => {
-      try {
-        const studentDocs = await Promise.all(
-          user.studentIds!.map((id) =>
-            getDoc(doc(firestore, 'students', id))
-          )
+    try {
+      const studentDocs = await Promise.all(
+        user.studentIds!.map((id) =>
+          getDoc(doc(firestore, 'students', id))
+        )
+      );
+
+      const studentList = studentDocs
+        .filter((docSnap) => docSnap.exists())
+        .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })) as Student[];
+
+      setStudents(studentList);
+
+      if (studentList.length > 0) {
+        const studentIds = studentList.map((s) => s.id);
+
+        const homeworkRef = collection(firestore, 'homework');
+        const homeworkQuery = query(
+          homeworkRef,
+          where('studentId', 'in', studentIds),
+          orderBy('createdAt', 'desc'),
+          limit(5)
+        );
+        const homeworkSnapshot = await getDocs(homeworkQuery);
+
+        setRecentHomework(
+          homeworkSnapshot.docs.map((docSnap) => ({
+            id: docSnap.id,
+            ...docSnap.data(),
+          })) as Homework[]
         );
 
-        const studentList = studentDocs
-          .filter((docSnap) => docSnap.exists())
-          .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })) as Student[];
+        const attendanceRef = collection(firestore, 'attendance');
+        const attendanceQuery = query(
+          attendanceRef,
+          where('studentId', 'in', studentIds),
+          orderBy('date', 'desc'),
+          limit(5)
+        );
+        const attendanceSnapshot = await getDocs(attendanceQuery);
 
-        setStudents(studentList);
-
-        // Fetch recent homework for all students
-        if (studentList.length > 0) {
-          const studentIds = studentList.map((s) => s.id);
-
-          const homeworkRef = collection(firestore, 'homework');
-          const homeworkQuery = query(
-            homeworkRef,
-            where('studentId', 'in', studentIds),
-            orderBy('createdAt', 'desc'),
-            limit(5)
-          );
-          const homeworkSnapshot = await getDocs(homeworkQuery);
-
-          setRecentHomework(
-            homeworkSnapshot.docs.map((docSnap) => ({
-              id: docSnap.id,
-              ...docSnap.data(),
-            })) as Homework[]
-          );
-
-          const attendanceRef = collection(firestore, 'attendance');
-          const attendanceQuery = query(
-            attendanceRef,
-            where('studentId', 'in', studentIds),
-            orderBy('date', 'desc'),
-            limit(5)
-          );
-          const attendanceSnapshot = await getDocs(attendanceQuery);
-
-          setRecentAttendance(
-            attendanceSnapshot.docs.map((docSnap) => ({
-              id: docSnap.id,
-              ...docSnap.data(),
-            })) as Attendance[]
-          );
-        }
-      } catch (error) {
-        console.error('Error fetching student data:', error);
-      } finally {
-        setLoading(false);
+        setRecentAttendance(
+          attendanceSnapshot.docs.map((docSnap) => ({
+            id: docSnap.id,
+            ...docSnap.data(),
+          })) as Attendance[]
+        );
       }
-    };
+    } catch (error) {
+      console.error('Error fetching student data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [user?.studentIds]);
 
-    fetchStudents();
-  }, [user]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    // Check for new invites (auto-links new students if found)
+    await checkForNewInvites();
+    // Then fetch the data (which will include any newly linked students)
+    fetchData();
+  }, [fetchData, checkForNewInvites]);
 
   const getStudentName = (studentId: string) => {
     const student = students.find((s) => s.id === studentId);
@@ -124,18 +144,24 @@ export default function ParentHomeScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       <View style={styles.header}>
         <Text variant="headlineSmall" style={styles.greeting}>
           Welcome, {user?.firstName}!
         </Text>
       </View>
 
-      {/* Students */}
+      {/* Students - deduplicated by name (same child in multiple classes shows once) */}
       <Card style={styles.card}>
         <Card.Title title="Your Children" />
         <Card.Content>
-          {students.map((student) => (
+          {deduplicateStudentsByName(students).map((student) => (
             <View key={student.id} style={styles.studentItem}>
               <Text variant="titleMedium">
                 {student.firstName} {student.lastName}

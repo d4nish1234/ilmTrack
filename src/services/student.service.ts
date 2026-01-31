@@ -12,9 +12,12 @@ import {
   onSnapshot,
   serverTimestamp,
   writeBatch,
+  arrayUnion,
 } from 'firebase/firestore';
-import { Student, CreateStudentData, UpdateStudentData, Parent } from '../types';
+import { Student, CreateStudentData, UpdateStudentData, Parent, User } from '../types';
 import { incrementStudentCount, decrementStudentCount } from './class.service';
+
+const usersRef = collection(firestore, 'users');
 
 const studentsRef = collection(firestore, 'students');
 
@@ -199,4 +202,98 @@ export async function getStudentsByParentEmail(
     id: doc.id,
     ...doc.data(),
   })) as Student[];
+}
+
+// Look up invited parent info by email (for signup pre-fill)
+export async function getInvitedParentInfo(
+  email: string
+): Promise<{ firstName: string; lastName: string } | null> {
+  const normalizedEmail = email.toLowerCase().trim();
+  const invitesRef = collection(firestore, 'invites');
+  const q = query(invitesRef, where('email', '==', normalizedEmail));
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) return null;
+
+  // Get the first invite's student to find the parent name
+  const invite = snapshot.docs[0].data();
+  const studentDoc = await getDoc(doc(firestore, 'students', invite.studentId));
+
+  if (!studentDoc.exists()) return null;
+
+  const student = studentDoc.data() as Student;
+  const parent = student.parents?.find(
+    (p) => p.email.toLowerCase() === normalizedEmail
+  );
+
+  if (!parent) return null;
+
+  return {
+    firstName: parent.firstName,
+    lastName: parent.lastName,
+  };
+}
+
+// Get user info by ID (for looking up signed-up parent names)
+export async function getUserById(userId: string): Promise<User | null> {
+  const userDoc = await getDoc(doc(firestore, 'users', userId));
+  if (!userDoc.exists()) return null;
+  return { uid: userDoc.id, ...userDoc.data() } as User;
+}
+
+// Link an existing student to a new class by copying the student record
+export async function linkExistingStudentToClass(
+  studentId: string,
+  newClassId: string
+): Promise<string> {
+  // Get the existing student
+  const existingStudent = await getStudent(studentId);
+  if (!existingStudent) {
+    throw new Error('Student not found');
+  }
+
+  // Check if already in this class
+  if (existingStudent.classId === newClassId) {
+    throw new Error('Student is already in this class');
+  }
+
+  // Create a new student record for this class with the same info
+  const docRef = await addDoc(studentsRef, {
+    firstName: existingStudent.firstName,
+    lastName: existingStudent.lastName,
+    classId: newClassId,
+    teacherId: existingStudent.teacherId,
+    parents: existingStudent.parents,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  const newStudentId = docRef.id;
+
+  // Increment student count in the new class
+  await incrementStudentCount(newClassId);
+
+  // Handle parents: link already-signed-up parents directly, create invites for others
+  const invitesRef = collection(firestore, 'invites');
+
+  for (const parent of existingStudent.parents || []) {
+    if (parent.userId && parent.inviteStatus === 'accepted') {
+      // Parent already signed up - directly add new studentId to their profile
+      const userRef = doc(firestore, 'users', parent.userId);
+      await updateDoc(userRef, {
+        studentIds: arrayUnion(newStudentId),
+      });
+    } else {
+      // Parent hasn't signed up yet - create an invite for the new student record
+      await addDoc(invitesRef, {
+        email: parent.email,
+        studentId: newStudentId,
+        teacherId: existingStudent.teacherId,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+      });
+    }
+  }
+
+  return newStudentId;
 }

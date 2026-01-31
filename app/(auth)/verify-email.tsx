@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Alert } from 'react-native';
 import { Text, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { Button } from '../../src/components/common';
 import { auth } from '../../src/config/firebase';
+import { signOut as firebaseSignOut } from 'firebase/auth';
 
 export default function VerifyEmailScreen() {
-  const { firebaseUser, signOut, resendVerificationEmail, reloadFirebaseUser } =
+  const { firebaseUser, resendVerificationEmail, reloadFirebaseUser } =
     useAuth();
   const [resending, setResending] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -56,12 +58,10 @@ export default function VerifyEmailScreen() {
     }
   };
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+  const handleGoBack = async () => {
+    // Sign out so user can start fresh (e.g., if they entered wrong email)
+    await firebaseSignOut(auth);
+    router.replace('/(auth)/signup');
   };
 
   return (
@@ -108,8 +108,8 @@ export default function VerifyEmailScreen() {
             Resend Verification Email
           </Button>
 
-          <Button mode="text" onPress={handleSignOut} textColor="#666">
-            Sign Out
+          <Button mode="text" onPress={handleGoBack} textColor="#666">
+            Use Different Email
           </Button>
         </View>
       </View>

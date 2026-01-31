@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,13 +9,14 @@ import {
 } from 'react-native';
 import { Text, Snackbar, SegmentedButtons, Portal } from 'react-native-paper';
 import { Link } from 'expo-router';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { Button, Input } from '../../src/components/common';
 import { UserRole } from '../../src/types';
 import { getAuthErrorMessage } from '../../src/utils/authErrors';
+import { getInvitedParentInfo } from '../../src/services/student.service';
 
 const schema = yup.object({
   firstName: yup.string().required('First name is required'),
@@ -40,9 +41,10 @@ export default function SignupScreen() {
   const { signUp } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [role, setRole] = useState<UserRole>('teacher');
+  const [role, setRole] = useState<UserRole>('parent');
+  const [inviteFound, setInviteFound] = useState(false);
 
-  const { control, handleSubmit } = useForm<FormData>({
+  const { control, handleSubmit, setValue, getValues } = useForm<FormData>({
     resolver: yupResolver(schema),
     defaultValues: {
       firstName: '',
@@ -52,6 +54,42 @@ export default function SignupScreen() {
       confirmPassword: '',
     },
   });
+
+  // Watch email field to check for invites when role is parent
+  const emailValue = useWatch({ control, name: 'email' });
+
+  // Check for parent invite when email changes and role is parent
+  useEffect(() => {
+    if (role !== 'parent' || !emailValue || emailValue.length < 5) {
+      setInviteFound(false);
+      return;
+    }
+
+    const checkInvite = async () => {
+      try {
+        const parentInfo = await getInvitedParentInfo(emailValue);
+        if (parentInfo) {
+          // Only pre-fill if fields are empty
+          const currentFirst = getValues('firstName');
+          const currentLast = getValues('lastName');
+          if (!currentFirst && !currentLast) {
+            setValue('firstName', parentInfo.firstName);
+            setValue('lastName', parentInfo.lastName);
+            setInviteFound(true);
+          }
+        } else {
+          setInviteFound(false);
+        }
+      } catch {
+        // Silently fail - invite check requires authentication
+        // Pre-fill won't work but signup will still succeed
+      }
+    };
+
+    // Debounce the check
+    const timeout = setTimeout(checkInvite, 500);
+    return () => clearTimeout(timeout);
+  }, [emailValue, role, setValue, getValues]);
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
@@ -103,8 +141,8 @@ export default function SignupScreen() {
             value={role}
             onValueChange={(value) => setRole(value as UserRole)}
             buttons={[
-              { value: 'teacher', label: 'Teacher' },
               { value: 'parent', label: 'Parent' },
+              { value: 'teacher', label: 'Teacher' },
             ]}
             style={styles.segmentedButtons}
           />
@@ -139,6 +177,12 @@ export default function SignupScreen() {
             autoCapitalize="none"
             autoComplete="email"
           />
+
+          {role === 'parent' && inviteFound && (
+            <Text style={styles.inviteFound}>
+              ✓ We found your invitation! Your name has been pre-filled.
+            </Text>
+          )}
 
           <Input
             control={control}
@@ -226,6 +270,12 @@ const styles = StyleSheet.create({
   },
   nameField: {
     flex: 1,
+  },
+  inviteFound: {
+    color: '#4caf50',
+    fontSize: 13,
+    marginTop: -8,
+    marginBottom: 8,
   },
   footer: {
     alignItems: 'center',

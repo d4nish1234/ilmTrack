@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, FlatList } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, View, FlatList, RefreshControl } from 'react-native';
 import { Text, Card, Chip, IconButton } from 'react-native-paper';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { LoadingSpinner } from '../../src/components/common';
@@ -51,10 +51,39 @@ const evaluationStyles = StyleSheet.create({
 });
 
 export default function ParentHomeworkScreen() {
-  const { user } = useAuth();
+  const { user, checkForNewInvites } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [homework, setHomework] = useState<Homework[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchStudents = useCallback(async () => {
+    if (!user?.studentIds?.length) return [];
+
+    const studentDocs = await Promise.all(
+      user.studentIds!.map((id) =>
+        getDoc(doc(firestore, 'students', id))
+      )
+    );
+
+    return studentDocs
+      .filter((docSnap) => docSnap.exists())
+      .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })) as Student[];
+  }, [user?.studentIds]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Check for new invites (auto-links new students if found)
+      await checkForNewInvites();
+      const studentList = await fetchStudents();
+      setStudents(studentList);
+    } catch (error) {
+      console.error('Error refreshing:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchStudents, checkForNewInvites]);
 
   useEffect(() => {
     if (!user?.studentIds?.length) {
@@ -65,16 +94,7 @@ export default function ParentHomeworkScreen() {
     const fetchData = async () => {
       try {
         // Fetch students
-        const studentDocs = await Promise.all(
-          user.studentIds!.map((id) =>
-            getDoc(doc(firestore, 'students', id))
-          )
-        );
-
-        const studentList = studentDocs
-          .filter((docSnap) => docSnap.exists())
-          .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })) as Student[];
-
+        const studentList = await fetchStudents();
         setStudents(studentList);
 
         // Subscribe to homework
@@ -116,7 +136,7 @@ export default function ParentHomeworkScreen() {
     };
 
     fetchData();
-  }, [user]);
+  }, [user, fetchStudents]);
 
   const getStudentName = (studentId: string) => {
     const student = students.find((s) => s.id === studentId);
@@ -205,6 +225,9 @@ export default function ParentHomeworkScreen() {
           renderItem={renderHomework}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         />
       ) : (
         <View style={styles.emptyContainer}>

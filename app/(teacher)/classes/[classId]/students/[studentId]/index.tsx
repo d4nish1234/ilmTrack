@@ -2,12 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, ScrollView, Alert, useWindowDimensions } from 'react-native';
 import { Text, Card, List, Chip, Divider, IconButton, Menu, Portal } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
-import { subscribeToStudent, deleteStudent } from '../../../../../../src/services/student.service';
+import { subscribeToStudent, deleteStudent, getUserById } from '../../../../../../src/services/student.service';
 import { subscribeToHomework } from '../../../../../../src/services/homework.service';
 import { subscribeToAttendance } from '../../../../../../src/services/attendance.service';
 import { LoadingSpinner, Button } from '../../../../../../src/components/common';
-import { Student, Homework, Attendance } from '../../../../../../src/types';
+import { Student, Homework, Attendance, Parent } from '../../../../../../src/types';
 import { format } from 'date-fns';
+
+interface ParentDisplayInfo {
+  firstName: string;
+  lastName: string;
+  email: string;
+  inviteStatus: string;
+}
 
 export default function StudentDetailScreen() {
   const { classId, studentId } = useLocalSearchParams<{
@@ -16,10 +23,39 @@ export default function StudentDetailScreen() {
   }>();
   const { width: windowWidth } = useWindowDimensions();
   const [student, setStudent] = useState<Student | null>(null);
+  const [parentDisplayInfo, setParentDisplayInfo] = useState<ParentDisplayInfo[]>([]);
   const [recentHomework, setRecentHomework] = useState<Homework[]>([]);
   const [recentAttendance, setRecentAttendance] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
+
+  // Fetch parent names from user profiles when they've signed up
+  const fetchParentDisplayInfo = async (parents: Parent[]) => {
+    const displayInfo: ParentDisplayInfo[] = await Promise.all(
+      parents.map(async (parent) => {
+        // If parent has signed up, get their name from user profile
+        if (parent.userId) {
+          const user = await getUserById(parent.userId);
+          if (user) {
+            return {
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: parent.email,
+              inviteStatus: parent.inviteStatus,
+            };
+          }
+        }
+        // Fall back to the name teacher entered
+        return {
+          firstName: parent.firstName,
+          lastName: parent.lastName,
+          email: parent.email,
+          inviteStatus: parent.inviteStatus,
+        };
+      })
+    );
+    setParentDisplayInfo(displayInfo);
+  };
 
   useEffect(() => {
     if (!studentId) return;
@@ -28,6 +64,9 @@ export default function StudentDetailScreen() {
       studentId,
       (data) => {
         setStudent(data);
+        if (data?.parents) {
+          fetchParentDisplayInfo(data.parents);
+        }
         setLoading(false);
       },
       (error) => {
@@ -200,7 +239,7 @@ export default function StudentDetailScreen() {
             )}
           />
           <Card.Content>
-            {student.parents.map((parent, index) => (
+            {parentDisplayInfo.map((parent, index) => (
               <View key={index} style={styles.parentItem}>
                 <View style={styles.parentInfo}>
                   <Text variant="titleSmall">

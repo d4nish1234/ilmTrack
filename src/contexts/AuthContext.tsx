@@ -54,6 +54,7 @@ interface AuthContextType {
   resendVerificationEmail: () => Promise<void>;
   reloadFirebaseUser: () => Promise<void>;
   registerPushNotifications: () => Promise<void>;
+  checkForNewInvites: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -327,9 +328,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
-    // Remove push token before signing out
+    // Remove push token before signing out (don't block signout if this fails)
     if (firebaseUser) {
-      await removePushToken(firebaseUser.uid);
+      try {
+        await removePushToken(firebaseUser.uid);
+      } catch {
+        // Ignore - signout should proceed even if token removal fails
+      }
     }
     await firebaseSignOut(auth);
   }, [firebaseUser]);
@@ -377,6 +382,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [firebaseUser]);
 
+  // Check for new invites (for parents who are already signed in)
+  const checkForNewInvites = useCallback(async (): Promise<boolean> => {
+    if (!firebaseUser?.email || !user || user.role !== 'parent') {
+      return false;
+    }
+
+    try {
+      const existingStudentIds = user.studentIds || [];
+      const newStudentIds = await acceptPendingInvites(
+        firebaseUser.uid,
+        firebaseUser.email,
+        existingStudentIds
+      );
+
+      if (newStudentIds.length > 0) {
+        // Refresh user data to include new studentIds
+        const refreshedDoc = await getDoc(doc(firestore, 'users', firebaseUser.uid));
+        if (refreshedDoc.exists()) {
+          setUser({ uid: firebaseUser.uid, ...refreshedDoc.data() } as User);
+        }
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking for new invites:', error);
+      return false;
+    }
+  }, [firebaseUser, user]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -392,6 +426,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resendVerificationEmail,
         reloadFirebaseUser,
         registerPushNotifications,
+        checkForNewInvites,
       }}
     >
       {children}
