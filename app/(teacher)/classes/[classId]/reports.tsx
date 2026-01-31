@@ -7,12 +7,11 @@ import {
   Alert,
   Share,
   Platform,
+  Modal,
 } from 'react-native';
 import {
   Text,
   IconButton,
-  Portal,
-  Modal,
   Divider,
   ActivityIndicator,
 } from 'react-native-paper';
@@ -438,14 +437,21 @@ export default function ReportsScreen() {
             </View>
           )}
         </ScrollView>
+      </SafeAreaView>
 
-        {/* Start Date Picker Modal */}
-        <Portal>
-          <Modal
-            visible={showStartPicker}
-            onDismiss={() => setShowStartPicker(false)}
-            contentContainerStyle={styles.modalContainer}
-          >
+      {/* Start Date Picker Modal */}
+      <Modal
+        visible={showStartPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStartPicker(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowStartPicker(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.modalContainer}>
             <Text variant="titleLarge" style={styles.modalTitle}>
               Select Start Date
             </Text>
@@ -453,16 +459,23 @@ export default function ReportsScreen() {
             <Button mode="outlined" onPress={() => setShowStartPicker(false)}>
               Cancel
             </Button>
-          </Modal>
-        </Portal>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
-        {/* End Date Picker Modal */}
-        <Portal>
-          <Modal
-            visible={showEndPicker}
-            onDismiss={() => setShowEndPicker(false)}
-            contentContainerStyle={styles.modalContainer}
-          >
+      {/* End Date Picker Modal */}
+      <Modal
+        visible={showEndPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowEndPicker(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowEndPicker(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.modalContainer}>
             <Text variant="titleLarge" style={styles.modalTitle}>
               Select End Date
             </Text>
@@ -470,9 +483,9 @@ export default function ReportsScreen() {
             <Button mode="outlined" onPress={() => setShowEndPicker(false)}>
               Cancel
             </Button>
-          </Modal>
-        </Portal>
-      </SafeAreaView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </>
   );
 }
@@ -545,11 +558,19 @@ const styles = StyleSheet.create({
   loadingText: {
     color: '#666',
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   modalContainer: {
     backgroundColor: '#fff',
     margin: 20,
     padding: 20,
     borderRadius: 12,
+    width: '90%',
+    maxWidth: 400,
   },
   modalTitle: {
     fontWeight: '600',

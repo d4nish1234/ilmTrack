@@ -9,19 +9,49 @@ import {
   Modal,
   TextInput,
   IconButton,
+  Switch,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { Button } from '../../src/components/common';
 import { firestore } from '../../src/config/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
+import { removePushToken } from '../../src/services/notification.service';
 
 export default function ParentSettingsScreen() {
-  const { user, signOut, refreshUser, resetPassword } = useAuth();
+  const { user, signOut, refreshUser, resetPassword, registerPushNotifications } = useAuth();
   const [showEditName, setShowEditName] = useState(false);
   const [firstName, setFirstName] = useState(user?.firstName || '');
   const [lastName, setLastName] = useState(user?.lastName || '');
   const [saving, setSaving] = useState(false);
+  const [togglingNotifications, setTogglingNotifications] = useState(false);
+
+  const notificationsEnabled = user?.notificationsEnabled ?? false;
+
+  const handleToggleNotifications = async () => {
+    if (!user || togglingNotifications) return;
+
+    setTogglingNotifications(true);
+    try {
+      const userRef = doc(firestore, 'users', user.uid);
+
+      if (notificationsEnabled) {
+        // Disable notifications - remove push token
+        await removePushToken(user.uid);
+        await updateDoc(userRef, { notificationsEnabled: false });
+      } else {
+        // Enable notifications - register and save token
+        await registerPushNotifications();
+        await updateDoc(userRef, { notificationsEnabled: true });
+      }
+      await refreshUser();
+    } catch (error) {
+      console.error('Error toggling notifications:', error);
+      Alert.alert('Error', 'Failed to update notification settings.');
+    } finally {
+      setTogglingNotifications(false);
+    }
+  };
 
   const handleChangePassword = () => {
     if (!user?.email) return;
@@ -141,9 +171,15 @@ export default function ParentSettingsScreen() {
         <List.Subheader>App</List.Subheader>
         <List.Item
           title="Notifications"
+          description={notificationsEnabled ? 'Enabled' : 'Disabled'}
           left={(props) => <List.Icon {...props} icon="bell" />}
-          right={(props) => <List.Icon {...props} icon="chevron-right" />}
-          onPress={() => {}}
+          right={() => (
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={handleToggleNotifications}
+              disabled={togglingNotifications}
+            />
+          )}
         />
         <List.Item
           title="Help & Support"

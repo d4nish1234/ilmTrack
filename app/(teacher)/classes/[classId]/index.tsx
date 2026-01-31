@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, View, FlatList, TouchableOpacity } from 'react-native';
 import { Text, Card, FAB, IconButton, Menu } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
-import { useAuth } from '../../../../src/contexts/AuthContext';
-import { getClass, deleteClass } from '../../../../src/services/class.service';
+import { getClass } from '../../../../src/services/class.service';
 import { subscribeToStudents } from '../../../../src/services/student.service';
 import { LoadingSpinner } from '../../../../src/components/common';
 import { Class, Student } from '../../../../src/types';
 
 export default function ClassDetailScreen() {
   const { classId } = useLocalSearchParams<{ classId: string }>();
-  const { user } = useAuth();
   const [classData, setClassData] = useState<Class | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,30 +40,6 @@ export default function ClassDetailScreen() {
 
     return unsubscribe;
   }, [classId]);
-
-  const handleDeleteClass = () => {
-    Alert.alert(
-      'Delete Class',
-      'Are you sure you want to delete this class? This will also delete all students and their records.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            if (!classId || !user) return;
-            try {
-              await deleteClass(classId, user.uid);
-              router.back();
-            } catch (error) {
-              console.error('Error deleting class:', error);
-              Alert.alert('Error', 'Failed to delete class');
-            }
-          },
-        },
-      ]
-    );
-  };
 
   const handleStudentPress = (student: Student) => {
     router.push(`/(teacher)/classes/${classId}/students/${student.id}`);
@@ -124,15 +98,6 @@ export default function ClassDetailScreen() {
                 }}
                 title="Reports"
                 leadingIcon="file-document"
-              />
-              <Menu.Item
-                onPress={() => {
-                  closeMenu();
-                  handleDeleteClass();
-                }}
-                title="Delete Class"
-                leadingIcon="delete"
-                titleStyle={{ color: '#d32f2f' }}
               />
             </Menu>
           ),

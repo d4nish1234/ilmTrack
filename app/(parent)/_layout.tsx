@@ -1,9 +1,11 @@
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ChildFilterProvider } from '../../src/contexts/ChildFilterContext';
 
 export default function ParentLayout() {
   return (
-    <Tabs
+    <ChildFilterProvider>
+      <Tabs
       screenOptions={{
         tabBarActiveTintColor: '#1a73e8',
         tabBarInactiveTintColor: '#5f6368',
@@ -57,6 +59,7 @@ export default function ParentLayout() {
           ),
         }}
       />
-    </Tabs>
+      </Tabs>
+    </ChildFilterProvider>
   );
 }

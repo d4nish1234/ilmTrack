@@ -10,8 +10,9 @@ export interface User {
   role: UserRole;
   createdAt: Timestamp;
   updatedAt: Timestamp;
-  // Push notification token
+  // Push notifications
   expoPushToken?: string;
+  notificationsEnabled?: boolean;
   // Teacher-specific fields
   classIds?: string[];
   adminClassIds?: string[]; // Classes where user is an admin (not owner)

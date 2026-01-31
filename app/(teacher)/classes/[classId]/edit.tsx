@@ -19,6 +19,7 @@ import {
   updateClass,
   addAdmin,
   removeAdmin,
+  deleteClass,
 } from '../../../../src/services/class.service';
 import { Button, Input, LoadingSpinner } from '../../../../src/components/common';
 import { Class, Admin } from '../../../../src/types';
@@ -46,6 +47,7 @@ export default function EditClassScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [addingAdmin, setAddingAdmin] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddAdmin, setShowAddAdmin] = useState(false);
 
@@ -178,6 +180,33 @@ export default function EditClassScreen() {
   };
 
   const isOwner = classData?.teacherId === user?.uid;
+
+  const handleDeleteClass = () => {
+    Alert.alert(
+      'Delete Class',
+      'Are you sure you want to delete this class? This will permanently delete all students and their records. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            if (!classId || !user) return;
+            setDeleting(true);
+            try {
+              await deleteClass(classId, user.uid);
+              // Navigate back to classes list
+              router.replace('/(teacher)/classes');
+            } catch (error) {
+              console.error('Error deleting class:', error);
+              setError('Failed to delete class. Please try again.');
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (loading) {
     return <LoadingSpinner message="Loading..." />;
@@ -339,6 +368,29 @@ export default function EditClassScreen() {
                 Cancel
               </Button>
             </View>
+
+            {isOwner && (
+              <>
+                <Divider style={styles.dangerDivider} />
+                <View style={styles.dangerZone}>
+                  <Text variant="titleMedium" style={styles.dangerTitle}>
+                    Danger Zone
+                  </Text>
+                  <Text variant="bodySmall" style={styles.dangerNote}>
+                    Deleting this class will permanently remove all students and their homework/attendance records.
+                  </Text>
+                  <Button
+                    mode="outlined"
+                    onPress={handleDeleteClass}
+                    loading={deleting}
+                    textColor="#d32f2f"
+                    style={styles.deleteButton}
+                  >
+                    Delete Class
+                  </Button>
+                </View>
+              </>
+            )}
           </ScrollView>
         </KeyboardAvoidingView>
 
@@ -440,5 +492,29 @@ const styles = StyleSheet.create({
   },
   actions: {
     marginTop: 16,
+  },
+  dangerDivider: {
+    marginTop: 32,
+    marginBottom: 16,
+  },
+  dangerZone: {
+    padding: 16,
+    backgroundColor: '#fff5f5',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ffcdd2',
+    marginBottom: 32,
+  },
+  dangerTitle: {
+    fontWeight: '600',
+    color: '#d32f2f',
+    marginBottom: 8,
+  },
+  dangerNote: {
+    color: '#666',
+    marginBottom: 16,
+  },
+  deleteButton: {
+    borderColor: '#d32f2f',
   },
 });

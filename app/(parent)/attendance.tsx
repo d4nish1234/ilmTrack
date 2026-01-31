@@ -1,19 +1,57 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, FlatList, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { StyleSheet, View, FlatList, RefreshControl, ScrollView } from 'react-native';
 import { Text, Card, Chip } from 'react-native-paper';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { useChildFilter } from '../../src/contexts/ChildFilterContext';
 import { LoadingSpinner } from '../../src/components/common';
 import { Student, Attendance } from '../../src/types';
 import { firestore } from '../../src/config/firebase';
 import { collection, doc, getDoc, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { format } from 'date-fns';
 
+// Deduplicate students by name (same child in multiple classes)
+function deduplicateStudentsByName(students: Student[]): Student[] {
+  const seen = new Map<string, Student>();
+  for (const student of students) {
+    const key = `${student.firstName.toLowerCase()}-${student.lastName.toLowerCase()}`;
+    if (!seen.has(key)) {
+      seen.set(key, student);
+    }
+  }
+  return Array.from(seen.values());
+}
+
+// Get all student IDs for a given unique child (handles same child in multiple classes)
+function getStudentIdsForChild(students: Student[], childId: string): string[] {
+  const targetStudent = students.find(s => s.id === childId);
+  if (!targetStudent) return [childId];
+
+  return students
+    .filter(s =>
+      s.firstName.toLowerCase() === targetStudent.firstName.toLowerCase() &&
+      s.lastName.toLowerCase() === targetStudent.lastName.toLowerCase()
+    )
+    .map(s => s.id);
+}
+
 export default function ParentAttendanceScreen() {
   const { user, checkForNewInvites } = useAuth();
+  const { selectedChildId, setSelectedChildId } = useChildFilter();
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Get unique children (deduplicated by name)
+  const uniqueChildren = useMemo(() => deduplicateStudentsByName(students), [students]);
+  const showFilter = uniqueChildren.length > 1;
+
+  // Filter attendance based on selected child
+  const filteredAttendance = useMemo(() => {
+    if (!selectedChildId) return attendance; // Show all
+    const childStudentIds = getStudentIdsForChild(students, selectedChildId);
+    return attendance.filter(a => childStudentIds.includes(a.studentId));
+  }, [attendance, selectedChildId, students]);
 
   const fetchStudents = useCallback(async () => {
     if (!user?.studentIds?.length) return [];
@@ -161,9 +199,34 @@ export default function ParentAttendanceScreen() {
 
   return (
     <View style={styles.container}>
-      {attendance.length > 0 ? (
+      {showFilter && (
+        <View style={styles.filterContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+            <Chip
+              selected={selectedChildId === null}
+              onPress={() => setSelectedChildId(null)}
+              style={styles.filterChip}
+              mode="outlined"
+            >
+              All Children
+            </Chip>
+            {uniqueChildren.map((child) => (
+              <Chip
+                key={child.id}
+                selected={selectedChildId === child.id}
+                onPress={() => setSelectedChildId(child.id)}
+                style={styles.filterChip}
+                mode="outlined"
+              >
+                {child.firstName}
+              </Chip>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+      {filteredAttendance.length > 0 ? (
         <FlatList
-          data={attendance}
+          data={filteredAttendance}
           renderItem={renderAttendance}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
@@ -174,7 +237,7 @@ export default function ParentAttendanceScreen() {
       ) : (
         <View style={styles.emptyContainer}>
           <Text variant="bodyMedium" style={styles.emptyText}>
-            No attendance records yet.
+            {selectedChildId ? 'No attendance records for this child yet.' : 'No attendance records yet.'}
           </Text>
         </View>
       )}
@@ -186,6 +249,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  filterContainer: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  filterScroll: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  filterChip: {
+    marginRight: 4,
   },
   listContent: {
     padding: 16,
