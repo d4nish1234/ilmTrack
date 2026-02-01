@@ -7,10 +7,12 @@
     "scheme": "ilmtrack",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "icon": "./assets/icon.png",
     "splash": {
       "backgroundColor": "#1a73e8"
     },
     "ios": {
+      "icon": "./assets/icon.png",
       "supportsTablet": true,
       "bundleIdentifier": "com.danishmahboob.ilmtrack",
       "buildNumber": "2",
@@ -20,6 +22,7 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#1a73e8"
       },
       "package": "com.danishmahboob.ilmtrack"
