@@ -46,7 +46,7 @@ import {
   getRecentPendingHomework,
   updateHomework,
 } from '../../src/services/homework.service';
-import { Homework, HomeworkStatus } from '../../src/types';
+import { Homework, HomeworkStatus, HomeworkEvaluation } from '../../src/types';
 import { format } from 'date-fns';
 
 interface TodayAttendance {
@@ -71,6 +71,7 @@ export default function TeacherHomeScreen() {
   const [pendingHomework, setPendingHomework] = useState<Homework[]>([]);
   const [loadingPendingHomework, setLoadingPendingHomework] = useState(false);
   const [updatingHomeworkId, setUpdatingHomeworkId] = useState<string | null>(null);
+  const [selectedEvaluations, setSelectedEvaluations] = useState<Record<string, HomeworkEvaluation | null>>({});
   const swipeableRefs = useRef<Map<string, Swipeable | null>>(new Map());
 
   // Fetch students when class changes
@@ -146,7 +147,7 @@ export default function TeacherHomeScreen() {
   }, [searchQuery, students]);
 
   const handleStudentPress = (student: Student) => {
-    router.push(
+    router.navigate(
       `/(teacher)/classes/${selectedClassId}/students/${student.id}`
     );
   };
@@ -203,15 +204,51 @@ export default function TeacherHomeScreen() {
   const handleQuickStatusUpdate = async (homeworkId: string, status: HomeworkStatus) => {
     setUpdatingHomeworkId(homeworkId);
     try {
-      await updateHomework(homeworkId, { status });
+      const evaluation = selectedEvaluations[homeworkId] || undefined;
+      await updateHomework(homeworkId, { status, evaluation });
       // Remove from list after update
       setPendingHomework((prev) => prev.filter((h) => h.id !== homeworkId));
+      // Clear evaluation for this homework
+      setSelectedEvaluations((prev) => {
+        const updated = { ...prev };
+        delete updated[homeworkId];
+        return updated;
+      });
     } catch (error) {
       console.error('Error updating homework:', error);
       Alert.alert('Error', 'Failed to update homework');
     } finally {
       setUpdatingHomeworkId(null);
     }
+  };
+
+  const handleStarPress = (homeworkId: string, rating: HomeworkEvaluation) => {
+    setSelectedEvaluations((prev) => ({
+      ...prev,
+      [homeworkId]: prev[homeworkId] === rating ? null : rating,
+    }));
+  };
+
+  const renderStars = (homeworkId: string) => {
+    const currentRating = selectedEvaluations[homeworkId] || 0;
+    return (
+      <View style={styles.starsContainer}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <TouchableOpacity
+            key={star}
+            onPress={() => handleStarPress(homeworkId, star as HomeworkEvaluation)}
+            style={styles.starButton}
+          >
+            <IconButton
+              icon={star <= currentRating ? 'star' : 'star-outline'}
+              iconColor={star <= currentRating ? '#ffc107' : '#ccc'}
+              size={28}
+              style={{ margin: 0 }}
+            />
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
   };
 
   const handleSubmitHomework = async () => {
@@ -581,50 +618,56 @@ export default function TeacherHomeScreen() {
                 {pendingHomework.map((hw) => (
                   <Card key={hw.id} style={styles.homeworkCard}>
                     <Card.Content style={styles.homeworkCardContent}>
-                      <View style={styles.homeworkInfo}>
-                        <Text variant="titleSmall" numberOfLines={1}>
+                      <View style={styles.homeworkHeader}>
+                        <Text variant="titleMedium" style={styles.homeworkTitle}>
                           {hw.title}
                         </Text>
                         <Text variant="bodySmall" style={styles.homeworkDate}>
                           {hw.createdAt ? format(hw.createdAt.toDate(), 'MMM d') : 'Today'}
                         </Text>
                       </View>
+
+                      {renderStars(hw.id)}
+
                       <View style={styles.statusButtons}>
                         <TouchableOpacity
-                          style={[styles.statusButton, styles.statusComplete]}
+                          style={[styles.statusButton, styles.statusComplete, updatingHomeworkId === hw.id && styles.statusButtonDisabled]}
                           onPress={() => handleQuickStatusUpdate(hw.id, 'completed')}
                           disabled={updatingHomeworkId === hw.id}
                         >
                           <IconButton
                             icon="check"
                             iconColor="#fff"
-                            size={16}
+                            size={24}
                             style={{ margin: 0 }}
                           />
+                          <Text style={styles.statusButtonText}>Complete</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                          style={[styles.statusButton, styles.statusLate]}
+                          style={[styles.statusButton, styles.statusLate, updatingHomeworkId === hw.id && styles.statusButtonDisabled]}
                           onPress={() => handleQuickStatusUpdate(hw.id, 'late')}
                           disabled={updatingHomeworkId === hw.id}
                         >
                           <IconButton
                             icon="clock-outline"
                             iconColor="#fff"
-                            size={16}
+                            size={24}
                             style={{ margin: 0 }}
                           />
+                          <Text style={styles.statusButtonText}>Late</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                          style={[styles.statusButton, styles.statusIncomplete]}
+                          style={[styles.statusButton, styles.statusIncomplete, updatingHomeworkId === hw.id && styles.statusButtonDisabled]}
                           onPress={() => handleQuickStatusUpdate(hw.id, 'incomplete')}
                           disabled={updatingHomeworkId === hw.id}
                         >
                           <IconButton
                             icon="close"
                             iconColor="#fff"
-                            size={16}
+                            size={24}
                             style={{ margin: 0 }}
                           />
+                          <Text style={styles.statusButtonText}>Incomplete</Text>
                         </TouchableOpacity>
                       </View>
                     </Card.Content>
@@ -809,37 +852,60 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   homeworkList: {
-    gap: 8,
+    gap: 12,
     marginTop: 8,
-    maxHeight: 300,
+    maxHeight: 400,
   },
   homeworkCard: {
     backgroundColor: '#f9f9f9',
   },
   homeworkCardContent: {
+    flexDirection: 'column',
+    paddingVertical: 12,
+    gap: 12,
+  },
+  homeworkHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
   },
-  homeworkInfo: {
+  homeworkTitle: {
+    fontWeight: '600',
     flex: 1,
-    marginRight: 8,
   },
   homeworkDate: {
     color: '#666',
-    marginTop: 2,
+    marginLeft: 8,
+  },
+  starsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  starButton: {
+    padding: 0,
   },
   statusButtons: {
     flexDirection: 'row',
-    gap: 4,
+    justifyContent: 'space-between',
+    gap: 8,
   },
   statusButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    flex: 1,
+    height: 56,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  statusButtonDisabled: {
+    opacity: 0.5,
+  },
+  statusButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 12,
+    marginTop: -4,
   },
   statusComplete: {
     backgroundColor: '#4caf50',

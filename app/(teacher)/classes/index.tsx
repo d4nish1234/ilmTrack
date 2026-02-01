@@ -74,7 +74,7 @@ export default function ClassesScreen() {
   }, [searchQuery, students]);
 
   const handleStudentPress = (student: Student) => {
-    router.push(`/(teacher)/classes/${selectedClassId}/students/${student.id}`);
+    router.navigate(`/(teacher)/classes/${selectedClassId}/students/${student.id}`);
   };
 
   const renderStudent = ({ item }: { item: Student }) => (

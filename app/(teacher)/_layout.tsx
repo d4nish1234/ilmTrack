@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Tabs, router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SelectedClassProvider } from '../../src/contexts/SelectedClassContext';
 
@@ -27,6 +27,11 @@ export default function TeacherLayout() {
               <MaterialCommunityIcons name="home" size={size} color={color} />
             ),
           }}
+          listeners={{
+            tabPress: () => {
+              router.navigate('/(teacher)');
+            },
+          }}
         />
         <Tabs.Screen
           name="classes"
@@ -40,6 +45,12 @@ export default function TeacherLayout() {
               />
             ),
             headerShown: false,
+          }}
+          listeners={{
+            tabPress: (e) => {
+              // Navigate to classes index to reset the stack
+              router.navigate('/(teacher)/classes');
+            },
           }}
         />
         <Tabs.Screen
