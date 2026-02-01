@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 5.0.0"
+    "version": ">= 5.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -30,6 +31,7 @@
       }
     },
     "production": {
+      "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_FIREBASE_API_KEY": "@EXPO_PUBLIC_FIREBASE_API_KEY",
         "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "@EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN",

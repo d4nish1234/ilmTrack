@@ -1,12 +1,4 @@
 {
-  "cli": {
-    "appVersionSource": "app.json"
-  },
-  "build": {
-    "production": {
-      "autoIncrement": true
-    }
-  },
   "expo": {
     "name": "IlmTrack",
     "slug": "ilmtrack",
@@ -21,6 +13,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.danishmahboob.ilmtrack",
+      "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
