@@ -10,6 +10,7 @@ import {
   setupNotificationChannel,
   addNotificationListeners,
 } from '../src/services/notification.service';
+import { auth } from '../src/config/firebase';
 
 const theme = {
   ...MD3LightTheme,
@@ -66,12 +67,15 @@ function RootLayoutNav() {
     const inParentGroup = segments[0] === '(parent)';
     const onVerifyPage = segments[1] === 'verify-email';
 
+    // Check auth.currentUser directly to avoid stale context state
+    const isEmailVerified = emailVerified || auth.currentUser?.emailVerified;
+
     if (!user && !inAuthGroup) {
       // User is not signed in, redirect to login
       router.replace('/(auth)/login');
     } else if (user) {
       // Check if email is verified
-      if (!emailVerified) {
+      if (!isEmailVerified) {
         // User needs to verify email
         if (!onVerifyPage) {
           router.replace('/(auth)/verify-email');

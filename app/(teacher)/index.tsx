@@ -8,6 +8,7 @@ import {
   Alert,
   Keyboard,
   TouchableWithoutFeedback,
+  ScrollView,
 } from 'react-native';
 import {
   Text,
@@ -202,9 +203,14 @@ export default function TeacherHomeScreen() {
   };
 
   const handleQuickStatusUpdate = async (homeworkId: string, status: HomeworkStatus) => {
+    const evaluation = selectedEvaluations[homeworkId];
+    if (!evaluation) {
+      Alert.alert('Rating Required', 'Please select a star rating before marking the homework.');
+      return;
+    }
+
     setUpdatingHomeworkId(homeworkId);
     try {
-      const evaluation = selectedEvaluations[homeworkId] || undefined;
       await updateHomework(homeworkId, { status, evaluation });
       // Remove from list after update
       setPendingHomework((prev) => prev.filter((h) => h.id !== homeworkId));
@@ -614,7 +620,8 @@ export default function TeacherHomeScreen() {
                 </Text>
               </View>
             ) : (
-              <View style={styles.homeworkList}>
+              <ScrollView style={styles.homeworkScrollView} showsVerticalScrollIndicator={true}>
+                <View style={styles.homeworkList}>
                 {pendingHomework.map((hw) => (
                   <Card key={hw.id} style={styles.homeworkCard}>
                     <Card.Content style={styles.homeworkCardContent}>
@@ -673,7 +680,8 @@ export default function TeacherHomeScreen() {
                     </Card.Content>
                   </Card>
                 ))}
-              </View>
+                </View>
+              </ScrollView>
             )}
 
             <Button
@@ -851,10 +859,12 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
   },
+  homeworkScrollView: {
+    maxHeight: 350,
+    marginTop: 8,
+  },
   homeworkList: {
     gap: 12,
-    marginTop: 8,
-    maxHeight: 400,
   },
   homeworkCard: {
     backgroundColor: '#f9f9f9',

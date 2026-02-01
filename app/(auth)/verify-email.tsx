@@ -9,7 +9,7 @@ import { auth } from '../../src/config/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 
 export default function VerifyEmailScreen() {
-  const { firebaseUser, resendVerificationEmail, reloadFirebaseUser } =
+  const { user, firebaseUser, resendVerificationEmail, reloadFirebaseUser } =
     useAuth();
   const [resending, setResending] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -43,13 +43,19 @@ export default function VerifyEmailScreen() {
       await reloadFirebaseUser();
       // Check fresh auth state directly
       const currentUser = auth.currentUser;
-      if (!currentUser?.emailVerified) {
+      if (currentUser?.emailVerified) {
+        // Email is verified - navigate to appropriate home screen
+        if (user?.role === 'teacher') {
+          router.replace('/(teacher)');
+        } else {
+          router.replace('/(parent)');
+        }
+      } else {
         Alert.alert(
           'Not Verified Yet',
           'Your email has not been verified yet. Please click the link in the verification email first, then try again.'
         );
       }
-      // If verified, the root layout will automatically redirect
     } catch (error) {
       console.error('Error checking verification:', error);
       Alert.alert('Error', 'Failed to check verification status. Please try again.');
