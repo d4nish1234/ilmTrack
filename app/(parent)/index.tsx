@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, ScrollView, RefreshControl } from 'react-native';
-import { Text, Card, Chip } from 'react-native-paper';
+import { StyleSheet, View, ScrollView, RefreshControl, Linking, Platform } from 'react-native';
+import { Text, Card, Chip, IconButton } from 'react-native-paper';
+import { router } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { LoadingSpinner } from '../../src/components/common';
 import { Student, Homework, Attendance } from '../../src/types';
@@ -27,6 +29,36 @@ export default function ParentHomeScreen() {
   const [recentAttendance, setRecentAttendance] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [systemNotificationsDisabled, setSystemNotificationsDisabled] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  // App-level notification preference
+  const appNotificationsDisabled = user?.notificationsEnabled === false;
+
+  // Check system notification permission status
+  useEffect(() => {
+    const checkNotificationPermission = async () => {
+      const { status } = await Notifications.getPermissionsAsync();
+      setSystemNotificationsDisabled(status !== 'granted');
+    };
+    checkNotificationPermission();
+  }, []);
+
+  const openSystemSettings = () => {
+    if (Platform.OS === 'ios') {
+      Linking.openURL('app-settings:');
+    } else {
+      Linking.openSettings();
+    }
+  };
+
+  const openAppSettings = () => {
+    router.push('/(parent)/settings');
+  };
+
+  // Determine which banner to show (system takes priority)
+  const showSystemBanner = systemNotificationsDisabled && !bannerDismissed;
+  const showAppBanner = !systemNotificationsDisabled && appNotificationsDisabled && !bannerDismissed;
 
   const fetchData = useCallback(async () => {
     if (!user?.studentIds?.length) {
@@ -156,6 +188,54 @@ export default function ParentHomeScreen() {
           Welcome, {user?.firstName}!
         </Text>
       </View>
+
+      {/* System notification permission banner */}
+      {showSystemBanner && (
+        <View style={styles.notificationBanner}>
+          <View style={styles.bannerContent}>
+            <Text variant="bodySmall" style={styles.bannerText}>
+              Notifications are disabled. You won&apos;t receive homework alerts.
+            </Text>
+            <Text
+              variant="labelSmall"
+              style={styles.bannerLink}
+              onPress={openSystemSettings}
+            >
+              Enable in Settings
+            </Text>
+          </View>
+          <IconButton
+            icon="close"
+            size={16}
+            onPress={() => setBannerDismissed(true)}
+            style={styles.bannerClose}
+          />
+        </View>
+      )}
+
+      {/* App notification preference banner */}
+      {showAppBanner && (
+        <View style={styles.notificationBanner}>
+          <View style={styles.bannerContent}>
+            <Text variant="bodySmall" style={styles.bannerText}>
+              Notifications are turned off. You won&apos;t receive homework alerts.
+            </Text>
+            <Text
+              variant="labelSmall"
+              style={styles.bannerLink}
+              onPress={openAppSettings}
+            >
+              Enable in App Settings
+            </Text>
+          </View>
+          <IconButton
+            icon="close"
+            size={16}
+            onPress={() => setBannerDismissed(true)}
+            style={styles.bannerClose}
+          />
+        </View>
+      )}
 
       {/* Students - deduplicated by name (same child in multiple classes shows once) */}
       <Card style={styles.card}>
@@ -292,5 +372,31 @@ const styles = StyleSheet.create({
   emptyMessage: {
     color: '#666',
     textAlign: 'center',
+  },
+  notificationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff3cd',
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingLeft: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#ffc107',
+  },
+  bannerContent: {
+    flex: 1,
+  },
+  bannerText: {
+    color: '#856404',
+  },
+  bannerLink: {
+    color: '#1a73e8',
+    marginTop: 4,
+    textDecorationLine: 'underline',
+  },
+  bannerClose: {
+    margin: 0,
   },
 });
