@@ -127,12 +127,14 @@ ilmTrack/
 │   │   │           └── [studentId]/
 │   │   │               ├── homework/
 │   │   │               └── attendance/
-│   │   └── settings.tsx
+│   │   ├── settings.tsx
+│   │   └── help.tsx              # Help & Support
 │   ├── (parent)/                 # Parent screens
 │   │   ├── index.tsx
 │   │   ├── homework.tsx
 │   │   ├── attendance.tsx
-│   │   └── settings.tsx
+│   │   ├── settings.tsx
+│   │   └── help.tsx              # Help & Support
 │   └── _layout.tsx               # Root layout
 ├── src/
 │   ├── components/               # Reusable UI components
@@ -266,6 +268,23 @@ eas login
 eas build:configure
 ```
 
+### Set Up EAS Environment Variables
+
+Before building, set your Firebase environment variables in EAS:
+
+```bash
+# Create environment variables for all build profiles
+eas env:create --name EXPO_PUBLIC_FIREBASE_API_KEY --value "your-api-key" --environment production --environment preview --environment development
+eas env:create --name EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN --value "your-auth-domain" --environment production --environment preview --environment development
+eas env:create --name EXPO_PUBLIC_FIREBASE_PROJECT_ID --value "your-project-id" --environment production --environment preview --environment development
+eas env:create --name EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET --value "your-storage-bucket" --environment production --environment preview --environment development
+eas env:create --name EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID --value "your-sender-id" --environment production --environment preview --environment development
+eas env:create --name EXPO_PUBLIC_FIREBASE_APP_ID --value "your-app-id" --environment production --environment preview --environment development
+
+# Verify your environment variables
+eas env:list production
+```
+
 ### Building for iOS
 
 ```bash
@@ -333,6 +352,10 @@ When you see index errors in the console, click the link provided to create the 
 - Ensure your `.env` file is in the project root
 - Variable names must start with `EXPO_PUBLIC_` to be accessible in the app
 - Restart Metro with `--clear` flag after changing `.env`
+
+## Support
+
+For questions or issues, contact: info@youngmomins.com
 
 ## Contributing
 
