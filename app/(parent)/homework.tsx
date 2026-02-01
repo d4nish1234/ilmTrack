@@ -126,13 +126,19 @@ export default function ParentHomeworkScreen() {
   useEffect(() => {
     if (!user?.studentIds?.length) {
       setLoading(false);
+      setStudents([]);
+      setHomework([]);
       return;
     }
+
+    let unsubscribe: (() => void) | null = null;
+    let isMounted = true;
 
     const fetchData = async () => {
       try {
         // Fetch students
         const studentList = await fetchStudents();
+        if (!isMounted) return;
         setStudents(studentList);
 
         // Subscribe to homework
@@ -146,9 +152,10 @@ export default function ParentHomeworkScreen() {
             orderBy('createdAt', 'desc')
           );
 
-          const unsubscribe = onSnapshot(
+          unsubscribe = onSnapshot(
             q,
             (snapshot) => {
+              if (!isMounted) return;
               setHomework(
                 snapshot.docs.map((docSnap) => ({
                   id: docSnap.id,
@@ -158,23 +165,31 @@ export default function ParentHomeworkScreen() {
               setLoading(false);
             },
             (error) => {
+              // Ignore errors if unmounted (e.g., during sign out)
+              if (!isMounted) return;
               console.error('Error fetching homework:', error);
               setLoading(false);
             }
           );
-
-          return unsubscribe;
         } else {
           setLoading(false);
         }
       } catch (error) {
+        if (!isMounted) return;
         console.error('Error:', error);
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [user, fetchStudents]);
+
+    return () => {
+      isMounted = false;
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [user?.studentIds, fetchStudents]);
 
   const getStudentName = (studentId: string) => {
     const student = students.find((s) => s.id === studentId);
