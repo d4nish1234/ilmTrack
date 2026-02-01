@@ -16,7 +16,7 @@ export default function ClassesLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: 'My Classes',
+          title: 'Classes',
         }}
       />
       <Stack.Screen

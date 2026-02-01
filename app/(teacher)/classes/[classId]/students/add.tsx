@@ -20,6 +20,28 @@ import { firestore } from '../../../../../src/config/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { Student } from '../../../../../src/types';
 
+// Deduplicate students by name (same child in multiple classes)
+function deduplicateStudentsByName(students: Student[]): Student[] {
+  const seen = new Map<string, Student>();
+  for (const student of students) {
+    const key = `${student.firstName.toLowerCase()}-${student.lastName.toLowerCase()}`;
+    if (!seen.has(key)) {
+      seen.set(key, student);
+    }
+  }
+  return Array.from(seen.values());
+}
+
+// Check if a student with the same name is already in a specific class
+function isStudentNameInClass(students: Student[], studentName: { firstName: string; lastName: string }, classId: string): boolean {
+  return students.some(
+    (s) =>
+      s.firstName.toLowerCase() === studentName.firstName.toLowerCase() &&
+      s.lastName.toLowerCase() === studentName.lastName.toLowerCase() &&
+      s.classId === classId
+  );
+}
+
 // Step 1: Email lookup schema
 const emailSchema = yup.object({
   email: yup
@@ -61,7 +83,8 @@ export default function AddStudentScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [parentEmail, setParentEmail] = useState('');
-  const [existingStudents, setExistingStudents] = useState<Student[]>([]);
+  const [allMatchingStudents, setAllMatchingStudents] = useState<Student[]>([]);
+  const [uniqueStudents, setUniqueStudents] = useState<Student[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   // Email form
@@ -110,12 +133,14 @@ export default function AddStudentScreen() {
         }
       });
 
-      setExistingStudents(matchingStudents);
+      setAllMatchingStudents(matchingStudents);
+      const deduplicated = deduplicateStudentsByName(matchingStudents);
+      setUniqueStudents(deduplicated);
 
       // Pre-fill the parent email in the student form
       studentForm.setValue('parents.0.email', normalizedEmail);
 
-      if (matchingStudents.length > 0) {
+      if (deduplicated.length > 0) {
         // Show selection screen
         setStep('select-or-add');
       } else {
@@ -179,11 +204,12 @@ export default function AddStudentScreen() {
   };
 
   const goBack = () => {
-    if (step === 'add-student' && existingStudents.length > 0) {
+    if (step === 'add-student' && uniqueStudents.length > 0) {
       setStep('select-or-add');
     } else if (step === 'add-student' || step === 'select-or-add') {
       setStep('email');
-      setExistingStudents([]);
+      setAllMatchingStudents([]);
+      setUniqueStudents([]);
       setSelectedStudentId(null);
     } else {
       router.back();
@@ -252,7 +278,7 @@ export default function AddStudentScreen() {
             Existing Children Found
           </Text>
           <Text variant="bodyMedium" style={styles.stepDescription}>
-            We found {existingStudents.length} child{existingStudents.length > 1 ? 'ren' : ''} linked to {parentEmail}.
+            We found {uniqueStudents.length} child{uniqueStudents.length > 1 ? 'ren' : ''} linked to {parentEmail}.
             Select one to add to this class, or add a new child.
           </Text>
 
@@ -260,33 +286,36 @@ export default function AddStudentScreen() {
             value={selectedStudentId || ''}
             onValueChange={(value) => setSelectedStudentId(value)}
           >
-            {existingStudents.map((student) => (
-              <TouchableOpacity
-                key={student.id}
-                onPress={() => setSelectedStudentId(student.id)}
-              >
-                <Card
-                  style={[
-                    styles.studentCard,
-                    selectedStudentId === student.id && styles.studentCardSelected,
-                  ]}
+            {uniqueStudents.map((student) => {
+              const alreadyInThisClass = isStudentNameInClass(allMatchingStudents, student, classId!);
+              return (
+                <TouchableOpacity
+                  key={student.id}
+                  onPress={() => setSelectedStudentId(student.id)}
                 >
-                  <Card.Content style={styles.studentCardContent}>
-                    <RadioButton value={student.id} />
-                    <View style={styles.studentInfo}>
-                      <Text variant="titleMedium">
-                        {student.firstName} {student.lastName}
-                      </Text>
-                      {student.classId === classId && (
-                        <Text variant="bodySmall" style={styles.alreadyInClass}>
-                          Already in this class
+                  <Card
+                    style={[
+                      styles.studentCard,
+                      selectedStudentId === student.id && styles.studentCardSelected,
+                    ]}
+                  >
+                    <Card.Content style={styles.studentCardContent}>
+                      <RadioButton value={student.id} />
+                      <View style={styles.studentInfo}>
+                        <Text variant="titleMedium">
+                          {student.firstName} {student.lastName}
                         </Text>
-                      )}
-                    </View>
-                  </Card.Content>
-                </Card>
-              </TouchableOpacity>
-            ))}
+                        {alreadyInThisClass && (
+                          <Text variant="bodySmall" style={styles.alreadyInClass}>
+                            Already in this class
+                          </Text>
+                        )}
+                      </View>
+                    </Card.Content>
+                  </Card>
+                </TouchableOpacity>
+              );
+            })}
           </RadioButton.Group>
 
           <Divider style={styles.divider} />
@@ -305,7 +334,10 @@ export default function AddStudentScreen() {
             <Button
               onPress={handleSelectExisting}
               loading={loading}
-              disabled={!selectedStudentId || existingStudents.find(s => s.id === selectedStudentId)?.classId === classId}
+              disabled={!selectedStudentId || (() => {
+                const selected = uniqueStudents.find(s => s.id === selectedStudentId);
+                return selected ? isStudentNameInClass(allMatchingStudents, selected, classId!) : false;
+              })()}
             >
               Add Selected Student
             </Button>
