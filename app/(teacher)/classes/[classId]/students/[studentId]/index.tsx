@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, ScrollView, Alert, useWindowDimensions, Keyboard, TouchableWithoutFeedback } from 'react-native';
-import { Text, Card, Chip, IconButton, Menu, Portal, Modal, TextInput } from 'react-native-paper';
+import { Text, Card, Chip, IconButton, Menu, Portal, Modal, TextInput, Divider } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { subscribeToStudent, deleteStudent, getUserById, updateStudent } from '../../../../../../src/services/student.service';
 import { subscribeToHomework } from '../../../../../../src/services/homework.service';
@@ -28,6 +28,8 @@ export default function StudentDetailScreen() {
   const [recentAttendance, setRecentAttendance] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [menuKey, setMenuKey] = useState(0);
+  const lastMenuActionRef = useRef(0);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
@@ -97,6 +99,25 @@ export default function StudentDetailScreen() {
       unsubAttendance();
     };
   }, [studentId]);
+
+  // Menu handlers - increment key on open to force fresh Menu state
+  const MENU_DEBOUNCE_MS = 300;
+
+  const openMenu = useCallback(() => {
+    const now = Date.now();
+    if (now - lastMenuActionRef.current < MENU_DEBOUNCE_MS) {
+      return; // Ignore rapid open attempts
+    }
+    lastMenuActionRef.current = now;
+    setMenuKey((k) => k + 1); // Force Menu remount for fresh state
+    setMenuVisible(true);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    // Always allow close, but record the time to prevent immediate reopen
+    lastMenuActionRef.current = Date.now();
+    setMenuVisible(false);
+  }, []);
 
   const handleDelete = () => {
     Alert.alert(
@@ -198,7 +219,7 @@ export default function StudentDetailScreen() {
               icon="dots-vertical"
               iconColor="#fff"
               size={24}
-              onPress={() => setMenuVisible(true)}
+              onPress={openMenu}
               style={styles.headerButton}
             />
           ),
@@ -208,23 +229,25 @@ export default function StudentDetailScreen() {
       {/* Menu rendered with Portal for proper z-index */}
       <Portal>
         <Menu
+          key={menuKey}
           visible={menuVisible}
-          onDismiss={() => setMenuVisible(false)}
+          onDismiss={closeMenu}
           anchor={{ x: windowWidth - 16, y: 56 }}
           anchorPosition="bottom"
           contentStyle={styles.menuContent}
         >
           <Menu.Item
             onPress={() => {
-              setMenuVisible(false);
+              closeMenu();
               handleOpenEdit();
             }}
             title="Edit Student"
             leadingIcon="pencil"
           />
+          <Divider />
           <Menu.Item
             onPress={() => {
-              setMenuVisible(false);
+              closeMenu();
               handleDelete();
             }}
             title="Delete Student"
