@@ -251,25 +251,72 @@ npm run lint
 
 ## Production Builds (EAS)
 
-For production builds, you'll need EAS:
+For production builds, you'll need EAS (Expo Application Services):
+
+### Initial Setup
 
 ```bash
-# Install EAS CLI
+# Install EAS CLI globally
 npm install -g eas-cli
 
-# Login to EAS
+# Login to your Expo account
 eas login
 
-# Configure your project
+# Configure your project (creates eas.json)
 eas build:configure
+```
 
-# Build for production
-eas build --profile production --platform all
+### Building for iOS
 
-# Submit to app stores
+```bash
+# Development build (for testing on device)
+eas build --profile development --platform ios
+
+# Production build (for App Store)
+eas build --profile production --platform ios
+
+# Submit to App Store
 eas submit --platform ios
+```
+
+**Requirements for iOS:**
+- Apple Developer account ($99/year)
+- App Store Connect access
+- EAS will guide you through Apple authentication
+
+### Building for Android
+
+```bash
+# Development build (for testing on device)
+eas build --profile development --platform android
+
+# Production build (for Play Store)
+eas build --profile production --platform android
+
+# Submit to Play Store
 eas submit --platform android
 ```
+
+**Requirements for Android:**
+- Google Play Console account ($25 one-time)
+- For Play Store submission: create a service account key
+
+### Build Both Platforms
+
+```bash
+# Build for both iOS and Android
+eas build --profile production --platform all
+```
+
+### Common EAS Prompts
+
+During your first build, EAS may ask:
+
+| Prompt | Answer |
+|--------|--------|
+| "Install expo-dev-client?" | **No** for production builds, **Yes** for development builds |
+| "Generate a new Android Keystore?" | **Yes** (EAS manages it for you) |
+| "Log in to Apple Developer?" | Follow the prompts to authenticate |
 
 ## Troubleshooting
 

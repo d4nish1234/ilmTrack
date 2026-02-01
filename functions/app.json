@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "4e611747-607b-4828-af4e-b849aa7bf2c8"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.danishmahboob.ilmtrack",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}
