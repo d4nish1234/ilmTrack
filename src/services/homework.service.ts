@@ -130,3 +130,21 @@ export async function getHomeworkAssignedToday(
     ...doc.data(),
   })) as Homework[];
 }
+
+export async function getRecentPendingHomework(
+  studentId: string,
+  limit: number = 5
+): Promise<Homework[]> {
+  const q = query(
+    homeworkRef,
+    where('studentId', '==', studentId),
+    where('status', '==', 'assigned'),
+    orderBy('createdAt', 'desc')
+  );
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.slice(0, limit).map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Homework[];
+}

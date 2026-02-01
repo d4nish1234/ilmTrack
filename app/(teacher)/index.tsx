@@ -43,7 +43,11 @@ import {
 import {
   createHomework,
   getHomeworkAssignedToday,
+  getRecentPendingHomework,
+  updateHomework,
 } from '../../src/services/homework.service';
+import { Homework, HomeworkStatus } from '../../src/types';
+import { format } from 'date-fns';
 
 interface TodayAttendance {
   [studentId: string]: AttendanceStatus | null;
@@ -63,6 +67,10 @@ export default function TeacherHomeScreen() {
   const [homeworkTitle, setHomeworkTitle] = useState('');
   const [homeworkDescription, setHomeworkDescription] = useState('');
   const [submittingHomework, setSubmittingHomework] = useState(false);
+  const [evaluateModalVisible, setEvaluateModalVisible] = useState(false);
+  const [pendingHomework, setPendingHomework] = useState<Homework[]>([]);
+  const [loadingPendingHomework, setLoadingPendingHomework] = useState(false);
+  const [updatingHomeworkId, setUpdatingHomeworkId] = useState<string | null>(null);
   const swipeableRefs = useRef<Map<string, Swipeable | null>>(new Map());
 
   // Fetch students when class changes
@@ -167,13 +175,43 @@ export default function TeacherHomeScreen() {
     }
   };
 
-  const handleSwipeLeft = (student: Student) => {
+  const handleOpenNewHomework = (student: Student) => {
     setSelectedStudent(student);
     setHomeworkTitle('');
     setHomeworkDescription('');
     setHomeworkModalVisible(true);
-    // Close the swipeable
     swipeableRefs.current.get(student.id)?.close();
+  };
+
+  const handleOpenEvaluate = async (student: Student) => {
+    setSelectedStudent(student);
+    setLoadingPendingHomework(true);
+    setEvaluateModalVisible(true);
+    swipeableRefs.current.get(student.id)?.close();
+
+    try {
+      const homework = await getRecentPendingHomework(student.id, 5);
+      setPendingHomework(homework);
+    } catch (error) {
+      console.error('Error fetching pending homework:', error);
+      Alert.alert('Error', 'Failed to load homework');
+    } finally {
+      setLoadingPendingHomework(false);
+    }
+  };
+
+  const handleQuickStatusUpdate = async (homeworkId: string, status: HomeworkStatus) => {
+    setUpdatingHomeworkId(homeworkId);
+    try {
+      await updateHomework(homeworkId, { status });
+      // Remove from list after update
+      setPendingHomework((prev) => prev.filter((h) => h.id !== homeworkId));
+    } catch (error) {
+      console.error('Error updating homework:', error);
+      Alert.alert('Error', 'Failed to update homework');
+    } finally {
+      setUpdatingHomeworkId(null);
+    }
   };
 
   const handleSubmitHomework = async () => {
@@ -270,11 +308,12 @@ export default function TeacherHomeScreen() {
   };
 
   const renderLeftActions = (
-    progress: Animated.AnimatedInterpolation<number>
+    progress: Animated.AnimatedInterpolation<number>,
+    student: Student
   ) => {
     const trans = progress.interpolate({
       inputRange: [0, 1],
-      outputRange: [-100, 0],
+      outputRange: [-160, 0],
     });
 
     return (
@@ -285,9 +324,21 @@ export default function TeacherHomeScreen() {
           { transform: [{ translateX: trans }] },
         ]}
       >
-        <View style={[styles.swipeContent, { backgroundColor: '#2196f3' }]}>
-          <IconButton icon="book-open-variant" iconColor="#fff" size={24} />
-          <Text style={styles.swipeText}>Homework</Text>
+        <View style={styles.swipeActionsRow}>
+          <TouchableOpacity
+            style={[styles.swipeActionButton, { backgroundColor: '#2196f3' }]}
+            onPress={() => handleOpenNewHomework(student)}
+          >
+            <IconButton icon="plus" iconColor="#fff" size={20} style={{ margin: 0 }} />
+            <Text style={styles.swipeButtonText}>New</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.swipeActionButton, { backgroundColor: '#ff9800' }]}
+            onPress={() => handleOpenEvaluate(student)}
+          >
+            <IconButton icon="clipboard-check" iconColor="#fff" size={20} style={{ margin: 0 }} />
+            <Text style={styles.swipeButtonText}>Evaluate</Text>
+          </TouchableOpacity>
         </View>
       </Animated.View>
     );
@@ -333,13 +384,12 @@ export default function TeacherHomeScreen() {
           swipeableRefs.current.set(item.id, ref);
         }}
         renderRightActions={(progress) => renderRightActions(progress, item)}
-        renderLeftActions={renderLeftActions}
+        renderLeftActions={(progress) => renderLeftActions(progress, item)}
         onSwipeableOpen={(direction) => {
           if (direction === 'right') {
             handleSwipeRight(item);
-          } else if (direction === 'left') {
-            handleSwipeLeft(item);
           }
+          // Left swipe: don't auto-trigger, let user tap the action buttons
         }}
         overshootRight={false}
         overshootLeft={false}
@@ -497,6 +547,102 @@ export default function TeacherHomeScreen() {
           </TouchableWithoutFeedback>
         </Modal>
       </Portal>
+
+      {/* Evaluate Homework Modal */}
+      <Portal>
+        <Modal
+          visible={evaluateModalVisible}
+          onDismiss={() => setEvaluateModalVisible(false)}
+          dismissable={true}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <View>
+            <Text variant="titleLarge" style={styles.modalTitle}>
+              Evaluate Homework
+            </Text>
+            {selectedStudent && (
+              <Text variant="bodyMedium" style={styles.modalSubtitle}>
+                {selectedStudent.firstName} {selectedStudent.lastName}
+              </Text>
+            )}
+
+            {loadingPendingHomework ? (
+              <View style={styles.evaluateLoading}>
+                <Text variant="bodyMedium" style={styles.loadingText}>Loading...</Text>
+              </View>
+            ) : pendingHomework.length === 0 ? (
+              <View style={styles.evaluateEmpty}>
+                <Text variant="bodyMedium" style={styles.emptyText}>
+                  No pending homework to evaluate
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.homeworkList}>
+                {pendingHomework.map((hw) => (
+                  <Card key={hw.id} style={styles.homeworkCard}>
+                    <Card.Content style={styles.homeworkCardContent}>
+                      <View style={styles.homeworkInfo}>
+                        <Text variant="titleSmall" numberOfLines={1}>
+                          {hw.title}
+                        </Text>
+                        <Text variant="bodySmall" style={styles.homeworkDate}>
+                          {hw.createdAt ? format(hw.createdAt.toDate(), 'MMM d') : 'Today'}
+                        </Text>
+                      </View>
+                      <View style={styles.statusButtons}>
+                        <TouchableOpacity
+                          style={[styles.statusButton, styles.statusComplete]}
+                          onPress={() => handleQuickStatusUpdate(hw.id, 'completed')}
+                          disabled={updatingHomeworkId === hw.id}
+                        >
+                          <IconButton
+                            icon="check"
+                            iconColor="#fff"
+                            size={16}
+                            style={{ margin: 0 }}
+                          />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.statusButton, styles.statusLate]}
+                          onPress={() => handleQuickStatusUpdate(hw.id, 'late')}
+                          disabled={updatingHomeworkId === hw.id}
+                        >
+                          <IconButton
+                            icon="clock-outline"
+                            iconColor="#fff"
+                            size={16}
+                            style={{ margin: 0 }}
+                          />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.statusButton, styles.statusIncomplete]}
+                          onPress={() => handleQuickStatusUpdate(hw.id, 'incomplete')}
+                          disabled={updatingHomeworkId === hw.id}
+                        >
+                          <IconButton
+                            icon="close"
+                            iconColor="#fff"
+                            size={16}
+                            style={{ margin: 0 }}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </Card.Content>
+                  </Card>
+                ))}
+              </View>
+            )}
+
+            <Button
+              mode="outlined"
+              onPress={() => setEvaluateModalVisible(false)}
+              style={styles.closeButton}
+            >
+              Close
+            </Button>
+          </View>
+        </Modal>
+      </Portal>
     </GestureHandlerRootView>
   );
 }
@@ -561,6 +707,25 @@ const styles = StyleSheet.create({
   },
   swipeActionLeft: {
     alignItems: 'flex-start',
+  },
+  swipeActionsRow: {
+    flexDirection: 'row',
+    height: '100%',
+    gap: 4,
+  },
+  swipeActionButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    minWidth: 70,
+  },
+  swipeButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 11,
+    marginTop: -4,
   },
   swipeContent: {
     flexDirection: 'row',
@@ -627,5 +792,65 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     minWidth: 100,
+  },
+  evaluateLoading: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#666',
+  },
+  evaluateEmpty: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: '#666',
+    textAlign: 'center',
+  },
+  homeworkList: {
+    gap: 8,
+    marginTop: 8,
+    maxHeight: 300,
+  },
+  homeworkCard: {
+    backgroundColor: '#f9f9f9',
+  },
+  homeworkCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  homeworkInfo: {
+    flex: 1,
+    marginRight: 8,
+  },
+  homeworkDate: {
+    color: '#666',
+    marginTop: 2,
+  },
+  statusButtons: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  statusButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusComplete: {
+    backgroundColor: '#4caf50',
+  },
+  statusLate: {
+    backgroundColor: '#ff9800',
+  },
+  statusIncomplete: {
+    backgroundColor: '#f44336',
+  },
+  closeButton: {
+    marginTop: 16,
   },
 });
