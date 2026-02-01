@@ -86,10 +86,10 @@ export default function TeacherHomeScreen() {
 
     setLoading(true);
     const studentsRef = collection(firestore, 'students');
+    // Only filter by classId - user already has access to this class (as owner or admin)
     const q = query(
       studentsRef,
       where('classId', '==', selectedClassId),
-      where('teacherId', '==', user.uid),
       orderBy('lastName', 'asc')
     );
 
