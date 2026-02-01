@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Text, Snackbar, IconButton, Portal, Chip, Divider } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { SafeAreaView } from 'react-native-safe-area-context';

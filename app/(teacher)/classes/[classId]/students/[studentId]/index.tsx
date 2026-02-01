@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, ScrollView, Alert, useWindowDimensions } from 'react-native';
-import { Text, Card, List, Chip, Divider, IconButton, Menu, Portal } from 'react-native-paper';
+import { Text, Card, Chip, IconButton, Menu, Portal } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { subscribeToStudent, deleteStudent, getUserById } from '../../../../../../src/services/student.service';
 import { subscribeToHomework } from '../../../../../../src/services/homework.service';

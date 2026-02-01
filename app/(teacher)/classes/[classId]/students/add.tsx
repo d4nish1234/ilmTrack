@@ -206,7 +206,7 @@ export default function AddStudentScreen() {
               Add Student
             </Text>
             <Text variant="bodyMedium" style={styles.stepDescription}>
-              Enter a parent's email to check if they already have children in your classes.
+              Enter a parent&apos;s email to check if they already have children in your classes.
             </Text>
 
             <Input
@@ -424,7 +424,7 @@ export default function AddStudentScreen() {
 
           <Text variant="bodySmall" style={styles.inviteNote}>
             An invitation email will be sent to each parent to create their
-            account and view their child's homework and attendance.
+            account and view their child&apos;s homework and attendance.
           </Text>
 
           <View style={styles.actions}>

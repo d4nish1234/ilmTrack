@@ -79,7 +79,7 @@ export default function VerifyEmailScreen() {
         </Text>
 
         <Text variant="bodyLarge" style={styles.description}>
-          We've sent a verification email to:
+          We&apos;ve sent a verification email to:
         </Text>
 
         <Text variant="titleMedium" style={styles.email}>
@@ -92,12 +92,12 @@ export default function VerifyEmailScreen() {
         </Text>
 
         <Text variant="bodySmall" style={styles.spamNote}>
-          Can't find the email? Check your spam or junk folder.
+          Can&apos;t find the email? Check your spam or junk folder.
         </Text>
 
         <View style={styles.actions}>
           <Button onPress={handleCheckVerification} loading={checking}>
-            I've Verified My Email
+            I&apos;ve Verified My Email
           </Button>
 
           <Button

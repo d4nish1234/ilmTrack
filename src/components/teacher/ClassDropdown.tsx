@@ -36,7 +36,7 @@ export function ClassDropdown({ onClassChange }: ClassDropdownProps) {
     if (!selectedLoading && selectedClassId !== value) {
       setValue(selectedClassId);
     }
-  }, [selectedClassId, selectedLoading]);
+  }, [selectedClassId, selectedLoading, value]);
 
   // Auto-select first class if none selected
   useEffect(() => {

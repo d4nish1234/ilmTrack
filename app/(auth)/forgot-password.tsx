@@ -8,7 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { Text, Snackbar, Portal } from 'react-native-paper';
-import { Link, router } from 'expo-router';
+import { Link } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';

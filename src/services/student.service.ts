@@ -17,8 +17,6 @@ import {
 import { Student, CreateStudentData, UpdateStudentData, Parent, User } from '../types';
 import { incrementStudentCount, decrementStudentCount } from './class.service';
 
-const usersRef = collection(firestore, 'users');
-
 const studentsRef = collection(firestore, 'students');
 
 export async function createStudent(

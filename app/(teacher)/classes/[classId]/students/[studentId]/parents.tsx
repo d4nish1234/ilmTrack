@@ -41,8 +41,7 @@ const schema = yup.object({
 type FormData = yup.InferType<typeof schema>;
 
 export default function EditParentsScreen() {
-  const { classId, studentId } = useLocalSearchParams<{
-    classId: string;
+  const { studentId } = useLocalSearchParams<{
     studentId: string;
   }>();
   const { user } = useAuth();

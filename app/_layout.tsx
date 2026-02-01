@@ -91,7 +91,7 @@ function RootLayoutNav() {
         router.replace('/(parent)');
       }
     }
-  }, [user, loading, emailVerified, segments]);
+  }, [user, loading, emailVerified, segments, router]);
 
   if (loading) {
     return <LoadingSpinner message="Loading..." />;

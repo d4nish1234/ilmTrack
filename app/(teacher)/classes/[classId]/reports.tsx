@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Alert,
   Share,
-  Platform,
   Modal,
 } from 'react-native';
 import {
@@ -26,7 +25,6 @@ import {
   query,
   where,
   getDocs,
-  orderBy,
   Timestamp,
 } from 'firebase/firestore';
 import {
@@ -52,7 +50,7 @@ import {
 
 export default function ReportsScreen() {
   const { classId } = useLocalSearchParams<{ classId: string }>();
-  const { user } = useAuth();
+  useAuth();
   const [classData, setClassData] = useState<Class | null>(null);
   const [startDate, setStartDate] = useState(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState(new Date());

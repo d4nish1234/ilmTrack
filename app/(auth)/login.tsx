@@ -8,7 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { Text, Snackbar, Portal } from 'react-native-paper';
-import { Link, router } from 'expo-router';
+import { Link } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -108,7 +108,7 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.footer}>
-          <Text variant="bodyMedium">Don't have an account?</Text>
+          <Text variant="bodyMedium">Don&apos;t have an account?</Text>
           <Link href="/(auth)/signup" asChild>
             <Button mode="text">Sign Up</Button>
           </Link>

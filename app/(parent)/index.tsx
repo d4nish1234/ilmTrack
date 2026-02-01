@@ -136,7 +136,7 @@ export default function ParentHomeScreen() {
           Welcome, {user?.firstName}!
         </Text>
         <Text variant="bodyMedium" style={styles.emptyMessage}>
-          You're not linked to any students yet. Please wait for a teacher to
+          You&apos;re not linked to any students yet. Please wait for a teacher to
           send you an invitation.
         </Text>
       </View>
