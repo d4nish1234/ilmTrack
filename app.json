@@ -1,4 +1,12 @@
 {
+  "cli": {
+    "appVersionSource": "app.json"
+  },
+  "build": {
+    "production": {
+      "autoIncrement": true
+    }
+  },
   "expo": {
     "name": "IlmTrack",
     "slug": "ilmtrack",
