@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Alert } from 'react-native';
+import { router } from 'expo-router';
 import {
   List,
   Divider,
@@ -185,7 +186,7 @@ export default function TeacherSettingsScreen() {
           title="Help & Support"
           left={(props) => <List.Icon {...props} icon="help-circle" />}
           right={(props) => <List.Icon {...props} icon="chevron-right" />}
-          onPress={() => {}}
+          onPress={() => router.push('/(teacher)/help')}
         />
       </List.Section>
 

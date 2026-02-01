@@ -59,6 +59,13 @@ export default function ParentLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="help"
+        options={{
+          href: null, // Hide from tab bar
+          title: 'Help & Support',
+        }}
+      />
       </Tabs>
     </ChildFilterProvider>
   );
