@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, FlatList, TouchableOpacity } from 'react-native';
 import { Text, Card, FAB, IconButton, Menu } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
@@ -13,9 +13,26 @@ export default function ClassDetailScreen() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [menuKey, setMenuKey] = useState(0);
+  const lastMenuActionRef = useRef(0);
 
-  const openMenu = () => setMenuVisible(true);
-  const closeMenu = () => setMenuVisible(false);
+  // Menu handlers - increment key on open to force fresh Menu state
+  const MENU_DEBOUNCE_MS = 300;
+
+  const openMenu = useCallback(() => {
+    const now = Date.now();
+    if (now - lastMenuActionRef.current < MENU_DEBOUNCE_MS) {
+      return;
+    }
+    lastMenuActionRef.current = now;
+    setMenuKey((k) => k + 1);
+    setMenuVisible(true);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    lastMenuActionRef.current = Date.now();
+    setMenuVisible(false);
+  }, []);
 
   useEffect(() => {
     if (!classId) return;
@@ -71,6 +88,7 @@ export default function ClassDetailScreen() {
           title: classData?.name || 'Class',
           headerRight: () => (
             <Menu
+              key={menuKey}
               visible={menuVisible}
               onDismiss={closeMenu}
               anchor={

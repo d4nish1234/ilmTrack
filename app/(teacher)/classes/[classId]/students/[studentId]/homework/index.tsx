@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, FlatList, TouchableOpacity } from 'react-native';
-import { Text, Card, Chip, FAB, Menu, IconButton, Portal, Modal } from 'react-native-paper';
+import { Text, Card, Chip, FAB, Menu, IconButton, Portal, Modal, Divider } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { subscribeToHomework, updateHomework, deleteHomework } from '../../../../../../../src/services/homework.service';
 import { LoadingSpinner } from '../../../../../../../src/components/common';
@@ -80,8 +80,28 @@ export default function HomeworkListScreen() {
   const [homework, setHomework] = useState<Homework[]>([]);
   const [loading, setLoading] = useState(true);
   const [menuId, setMenuId] = useState<string | null>(null);
+  const [menuKey, setMenuKey] = useState(0);
+  const lastMenuActionRef = useRef(0);
   const [evaluationModalId, setEvaluationModalId] = useState<string | null>(null);
   const [selectedRating, setSelectedRating] = useState<HomeworkEvaluation | undefined>();
+
+  // Menu handlers - increment key on open to force fresh Menu state
+  const MENU_DEBOUNCE_MS = 300;
+
+  const openMenu = useCallback((id: string) => {
+    const now = Date.now();
+    if (now - lastMenuActionRef.current < MENU_DEBOUNCE_MS) {
+      return;
+    }
+    lastMenuActionRef.current = now;
+    setMenuKey((k) => k + 1);
+    setMenuId(id);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    lastMenuActionRef.current = Date.now();
+    setMenuId(null);
+  }, []);
 
   useEffect(() => {
     if (!studentId) return;
@@ -102,27 +122,27 @@ export default function HomeworkListScreen() {
   }, [studentId]);
 
   const handleStatusChange = async (id: string, status: HomeworkStatus) => {
+    closeMenu();
     try {
       await updateHomework(id, { status });
     } catch (error) {
       console.error('Error updating homework:', error);
     }
-    setMenuId(null);
   };
 
   const handleDelete = async (id: string) => {
+    closeMenu();
     try {
       await deleteHomework(id);
     } catch (error) {
       console.error('Error deleting homework:', error);
     }
-    setMenuId(null);
   };
 
   const openEvaluationModal = (item: Homework) => {
+    closeMenu();
     setSelectedRating(item.evaluation);
     setEvaluationModalId(item.id);
-    setMenuId(null);
   };
 
   const handleSaveEvaluation = async () => {
@@ -162,13 +182,14 @@ export default function HomeworkListScreen() {
             </Text>
           </View>
           <Menu
+            key={menuId === item.id ? menuKey : undefined}
             visible={menuId === item.id}
-            onDismiss={() => setMenuId(null)}
+            onDismiss={closeMenu}
             anchor={
               <IconButton
                 icon="dots-vertical"
                 size={20}
-                onPress={() => setMenuId(item.id)}
+                onPress={() => openMenu(item.id)}
               />
             }
           >
@@ -192,6 +213,7 @@ export default function HomeworkListScreen() {
               onPress={() => openEvaluationModal(item)}
               leadingIcon="star"
             />
+            <Divider />
             <Menu.Item
               title="Delete"
               onPress={() => handleDelete(item.id)}

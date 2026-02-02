@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, FlatList, TouchableOpacity } from 'react-native';
 import { Text, Card, FAB, IconButton, Menu, Searchbar } from 'react-native-paper';
 import { router } from 'expo-router';
@@ -20,6 +20,26 @@ export default function ClassesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [menuKey, setMenuKey] = useState(0);
+  const lastMenuActionRef = useRef(0);
+
+  // Menu handlers - increment key on open to force fresh Menu state
+  const MENU_DEBOUNCE_MS = 300;
+
+  const openMenu = useCallback(() => {
+    const now = Date.now();
+    if (now - lastMenuActionRef.current < MENU_DEBOUNCE_MS) {
+      return;
+    }
+    lastMenuActionRef.current = now;
+    setMenuKey((k) => k + 1);
+    setMenuVisible(true);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    lastMenuActionRef.current = Date.now();
+    setMenuVisible(false);
+  }, []);
 
   // Fetch students when class changes
   useEffect(() => {
@@ -107,20 +127,21 @@ export default function ClassesScreen() {
         </View>
         {selectedClassId && (
           <Menu
+            key={menuKey}
             visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
+            onDismiss={closeMenu}
             anchor={
               <IconButton
                 icon="dots-vertical"
                 size={24}
-                onPress={() => setMenuVisible(true)}
+                onPress={openMenu}
                 style={styles.menuButton}
               />
             }
           >
             <Menu.Item
               onPress={() => {
-                setMenuVisible(false);
+                closeMenu();
                 router.push(`/(teacher)/classes/${selectedClassId}/edit`);
               }}
               title="Edit Class"
@@ -128,7 +149,7 @@ export default function ClassesScreen() {
             />
             <Menu.Item
               onPress={() => {
-                setMenuVisible(false);
+                closeMenu();
                 router.push(`/(teacher)/classes/${selectedClassId}/reports`);
               }}
               title="Reports"

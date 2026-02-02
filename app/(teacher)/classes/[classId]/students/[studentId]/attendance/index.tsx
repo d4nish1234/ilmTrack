@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, FlatList } from 'react-native';
-import { Text, Card, Chip, FAB, Menu, IconButton } from 'react-native-paper';
+import { Text, Card, Chip, FAB, Menu, IconButton, Divider } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { subscribeToAttendance, updateAttendance, deleteAttendance } from '../../../../../../../src/services/attendance.service';
 import { LoadingSpinner } from '../../../../../../../src/components/common';
@@ -15,6 +15,26 @@ export default function AttendanceListScreen() {
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [menuId, setMenuId] = useState<string | null>(null);
+  const [menuKey, setMenuKey] = useState(0);
+  const lastMenuActionRef = useRef(0);
+
+  // Menu handlers - increment key on open to force fresh Menu state
+  const MENU_DEBOUNCE_MS = 300;
+
+  const openMenu = useCallback((id: string) => {
+    const now = Date.now();
+    if (now - lastMenuActionRef.current < MENU_DEBOUNCE_MS) {
+      return;
+    }
+    lastMenuActionRef.current = now;
+    setMenuKey((k) => k + 1);
+    setMenuId(id);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    lastMenuActionRef.current = Date.now();
+    setMenuId(null);
+  }, []);
 
   useEffect(() => {
     if (!studentId) return;
@@ -35,21 +55,21 @@ export default function AttendanceListScreen() {
   }, [studentId]);
 
   const handleStatusChange = async (id: string, status: AttendanceStatus) => {
+    closeMenu();
     try {
       await updateAttendance(id, { status });
     } catch (error) {
       console.error('Error updating attendance:', error);
     }
-    setMenuId(null);
   };
 
   const handleDelete = async (id: string) => {
+    closeMenu();
     try {
       await deleteAttendance(id);
     } catch (error) {
       console.error('Error deleting attendance:', error);
     }
-    setMenuId(null);
   };
 
   const getStatusColor = (status: AttendanceStatus) => {
@@ -92,13 +112,14 @@ export default function AttendanceListScreen() {
             </Chip>
 
             <Menu
+              key={menuId === item.id ? menuKey : undefined}
               visible={menuId === item.id}
-              onDismiss={() => setMenuId(null)}
+              onDismiss={closeMenu}
               anchor={
                 <IconButton
                   icon="dots-vertical"
                   size={20}
-                  onPress={() => setMenuId(item.id)}
+                  onPress={() => openMenu(item.id)}
                 />
               }
             >
@@ -122,6 +143,7 @@ export default function AttendanceListScreen() {
                 onPress={() => handleStatusChange(item.id, 'excused')}
                 leadingIcon="account-check"
               />
+              <Divider />
               <Menu.Item
                 title="Delete"
                 onPress={() => handleDelete(item.id)}
