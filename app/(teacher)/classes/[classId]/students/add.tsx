@@ -17,8 +17,18 @@ import { useAuth } from '../../../../../src/contexts/AuthContext';
 import { createStudent, linkExistingStudentToClass } from '../../../../../src/services/student.service';
 import { Button, Input } from '../../../../../src/components/common';
 import { firestore } from '../../../../../src/config/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { Student } from '../../../../../src/types';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { Student, User } from '../../../../../src/types';
+
+// Look up if a user account exists with this email
+async function getUserByEmail(email: string): Promise<User | null> {
+  const usersRef = collection(firestore, 'users');
+  const q = query(usersRef, where('email', '==', email.toLowerCase()), limit(1));
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return null;
+  const doc = snapshot.docs[0];
+  return { uid: doc.id, ...doc.data() } as User;
+}
 
 // Deduplicate students by name (same child in multiple classes)
 function deduplicateStudentsByName(students: Student[]): Student[] {
@@ -86,6 +96,9 @@ export default function AddStudentScreen() {
   const [allMatchingStudents, setAllMatchingStudents] = useState<Student[]>([]);
   const [uniqueStudents, setUniqueStudents] = useState<Student[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  // Track if parents have existing accounts (to show their names as read-only)
+  // Key is parent index (0 or 1)
+  const [existingParentUsers, setExistingParentUsers] = useState<Record<number, { firstName: string; lastName: string }>>({});
 
   // Email form
   const emailForm = useForm<EmailFormData>({
@@ -115,6 +128,23 @@ export default function AddStudentScreen() {
     try {
       const normalizedEmail = data.email.toLowerCase().trim();
       setParentEmail(normalizedEmail);
+
+      // Check if a user account already exists with this email
+      const existingUser = await getUserByEmail(normalizedEmail);
+      if (existingUser) {
+        setExistingParentUsers((prev) => ({
+          ...prev,
+          0: { firstName: existingUser.firstName, lastName: existingUser.lastName },
+        }));
+        // Pre-fill their name in the form
+        studentForm.setValue('parents.0.firstName', existingUser.firstName);
+        studentForm.setValue('parents.0.lastName', existingUser.lastName);
+      } else {
+        setExistingParentUsers((prev) => {
+          const { 0: _, ...rest } = prev;
+          return rest;
+        });
+      }
 
       // Look for students with this parent email
       const studentsRef = collection(firestore, 'students');
@@ -203,6 +233,31 @@ export default function AddStudentScreen() {
     }
   };
 
+  // Look up if a parent email has an existing account
+  const lookupParentEmail = async (index: number) => {
+    const email = studentForm.getValues(`parents.${index}.email`);
+    if (!email) return;
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const existingUser = await getUserByEmail(normalizedEmail);
+
+    if (existingUser) {
+      setExistingParentUsers((prev) => ({
+        ...prev,
+        [index]: { firstName: existingUser.firstName, lastName: existingUser.lastName },
+      }));
+      // Pre-fill their name in the form
+      studentForm.setValue(`parents.${index}.firstName`, existingUser.firstName);
+      studentForm.setValue(`parents.${index}.lastName`, existingUser.lastName);
+    } else {
+      // Clear if no account found
+      setExistingParentUsers((prev) => {
+        const { [index]: _, ...rest } = prev;
+        return rest;
+      });
+    }
+  };
+
   const goBack = () => {
     if (step === 'add-student' && uniqueStudents.length > 0) {
       setStep('select-or-add');
@@ -211,6 +266,7 @@ export default function AddStudentScreen() {
       setAllMatchingStudents([]);
       setUniqueStudents([]);
       setSelectedStudentId(null);
+      setExistingParentUsers({});
     } else {
       router.back();
     }
@@ -408,51 +464,102 @@ export default function AddStudentScreen() {
             )}
           </View>
 
-          {fields.map((field, index) => (
-            <View key={field.id} style={styles.parentSection}>
-              <View style={styles.parentTitleRow}>
-                <Text variant="titleSmall" style={styles.parentTitle}>
-                  Parent {index + 1}
-                </Text>
-                {fields.length > 1 && (
-                  <IconButton
-                    icon="close"
-                    size={16}
-                    onPress={() => remove(index)}
+          {fields.map((field, index) => {
+            // Check if this parent has an existing account
+            const existingParent = existingParentUsers[index];
+
+            return (
+              <View key={field.id} style={styles.parentSection}>
+                <View style={styles.parentTitleRow}>
+                  <Text variant="titleSmall" style={styles.parentTitle}>
+                    Parent {index + 1}
+                  </Text>
+                  {fields.length > 1 && (
+                    <IconButton
+                      icon="close"
+                      size={16}
+                      onPress={() => {
+                        remove(index);
+                        // Clear existing parent lookup for this index
+                        setExistingParentUsers((prev) => {
+                          const { [index]: _, ...rest } = prev;
+                          return rest;
+                        });
+                      }}
+                    />
+                  )}
+                </View>
+
+                {existingParent ? (
+                  // Show read-only name for existing account
+                  <View style={styles.existingParentInfo}>
+                    <Text variant="bodySmall" style={styles.existingParentLabel}>
+                      Account found - name from their profile:
+                    </Text>
+                    <Text variant="titleMedium" style={styles.existingParentName}>
+                      {existingParent.firstName} {existingParent.lastName}
+                    </Text>
+                  </View>
+                ) : (
+                  // Editable name fields for new parent
+                  <View style={styles.nameRow}>
+                    <View style={styles.nameField}>
+                      <Input
+                        control={studentForm.control}
+                        name={`parents.${index}.firstName`}
+                        label="First Name"
+                        autoCapitalize="words"
+                      />
+                    </View>
+                    <View style={styles.nameField}>
+                      <Input
+                        control={studentForm.control}
+                        name={`parents.${index}.lastName`}
+                        label="Last Name"
+                        autoCapitalize="words"
+                      />
+                    </View>
+                  </View>
+                )}
+
+                {/* First parent email is pre-filled and disabled */}
+                {index === 0 ? (
+                  <Input
+                    control={studentForm.control}
+                    name={`parents.${index}.email`}
+                    label="Email"
+                    placeholder="parent@example.com"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    disabled
                   />
+                ) : (
+                  // Second parent - show email with lookup button
+                  <View style={styles.emailWithLookup}>
+                    <View style={styles.emailField}>
+                      <Input
+                        control={studentForm.control}
+                        name={`parents.${index}.email`}
+                        label="Email"
+                        placeholder="parent@example.com"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoComplete="email"
+                      />
+                    </View>
+                    <IconButton
+                      icon="account-search"
+                      mode="contained"
+                      size={20}
+                      onPress={() => lookupParentEmail(index)}
+                      style={styles.lookupButton}
+                    />
+                  </View>
                 )}
               </View>
-
-              <View style={styles.nameRow}>
-                <View style={styles.nameField}>
-                  <Input
-                    control={studentForm.control}
-                    name={`parents.${index}.firstName`}
-                    label="First Name"
-                    autoCapitalize="words"
-                  />
-                </View>
-                <View style={styles.nameField}>
-                  <Input
-                    control={studentForm.control}
-                    name={`parents.${index}.lastName`}
-                    label="Last Name"
-                    autoCapitalize="words"
-                  />
-                </View>
-              </View>
-
-              <Input
-                control={studentForm.control}
-                name={`parents.${index}.email`}
-                label="Email"
-                placeholder="parent@example.com"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-            </View>
-          ))}
+            );
+          })}
 
           <Text variant="bodySmall" style={styles.inviteNote}>
             An invitation email will be sent to each parent to create their
@@ -540,6 +647,31 @@ const styles = StyleSheet.create({
   },
   parentTitle: {
     color: '#666',
+  },
+  existingParentInfo: {
+    backgroundColor: '#e8f5e9',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  existingParentLabel: {
+    color: '#2e7d32',
+    marginBottom: 4,
+  },
+  existingParentName: {
+    color: '#1b5e20',
+    fontWeight: '600',
+  },
+  emailWithLookup: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  emailField: {
+    flex: 1,
+  },
+  lookupButton: {
+    marginTop: 8,
   },
   inviteNote: {
     color: '#666',
