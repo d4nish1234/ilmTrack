@@ -12,6 +12,10 @@ import {
   onSnapshot,
   serverTimestamp,
   Timestamp,
+  limit,
+  startAfter,
+  QueryDocumentSnapshot,
+  DocumentData,
 } from 'firebase/firestore';
 import { Homework, CreateHomeworkData, UpdateHomeworkData } from '../types';
 
@@ -133,7 +137,7 @@ export async function getHomeworkAssignedToday(
 
 export async function getRecentPendingHomework(
   studentId: string,
-  limit: number = 5
+  limitCount: number = 5
 ): Promise<Homework[]> {
   const q = query(
     homeworkRef,
@@ -143,8 +147,90 @@ export async function getRecentPendingHomework(
   );
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.slice(0, limit).map((doc) => ({
+  return snapshot.docs.slice(0, limitCount).map((doc) => ({
     id: doc.id,
     ...doc.data(),
   })) as Homework[];
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  lastDoc: QueryDocumentSnapshot<DocumentData> | null;
+  hasMore: boolean;
+}
+
+export async function getHomeworkPaginated(
+  studentId: string,
+  pageSize: number = 10,
+  lastDoc?: QueryDocumentSnapshot<DocumentData> | null
+): Promise<PaginatedResult<Homework>> {
+  let q = query(
+    homeworkRef,
+    where('studentId', '==', studentId),
+    orderBy('createdAt', 'desc'),
+    limit(pageSize + 1) // Fetch one extra to check if there are more
+  );
+
+  if (lastDoc) {
+    q = query(
+      homeworkRef,
+      where('studentId', '==', studentId),
+      orderBy('createdAt', 'desc'),
+      startAfter(lastDoc),
+      limit(pageSize + 1)
+    );
+  }
+
+  const snapshot = await getDocs(q);
+  const hasMore = snapshot.docs.length > pageSize;
+  const docs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs;
+
+  return {
+    data: docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Homework[],
+    lastDoc: docs.length > 0 ? docs[docs.length - 1] : null,
+    hasMore,
+  };
+}
+
+export async function getHomeworkPaginatedMultiStudent(
+  studentIds: string[],
+  pageSize: number = 10,
+  lastDoc?: QueryDocumentSnapshot<DocumentData> | null
+): Promise<PaginatedResult<Homework>> {
+  if (studentIds.length === 0) {
+    return { data: [], lastDoc: null, hasMore: false };
+  }
+
+  let q = query(
+    homeworkRef,
+    where('studentId', 'in', studentIds),
+    orderBy('createdAt', 'desc'),
+    limit(pageSize + 1)
+  );
+
+  if (lastDoc) {
+    q = query(
+      homeworkRef,
+      where('studentId', 'in', studentIds),
+      orderBy('createdAt', 'desc'),
+      startAfter(lastDoc),
+      limit(pageSize + 1)
+    );
+  }
+
+  const snapshot = await getDocs(q);
+  const hasMore = snapshot.docs.length > pageSize;
+  const docs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs;
+
+  return {
+    data: docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Homework[],
+    lastDoc: docs.length > 0 ? docs[docs.length - 1] : null,
+    hasMore,
+  };
 }

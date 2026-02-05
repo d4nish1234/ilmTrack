@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { StyleSheet, View, FlatList, RefreshControl, ScrollView } from 'react-native';
-import { Text, Card, Chip, IconButton } from 'react-native-paper';
+import { Text, Card, Chip, IconButton, Button } from 'react-native-paper';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useChildFilter } from '../../src/contexts/ChildFilterContext';
 import { LoadingSpinner } from '../../src/components/common';
 import { Student, Homework, HomeworkEvaluation, EVALUATION_LABELS } from '../../src/types';
 import { firestore } from '../../src/config/firebase';
-import { collection, doc, getDoc, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
+import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { getHomeworkPaginatedMultiStudent } from '../../src/services/homework.service';
 import { format } from 'date-fns';
 
 // Deduplicate students by name (same child in multiple classes)
@@ -82,7 +84,12 @@ export default function ParentHomeworkScreen() {
   const [students, setStudents] = useState<Student[]>([]);
   const [homework, setHomework] = useState<Homework[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  const PAGE_SIZE = 10;
 
   // Get unique children (deduplicated by name)
   const uniqueChildren = useMemo(() => deduplicateStudentsByName(students), [students]);
@@ -109,6 +116,34 @@ export default function ParentHomeworkScreen() {
       .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })) as Student[];
   }, [user?.studentIds]);
 
+  const fetchHomework = useCallback(async (studentIds: string[], isLoadMore = false) => {
+    if (studentIds.length === 0) return;
+
+    if (isLoadMore) {
+      setLoadingMore(true);
+    }
+
+    try {
+      const result = await getHomeworkPaginatedMultiStudent(
+        studentIds,
+        PAGE_SIZE,
+        isLoadMore ? lastDoc : null
+      );
+
+      if (isLoadMore) {
+        setHomework((prev) => [...prev, ...result.data]);
+      } else {
+        setHomework(result.data);
+      }
+      setLastDoc(result.lastDoc);
+      setHasMore(result.hasMore);
+    } catch (error) {
+      console.error('Error fetching homework:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [lastDoc]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -116,12 +151,19 @@ export default function ParentHomeworkScreen() {
       await checkForNewInvites();
       const studentList = await fetchStudents();
       setStudents(studentList);
+      // Reset pagination and refetch
+      setLastDoc(null);
+      setHasMore(false);
+      if (studentList.length > 0) {
+        const studentIds = studentList.map((s) => s.id);
+        await fetchHomework(studentIds, false);
+      }
     } catch (error) {
       console.error('Error refreshing:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [fetchStudents, checkForNewInvites]);
+  }, [fetchStudents, checkForNewInvites, fetchHomework]);
 
   useEffect(() => {
     if (!user?.studentIds?.length) {
@@ -131,7 +173,6 @@ export default function ParentHomeworkScreen() {
       return;
     }
 
-    let unsubscribe: (() => void) | null = null;
     let isMounted = true;
 
     const fetchData = async () => {
@@ -141,39 +182,16 @@ export default function ParentHomeworkScreen() {
         if (!isMounted) return;
         setStudents(studentList);
 
-        // Subscribe to homework
+        // Fetch homework with pagination
         if (studentList.length > 0) {
           const studentIds = studentList.map((s) => s.id);
-
-          const homeworkRef = collection(firestore, 'homework');
-          const q = query(
-            homeworkRef,
-            where('studentId', 'in', studentIds),
-            orderBy('createdAt', 'desc')
-          );
-
-          unsubscribe = onSnapshot(
-            q,
-            (snapshot) => {
-              if (!isMounted) return;
-              setHomework(
-                snapshot.docs.map((docSnap) => ({
-                  id: docSnap.id,
-                  ...docSnap.data(),
-                })) as Homework[]
-              );
-              setLoading(false);
-            },
-            (error) => {
-              // Ignore errors if unmounted (e.g., during sign out)
-              if (!isMounted) return;
-              console.error('Error fetching homework:', error);
-              setLoading(false);
-            }
-          );
-        } else {
-          setLoading(false);
+          const result = await getHomeworkPaginatedMultiStudent(studentIds, PAGE_SIZE, null);
+          if (!isMounted) return;
+          setHomework(result.data);
+          setLastDoc(result.lastDoc);
+          setHasMore(result.hasMore);
         }
+        setLoading(false);
       } catch (error) {
         if (!isMounted) return;
         console.error('Error:', error);
@@ -185,11 +203,15 @@ export default function ParentHomeworkScreen() {
 
     return () => {
       isMounted = false;
-      if (unsubscribe) {
-        unsubscribe();
-      }
     };
   }, [user?.studentIds, fetchStudents]);
+
+  const handleLoadMore = useCallback(() => {
+    if (!loadingMore && hasMore && students.length > 0) {
+      const studentIds = students.map((s) => s.id);
+      fetchHomework(studentIds, true);
+    }
+  }, [loadingMore, hasMore, students, fetchHomework]);
 
   const getStudentName = (studentId: string) => {
     const student = students.find((s) => s.id === studentId);
@@ -306,6 +328,19 @@ export default function ParentHomeworkScreen() {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
+          ListFooterComponent={
+            hasMore ? (
+              <Button
+                mode="outlined"
+                onPress={handleLoadMore}
+                loading={loadingMore}
+                disabled={loadingMore}
+                style={styles.loadMoreButton}
+              >
+                Load More
+              </Button>
+            ) : null
+          }
         />
       ) : (
         <View style={styles.emptyContainer}>
@@ -383,5 +418,9 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: '#666',
+  },
+  loadMoreButton: {
+    marginTop: 8,
+    marginBottom: 16,
   },
 });

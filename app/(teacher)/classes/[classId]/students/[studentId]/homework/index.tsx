@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, FlatList, TouchableOpacity, Keyboard, TouchableWithoutFeedback } from 'react-native';
-import { Text, Card, Chip, FAB, Menu, IconButton, Portal, Modal, Divider, TextInput } from 'react-native-paper';
+import { Text, Card, Chip, FAB, Menu, IconButton, Portal, Modal, Divider, TextInput, Button, ActivityIndicator } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
-import { subscribeToHomework, updateHomework, deleteHomework } from '../../../../../../../src/services/homework.service';
+import { getHomeworkPaginated, updateHomework, deleteHomework, PaginatedResult } from '../../../../../../../src/services/homework.service';
 import { LoadingSpinner } from '../../../../../../../src/components/common';
 import { Homework, HomeworkStatus, HomeworkEvaluation, EVALUATION_LABELS } from '../../../../../../../src/types';
 import { format } from 'date-fns';
+import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 // Star rating component
 function StarRating({
@@ -79,12 +80,17 @@ export default function HomeworkListScreen() {
   }>();
   const [homework, setHomework] = useState<Homework[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [menuKey, setMenuKey] = useState(0);
   const lastMenuActionRef = useRef(0);
   const [evaluationModalId, setEvaluationModalId] = useState<string | null>(null);
   const [selectedRating, setSelectedRating] = useState<HomeworkEvaluation | undefined>();
   const [evaluationComment, setEvaluationComment] = useState('');
+
+  const PAGE_SIZE = 10;
 
   // Menu handlers - increment key on open to force fresh Menu state
   const MENU_DEBOUNCE_MS = 300;
@@ -104,28 +110,55 @@ export default function HomeworkListScreen() {
     setMenuId(null);
   }, []);
 
-  useEffect(() => {
+  const fetchHomework = useCallback(async (isLoadMore = false) => {
     if (!studentId) return;
 
-    const unsubscribe = subscribeToHomework(
-      studentId,
-      (data) => {
-        setHomework(data);
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Error fetching homework:', error);
-        setLoading(false);
-      }
-    );
+    if (isLoadMore) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
 
-    return unsubscribe;
+    try {
+      const result = await getHomeworkPaginated(
+        studentId,
+        PAGE_SIZE,
+        isLoadMore ? lastDoc : null
+      );
+
+      if (isLoadMore) {
+        setHomework((prev) => [...prev, ...result.data]);
+      } else {
+        setHomework(result.data);
+      }
+      setLastDoc(result.lastDoc);
+      setHasMore(result.hasMore);
+    } catch (error) {
+      console.error('Error fetching homework:', error);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [studentId, lastDoc]);
+
+  useEffect(() => {
+    fetchHomework(false);
   }, [studentId]);
+
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchHomework(true);
+    }
+  };
 
   const handleStatusChange = async (id: string, status: HomeworkStatus) => {
     closeMenu();
     try {
       await updateHomework(id, { status });
+      // Update local state
+      setHomework((prev) =>
+        prev.map((h) => (h.id === id ? { ...h, status } : h))
+      );
     } catch (error) {
       console.error('Error updating homework:', error);
     }
@@ -135,6 +168,7 @@ export default function HomeworkListScreen() {
     closeMenu();
     try {
       await deleteHomework(id);
+      setHomework((prev) => prev.filter((h) => h.id !== id));
     } catch (error) {
       console.error('Error deleting homework:', error);
     }
@@ -158,6 +192,14 @@ export default function HomeworkListScreen() {
         updateData.notes = comment;
       }
       await updateHomework(evaluationModalId, updateData);
+      // Update local state
+      setHomework((prev) =>
+        prev.map((h) =>
+          h.id === evaluationModalId
+            ? { ...h, evaluation: selectedRating, notes: comment || h.notes }
+            : h
+        )
+      );
     } catch (error) {
       console.error('Error updating evaluation:', error);
     }
@@ -281,6 +323,19 @@ export default function HomeworkListScreen() {
           renderItem={renderHomework}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          ListFooterComponent={
+            hasMore ? (
+              <Button
+                mode="outlined"
+                onPress={handleLoadMore}
+                loading={loadingMore}
+                disabled={loadingMore}
+                style={styles.loadMoreButton}
+              >
+                Load More
+              </Button>
+            ) : null
+          }
         />
       ) : (
         <View style={styles.emptyState}>
@@ -417,6 +472,10 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: '#666',
+  },
+  loadMoreButton: {
+    marginTop: 8,
+    marginBottom: 16,
   },
   fab: {
     position: 'absolute',

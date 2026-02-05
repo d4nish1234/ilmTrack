@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, FlatList } from 'react-native';
-import { Text, Card, Chip, FAB, Menu, IconButton, Divider } from 'react-native-paper';
+import { Text, Card, Chip, FAB, Menu, IconButton, Divider, Button } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
-import { subscribeToAttendance, updateAttendance, deleteAttendance } from '../../../../../../../src/services/attendance.service';
+import { getAttendancePaginated, updateAttendance, deleteAttendance, PaginatedResult } from '../../../../../../../src/services/attendance.service';
 import { LoadingSpinner } from '../../../../../../../src/components/common';
 import { Attendance, AttendanceStatus } from '../../../../../../../src/types';
 import { format } from 'date-fns';
+import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 export default function AttendanceListScreen() {
   const { classId, studentId } = useLocalSearchParams<{
@@ -14,9 +15,14 @@ export default function AttendanceListScreen() {
   }>();
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [menuKey, setMenuKey] = useState(0);
   const lastMenuActionRef = useRef(0);
+
+  const PAGE_SIZE = 10;
 
   // Menu handlers - increment key on open to force fresh Menu state
   const MENU_DEBOUNCE_MS = 300;
@@ -36,28 +42,55 @@ export default function AttendanceListScreen() {
     setMenuId(null);
   }, []);
 
-  useEffect(() => {
+  const fetchAttendance = useCallback(async (isLoadMore = false) => {
     if (!studentId) return;
 
-    const unsubscribe = subscribeToAttendance(
-      studentId,
-      (data) => {
-        setAttendance(data);
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Error fetching attendance:', error);
-        setLoading(false);
-      }
-    );
+    if (isLoadMore) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
 
-    return unsubscribe;
+    try {
+      const result = await getAttendancePaginated(
+        studentId,
+        PAGE_SIZE,
+        isLoadMore ? lastDoc : null
+      );
+
+      if (isLoadMore) {
+        setAttendance((prev) => [...prev, ...result.data]);
+      } else {
+        setAttendance(result.data);
+      }
+      setLastDoc(result.lastDoc);
+      setHasMore(result.hasMore);
+    } catch (error) {
+      console.error('Error fetching attendance:', error);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [studentId, lastDoc]);
+
+  useEffect(() => {
+    fetchAttendance(false);
   }, [studentId]);
+
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchAttendance(true);
+    }
+  };
 
   const handleStatusChange = async (id: string, status: AttendanceStatus) => {
     closeMenu();
     try {
       await updateAttendance(id, { status });
+      // Update local state
+      setAttendance((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, status } : a))
+      );
     } catch (error) {
       console.error('Error updating attendance:', error);
     }
@@ -67,6 +100,8 @@ export default function AttendanceListScreen() {
     closeMenu();
     try {
       await deleteAttendance(id);
+      // Update local state
+      setAttendance((prev) => prev.filter((a) => a.id !== id));
     } catch (error) {
       console.error('Error deleting attendance:', error);
     }
@@ -169,6 +204,19 @@ export default function AttendanceListScreen() {
           renderItem={renderAttendance}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          ListFooterComponent={
+            hasMore ? (
+              <Button
+                mode="outlined"
+                onPress={handleLoadMore}
+                loading={loadingMore}
+                disabled={loadingMore}
+                style={styles.loadMoreButton}
+              >
+                Load More
+              </Button>
+            ) : null
+          }
         />
       ) : (
         <View style={styles.emptyState}>
@@ -227,6 +275,10 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: '#666',
+  },
+  loadMoreButton: {
+    marginTop: 8,
+    marginBottom: 16,
   },
   fab: {
     position: 'absolute',

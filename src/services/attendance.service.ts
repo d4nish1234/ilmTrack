@@ -12,6 +12,10 @@ import {
   onSnapshot,
   serverTimestamp,
   Timestamp,
+  limit,
+  startAfter,
+  QueryDocumentSnapshot,
+  DocumentData,
 } from 'firebase/firestore';
 import { Attendance, CreateAttendanceData, UpdateAttendanceData } from '../types';
 
@@ -162,4 +166,86 @@ export async function toggleAttendance(
     });
     return { action: 'created', status: 'present' };
   }
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  lastDoc: QueryDocumentSnapshot<DocumentData> | null;
+  hasMore: boolean;
+}
+
+export async function getAttendancePaginated(
+  studentId: string,
+  pageSize: number = 10,
+  lastDoc?: QueryDocumentSnapshot<DocumentData> | null
+): Promise<PaginatedResult<Attendance>> {
+  let q = query(
+    attendanceRef,
+    where('studentId', '==', studentId),
+    orderBy('date', 'desc'),
+    limit(pageSize + 1)
+  );
+
+  if (lastDoc) {
+    q = query(
+      attendanceRef,
+      where('studentId', '==', studentId),
+      orderBy('date', 'desc'),
+      startAfter(lastDoc),
+      limit(pageSize + 1)
+    );
+  }
+
+  const snapshot = await getDocs(q);
+  const hasMore = snapshot.docs.length > pageSize;
+  const docs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs;
+
+  return {
+    data: docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Attendance[],
+    lastDoc: docs.length > 0 ? docs[docs.length - 1] : null,
+    hasMore,
+  };
+}
+
+export async function getAttendancePaginatedMultiStudent(
+  studentIds: string[],
+  pageSize: number = 10,
+  lastDoc?: QueryDocumentSnapshot<DocumentData> | null
+): Promise<PaginatedResult<Attendance>> {
+  if (studentIds.length === 0) {
+    return { data: [], lastDoc: null, hasMore: false };
+  }
+
+  let q = query(
+    attendanceRef,
+    where('studentId', 'in', studentIds),
+    orderBy('date', 'desc'),
+    limit(pageSize + 1)
+  );
+
+  if (lastDoc) {
+    q = query(
+      attendanceRef,
+      where('studentId', 'in', studentIds),
+      orderBy('date', 'desc'),
+      startAfter(lastDoc),
+      limit(pageSize + 1)
+    );
+  }
+
+  const snapshot = await getDocs(q);
+  const hasMore = snapshot.docs.length > pageSize;
+  const docs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs;
+
+  return {
+    data: docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Attendance[],
+    lastDoc: docs.length > 0 ? docs[docs.length - 1] : null,
+    hasMore,
+  };
 }
