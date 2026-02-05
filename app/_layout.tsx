@@ -105,6 +105,8 @@ function RootLayoutNav() {
     <Stack
       screenOptions={{
         headerShown: false,
+        // Disable swipe gestures to prevent accidental navigation on older devices
+        gestureEnabled: false,
       }}
     >
       <Stack.Screen name="(auth)" />

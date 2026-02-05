@@ -11,6 +11,7 @@ export default function StudentsLayout() {
         headerTitleStyle: {
           fontWeight: '600',
         },
+        gestureEnabled: false,
       }}
     >
       <Stack.Screen

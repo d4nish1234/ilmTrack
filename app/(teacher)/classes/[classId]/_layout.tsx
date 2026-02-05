@@ -11,6 +11,8 @@ export default function ClassDetailLayout() {
         headerTitleStyle: {
           fontWeight: '600',
         },
+        // Disable swipe-to-go-back gesture to prevent accidental navigation on older devices
+        gestureEnabled: false,
       }}
     >
       <Stack.Screen

@@ -12,6 +12,7 @@ export default function AttendanceLayout() {
         headerTitleStyle: {
           fontWeight: '600',
         },
+        gestureEnabled: false,
       }}
     >
       <Stack.Screen
