@@ -151,10 +151,13 @@ export default function HomeworkListScreen() {
     if (!evaluationModalId || !selectedRating) return;
     try {
       const comment = evaluationComment.trim();
-      await updateHomework(evaluationModalId, {
+      const updateData: { evaluation: HomeworkEvaluation; notes?: string } = {
         evaluation: selectedRating,
-        notes: comment || undefined,
-      });
+      };
+      if (comment) {
+        updateData.notes = comment;
+      }
+      await updateHomework(evaluationModalId, updateData);
     } catch (error) {
       console.error('Error updating evaluation:', error);
     }

@@ -213,11 +213,14 @@ export default function TeacherHomeScreen() {
     setUpdatingHomeworkId(homeworkId);
     try {
       const comment = homeworkComments[homeworkId]?.trim();
-      await updateHomework(homeworkId, {
+      const updateData: { status: HomeworkStatus; evaluation: HomeworkEvaluation; notes?: string } = {
         status,
         evaluation,
-        notes: comment || undefined,
-      });
+      };
+      if (comment) {
+        updateData.notes = comment;
+      }
+      await updateHomework(homeworkId, updateData);
       // Remove from list after update
       setPendingHomework((prev) => prev.filter((h) => h.id !== homeworkId));
       // Clear evaluation and comment for this homework
