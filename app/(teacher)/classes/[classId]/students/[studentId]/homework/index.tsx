@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, View, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, FlatList, TouchableOpacity, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { Text, Card, Chip, FAB, Menu, IconButton, Portal, Modal, Divider, TextInput } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { subscribeToHomework, updateHomework, deleteHomework } from '../../../../../../../src/services/homework.service';
@@ -304,51 +304,52 @@ export default function HomeworkListScreen() {
       <Portal>
         <Modal
           visible={!!evaluationModalId}
-          onDismiss={() => {
-            setEvaluationModalId(null);
-            setSelectedRating(undefined);
-            setEvaluationComment('');
-          }}
+          onDismiss={Keyboard.dismiss}
+          dismissable={false}
           contentContainerStyle={styles.modalContainer}
         >
-          <Text variant="titleLarge" style={styles.modalTitle}>
-            Evaluate Homework
-          </Text>
-          <Text variant="bodyMedium" style={styles.modalSubtitle}>
-            How did the student do?
-          </Text>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View>
+              <Text variant="titleLarge" style={styles.modalTitle}>
+                Evaluate Homework
+              </Text>
+              <Text variant="bodyMedium" style={styles.modalSubtitle}>
+                How did the student do?
+              </Text>
 
-          <StarRating rating={selectedRating} onRatingChange={setSelectedRating} />
+              <StarRating rating={selectedRating} onRatingChange={setSelectedRating} />
 
-          <TextInput
-            label="Comment (optional)"
-            value={evaluationComment}
-            onChangeText={setEvaluationComment}
-            mode="outlined"
-            style={styles.commentInput}
-            multiline
-            numberOfLines={2}
-          />
+              <TextInput
+                label="Comment (optional)"
+                value={evaluationComment}
+                onChangeText={setEvaluationComment}
+                mode="outlined"
+                style={styles.commentInput}
+                multiline
+                numberOfLines={2}
+              />
 
-          <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.saveButton, !selectedRating && styles.disabledButton]}
-              onPress={handleSaveEvaluation}
-              disabled={!selectedRating}
-            >
-              <Text style={styles.saveButtonText}>Save</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.cancelButton]}
-              onPress={() => {
-                setEvaluationModalId(null);
-                setSelectedRating(undefined);
-                setEvaluationComment('');
-              }}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.saveButton, !selectedRating && styles.disabledButton]}
+                  onPress={handleSaveEvaluation}
+                  disabled={!selectedRating}
+                >
+                  <Text style={styles.saveButtonText}>Save</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => {
+                    setEvaluationModalId(null);
+                    setSelectedRating(undefined);
+                    setEvaluationComment('');
+                  }}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
         </Modal>
       </Portal>
     </View>
