@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, FlatList, TouchableOpacity } from 'react-native';
-import { Text, Card, Chip, FAB, Menu, IconButton, Portal, Modal, Divider } from 'react-native-paper';
+import { Text, Card, Chip, FAB, Menu, IconButton, Portal, Modal, Divider, TextInput } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { subscribeToHomework, updateHomework, deleteHomework } from '../../../../../../../src/services/homework.service';
 import { LoadingSpinner } from '../../../../../../../src/components/common';
@@ -84,6 +84,7 @@ export default function HomeworkListScreen() {
   const lastMenuActionRef = useRef(0);
   const [evaluationModalId, setEvaluationModalId] = useState<string | null>(null);
   const [selectedRating, setSelectedRating] = useState<HomeworkEvaluation | undefined>();
+  const [evaluationComment, setEvaluationComment] = useState('');
 
   // Menu handlers - increment key on open to force fresh Menu state
   const MENU_DEBOUNCE_MS = 300;
@@ -142,18 +143,24 @@ export default function HomeworkListScreen() {
   const openEvaluationModal = (item: Homework) => {
     closeMenu();
     setSelectedRating(item.evaluation);
+    setEvaluationComment(item.notes || '');
     setEvaluationModalId(item.id);
   };
 
   const handleSaveEvaluation = async () => {
     if (!evaluationModalId || !selectedRating) return;
     try {
-      await updateHomework(evaluationModalId, { evaluation: selectedRating });
+      const comment = evaluationComment.trim();
+      await updateHomework(evaluationModalId, {
+        evaluation: selectedRating,
+        notes: comment || undefined,
+      });
     } catch (error) {
       console.error('Error updating evaluation:', error);
     }
     setEvaluationModalId(null);
     setSelectedRating(undefined);
+    setEvaluationComment('');
   };
 
   const getStatusColor = (status: HomeworkStatus) => {
@@ -297,6 +304,7 @@ export default function HomeworkListScreen() {
           onDismiss={() => {
             setEvaluationModalId(null);
             setSelectedRating(undefined);
+            setEvaluationComment('');
           }}
           contentContainerStyle={styles.modalContainer}
         >
@@ -308,6 +316,16 @@ export default function HomeworkListScreen() {
           </Text>
 
           <StarRating rating={selectedRating} onRatingChange={setSelectedRating} />
+
+          <TextInput
+            label="Comment (optional)"
+            value={evaluationComment}
+            onChangeText={setEvaluationComment}
+            mode="outlined"
+            style={styles.commentInput}
+            multiline
+            numberOfLines={2}
+          />
 
           <View style={styles.modalActions}>
             <TouchableOpacity
@@ -322,6 +340,7 @@ export default function HomeworkListScreen() {
               onPress={() => {
                 setEvaluationModalId(null);
                 setSelectedRating(undefined);
+                setEvaluationComment('');
               }}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -416,6 +435,10 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginBottom: 24,
+  },
+  commentInput: {
+    marginTop: 16,
+    backgroundColor: '#fff',
   },
   modalActions: {
     marginTop: 24,

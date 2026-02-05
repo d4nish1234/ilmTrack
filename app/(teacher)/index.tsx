@@ -73,6 +73,7 @@ export default function TeacherHomeScreen() {
   const [loadingPendingHomework, setLoadingPendingHomework] = useState(false);
   const [updatingHomeworkId, setUpdatingHomeworkId] = useState<string | null>(null);
   const [selectedEvaluations, setSelectedEvaluations] = useState<Record<string, HomeworkEvaluation | null>>({});
+  const [homeworkComments, setHomeworkComments] = useState<Record<string, string>>({});
   const swipeableRefs = useRef<Map<string, Swipeable | null>>(new Map());
 
   // Fetch students when class changes
@@ -192,7 +193,7 @@ export default function TeacherHomeScreen() {
     swipeableRefs.current.get(student.id)?.close();
 
     try {
-      const homework = await getRecentPendingHomework(student.id, 5);
+      const homework = await getRecentPendingHomework(student.id, 3);
       setPendingHomework(homework);
     } catch (error) {
       console.error('Error fetching pending homework:', error);
@@ -211,15 +212,30 @@ export default function TeacherHomeScreen() {
 
     setUpdatingHomeworkId(homeworkId);
     try {
-      await updateHomework(homeworkId, { status, evaluation });
+      const comment = homeworkComments[homeworkId]?.trim();
+      await updateHomework(homeworkId, {
+        status,
+        evaluation,
+        notes: comment || undefined,
+      });
       // Remove from list after update
       setPendingHomework((prev) => prev.filter((h) => h.id !== homeworkId));
-      // Clear evaluation for this homework
+      // Clear evaluation and comment for this homework
       setSelectedEvaluations((prev) => {
         const updated = { ...prev };
         delete updated[homeworkId];
         return updated;
       });
+      setHomeworkComments((prev) => {
+        const updated = { ...prev };
+        delete updated[homeworkId];
+        return updated;
+      });
+      // Fetch more homework if there are still pending items
+      if (selectedStudent && pendingHomework.length > 1) {
+        const moreHomework = await getRecentPendingHomework(selectedStudent.id, 3);
+        setPendingHomework(moreHomework.filter((h) => h.id !== homeworkId));
+      }
     } catch (error) {
       console.error('Error updating homework:', error);
       Alert.alert('Error', 'Failed to update homework');
@@ -636,6 +652,17 @@ export default function TeacherHomeScreen() {
 
                       {renderStars(hw.id)}
 
+                      <TextInput
+                        placeholder="Comment (optional)"
+                        value={homeworkComments[hw.id] || ''}
+                        onChangeText={(text) =>
+                          setHomeworkComments((prev) => ({ ...prev, [hw.id]: text }))
+                        }
+                        mode="outlined"
+                        dense
+                        style={styles.commentInput}
+                      />
+
                       <View style={styles.statusButtons}>
                         <TouchableOpacity
                           style={[styles.statusButton, styles.statusComplete, updatingHomeworkId === hw.id && styles.statusButtonDisabled]}
@@ -894,6 +921,10 @@ const styles = StyleSheet.create({
   },
   starButton: {
     padding: 0,
+  },
+  commentInput: {
+    backgroundColor: '#fff',
+    fontSize: 14,
   },
   statusButtons: {
     flexDirection: 'row',
