@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, View, ScrollView, Alert, useWindowDimensions, Keyboard, TouchableWithoutFeedback } from 'react-native';
-import { Text, Card, Chip, IconButton, Menu, Portal, Modal, TextInput, Divider } from 'react-native-paper';
+import { StyleSheet, View, ScrollView, useWindowDimensions } from 'react-native';
+import { Text, Card, Chip, IconButton, Menu, Portal } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
-import { subscribeToStudent, deleteStudent, getUserById, updateStudent } from '../../../../../../src/services/student.service';
+import { subscribeToStudent, getUserById } from '../../../../../../src/services/student.service';
 import { subscribeToHomework } from '../../../../../../src/services/homework.service';
 import { subscribeToAttendance } from '../../../../../../src/services/attendance.service';
 import { LoadingSpinner, Button } from '../../../../../../src/components/common';
@@ -30,10 +30,6 @@ export default function StudentDetailScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuKey, setMenuKey] = useState(0);
   const lastMenuActionRef = useRef(0);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editFirstName, setEditFirstName] = useState('');
-  const [editLastName, setEditLastName] = useState('');
-  const [saving, setSaving] = useState(false);
 
   // Fetch parent names from user profiles when they've signed up
   const fetchParentDisplayInfo = async (parents: Parent[]) => {
@@ -119,60 +115,6 @@ export default function StudentDetailScreen() {
     setMenuVisible(false);
   }, []);
 
-  const handleDelete = () => {
-    Alert.alert(
-      'Delete Student',
-      'Are you sure you want to delete this student? This will also delete all their homework and attendance records.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            if (!studentId || !classId) return;
-            try {
-              await deleteStudent(studentId, classId);
-              router.back();
-            } catch (error) {
-              console.error('Error deleting student:', error);
-              Alert.alert('Error', 'Failed to delete student');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleOpenEdit = () => {
-    if (student) {
-      setEditFirstName(student.firstName);
-      setEditLastName(student.lastName);
-      setEditModalVisible(true);
-    }
-  };
-
-  const handleSaveEdit = async () => {
-    if (!studentId) return;
-    if (!editFirstName.trim() || !editLastName.trim()) {
-      Alert.alert('Error', 'Please enter both first and last name');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      await updateStudent(studentId, {
-        firstName: editFirstName.trim(),
-        lastName: editLastName.trim(),
-      });
-      setEditModalVisible(false);
-    } catch (error) {
-      console.error('Error updating student:', error);
-      Alert.alert('Error', 'Failed to update student');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'present':
@@ -239,76 +181,12 @@ export default function StudentDetailScreen() {
           <Menu.Item
             onPress={() => {
               closeMenu();
-              handleOpenEdit();
+              router.push(`/(teacher)/classes/${classId}/students/${studentId}/edit`);
             }}
             title="Edit Student"
             leadingIcon="pencil"
           />
-          <Divider />
-          <Menu.Item
-            onPress={() => {
-              closeMenu();
-              handleDelete();
-            }}
-            title="Delete Student"
-            leadingIcon="delete"
-            titleStyle={{ color: '#d32f2f' }}
-          />
         </Menu>
-      </Portal>
-
-      {/* Edit Student Modal */}
-      <Portal>
-        <Modal
-          visible={editModalVisible}
-          onDismiss={() => setEditModalVisible(false)}
-          contentContainerStyle={styles.modalContainer}
-        >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View>
-              <Text variant="titleLarge" style={styles.modalTitle}>
-                Edit Student
-              </Text>
-
-              <TextInput
-                label="First Name *"
-                value={editFirstName}
-                onChangeText={setEditFirstName}
-                mode="outlined"
-                style={styles.input}
-                autoCapitalize="words"
-              />
-
-              <TextInput
-                label="Last Name *"
-                value={editLastName}
-                onChangeText={setEditLastName}
-                mode="outlined"
-                style={styles.input}
-                autoCapitalize="words"
-              />
-
-              <View style={styles.modalActions}>
-                <Button
-                  mode="outlined"
-                  onPress={() => setEditModalVisible(false)}
-                  style={styles.modalButton}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  mode="contained"
-                  onPress={handleSaveEdit}
-                  loading={saving}
-                  disabled={saving || !editFirstName.trim() || !editLastName.trim()}
-                  style={styles.modalButton}
-                >
-                  Save
-                </Button>
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
-        </Modal>
       </Portal>
 
       <ScrollView style={styles.container}>
@@ -545,27 +423,5 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     margin: 0,
-  },
-  modalContainer: {
-    backgroundColor: '#fff',
-    margin: 20,
-    padding: 20,
-    borderRadius: 12,
-  },
-  modalTitle: {
-    fontWeight: '600',
-    marginBottom: 16,
-  },
-  input: {
-    marginBottom: 12,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-    marginTop: 8,
-  },
-  modalButton: {
-    minWidth: 100,
   },
 });
