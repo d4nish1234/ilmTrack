@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore';
 import { Student, CreateStudentData, UpdateStudentData, Parent, User } from '../types';
 import { incrementStudentCount, decrementStudentCount } from './class.service';
+import { unlinkAllParentsFromStudent } from '../utils/parentLinkCleanup';
 
 const studentsRef = collection(firestore, 'students');
 
@@ -142,6 +143,9 @@ export async function deleteStudent(
   studentId: string,
   classId: string
 ): Promise<void> {
+  // Remove studentId from all linked parents' user documents
+  await unlinkAllParentsFromStudent(studentId);
+
   // Delete all homework for this student
   const homeworkRef = collection(firestore, 'homework');
   const homeworkQuery = query(homeworkRef, where('studentId', '==', studentId));

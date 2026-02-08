@@ -19,6 +19,7 @@ import { Button, Input, LoadingSpinner } from '../../../../../../src/components/
 import { firestore } from '../../../../../../src/config/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Student, Parent } from '../../../../../../src/types';
+import { unlinkParentsFromStudent } from '../../../../../../src/utils/parentLinkCleanup';
 
 const parentSchema = yup.object({
   firstName: yup.string().required('First name is required'),
@@ -99,9 +100,20 @@ export default function EditParentsScreen() {
     try {
       // Find new parents (emails not in original list)
       const originalEmails = student.parents.map((p) => p.email.toLowerCase());
+      const updatedEmails = (data.parents || []).map((p) => p.email.toLowerCase());
       const newParents = data.parents?.filter(
         (p) => !originalEmails.includes(p.email.toLowerCase())
       ) || [];
+
+      // Find removed parents (in original but not in updated)
+      const removedParents = student.parents.filter(
+        (p) => !updatedEmails.includes(p.email.toLowerCase())
+      );
+
+      // Unlink removed parents from this student
+      if (removedParents.length > 0) {
+        await unlinkParentsFromStudent(studentId, removedParents);
+      }
 
       // Prepare updated parents array
       const updatedParents: Parent[] = (data.parents || []).map((p) => {
