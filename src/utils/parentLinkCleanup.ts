@@ -6,28 +6,40 @@
  * Safe to remove/replace in the future.
  */
 import { firestore } from '../config/firebase';
-import { doc, updateDoc, arrayRemove, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { Parent } from '../types';
 
 /**
  * Removes a studentId from the given parents' user documents.
- * Only affects parents who have a userId (i.e., they have signed up).
+ * Looks up parent users by email if userId is not available.
  */
 export async function unlinkParentsFromStudent(
   studentId: string,
   parents: Parent[]
 ): Promise<void> {
   for (const parent of parents) {
-    if (parent.userId) {
-      try {
-        const userRef = doc(firestore, 'users', parent.userId);
+    try {
+      let userDocId = parent.userId;
+
+      // If no userId on the parent object, look up by email
+      if (!userDocId && parent.email) {
+        const usersRef = collection(firestore, 'users');
+        const q = query(usersRef, where('email', '==', parent.email.toLowerCase()));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          userDocId = snapshot.docs[0].id;
+        }
+      }
+
+      if (userDocId) {
+        const userRef = doc(firestore, 'users', userDocId);
         await updateDoc(userRef, {
           studentIds: arrayRemove(studentId),
         });
-      } catch (error) {
-        // Log but don't throw - cleanup is best-effort
-        console.error(`Failed to unlink parent ${parent.userId} from student ${studentId}:`, error);
       }
+    } catch (error) {
+      // Log but don't throw - cleanup is best-effort
+      console.error(`Failed to unlink parent ${parent.email} from student ${studentId}:`, error);
     }
   }
 }
