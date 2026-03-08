@@ -6,12 +6,12 @@
  * Safe to remove/replace in the future.
  */
 import { firestore } from '../config/firebase';
-import { doc, updateDoc, arrayRemove, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove, getDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { Parent } from '../types';
 
 /**
- * Removes a studentId from the given parents' user documents.
- * Looks up parent users by email if userId is not available.
+ * Removes a studentId from the given parents' user documents
+ * and deletes the corresponding invite documents to prevent re-linking.
  */
 export async function unlinkParentsFromStudent(
   studentId: string,
@@ -36,6 +36,21 @@ export async function unlinkParentsFromStudent(
         await updateDoc(userRef, {
           studentIds: arrayRemove(studentId),
         });
+      }
+
+      // Delete invite documents for this parent+student to prevent
+      // acceptPendingInvites from re-linking them on next login
+      if (parent.email) {
+        const invitesRef = collection(firestore, 'invites');
+        const inviteQuery = query(
+          invitesRef,
+          where('email', '==', parent.email.toLowerCase()),
+          where('studentId', '==', studentId)
+        );
+        const inviteSnapshot = await getDocs(inviteQuery);
+        for (const inviteDoc of inviteSnapshot.docs) {
+          await deleteDoc(inviteDoc.ref);
+        }
       }
     } catch (error) {
       // Log but don't throw - cleanup is best-effort
