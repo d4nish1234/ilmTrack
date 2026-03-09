@@ -203,31 +203,43 @@ Push notifications only work on **physical devices**, not simulators. To test:
 3. Have a teacher account create homework for that parent's student
 4. The parent should receive a push notification
 
-## Setting Up Parent Email Invites (Optional)
+## Setting Up Email (Resend)
 
-To send email invites to parents when a student is added:
+The app uses [Resend](https://resend.com) to send two types of emails:
+- **Parent invite email** — sent automatically when a teacher adds a new parent to a student
+- **Admin notification** — sent when a new teacher account is created
 
-### 1. Set Up Mailgun
+### 1. Set Up Resend
 
-1. Create a [Mailgun](https://www.mailgun.com) account
-2. Verify your domain or use the sandbox domain for testing
-3. Get your API key
+1. Create a [Resend](https://resend.com) account
+2. Verify your sending domain under **Domains**
+3. Create an API key under **API Keys**
 
-### 2. Add Mailgun to Cloud Functions
+### 2. Configure Environment Variables
+
+Edit `functions/.env` and fill in your values:
+
+```env
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
+RESEND_FROM_EMAIL=noreply@yourdomain.com   # must use your verified Resend domain
+ADMIN_EMAIL=you@youremail.com              # receives new teacher signup alerts
+```
+
+> **Note:** `functions/.env` is gitignored. Never commit real keys to version control.
+
+### 3. Install and Deploy
 
 ```bash
 cd functions
-npm install mailgun-js
-
-# Set Mailgun config
-firebase functions:config:set mailgun.key="YOUR_API_KEY" mailgun.domain="YOUR_DOMAIN"
-```
-
-### 3. Deploy Functions
-
-```bash
+npm install
+cd ..
 firebase deploy --only functions
 ```
+
+### Notes
+
+- Emails silently fail if the API key is missing or Resend returns an error — this prevents email issues from blocking core app functionality.
+- On Resend's free tier you get 100 emails/month. The functions are designed to stay well within this for a small school deployment.
 
 ## Available Scripts
 
