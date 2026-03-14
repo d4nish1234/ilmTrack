@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -27,8 +27,9 @@ import {
   getStudentAttendanceForDate,
   updateAttendance,
 } from '../../../../../../../src/services/attendance.service';
+import { getStudent } from '../../../../../../../src/services/student.service';
 import { Button, Input } from '../../../../../../../src/components/common';
-import { AttendanceStatus } from '../../../../../../../src/types';
+import { AttendanceStatus, Student } from '../../../../../../../src/types';
 import {
   format,
   addDays,
@@ -60,6 +61,13 @@ export default function AddAttendanceScreen() {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [student, setStudent] = useState<Student | null>(null);
+
+  useEffect(() => {
+    if (studentId) {
+      getStudent(studentId).then(setStudent);
+    }
+  }, [studentId]);
 
   const { control, handleSubmit } = useForm<FormData>({
     resolver: yupResolver(schema),
@@ -76,7 +84,7 @@ export default function AddAttendanceScreen() {
 
     try {
       // Check if attendance already exists for this date
-      const existing = await getStudentAttendanceForDate(studentId, date);
+      const existing = await getStudentAttendanceForDate(studentId, user.uid, date);
 
       if (existing) {
         // Update existing attendance
@@ -114,7 +122,7 @@ export default function AddAttendanceScreen() {
         date,
         status,
         notes: data.notes,
-      });
+      }, student?.parentUserIds || [], student?.invitedTeacherIds || []);
       router.back();
     } catch (err) {
       console.error('Error creating attendance:', err);

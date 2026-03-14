@@ -5,6 +5,7 @@ import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { subscribeToStudent, getUserById } from '../../../../../../src/services/student.service';
 import { subscribeToHomework } from '../../../../../../src/services/homework.service';
 import { subscribeToAttendance } from '../../../../../../src/services/attendance.service';
+import { useAuth } from '../../../../../../src/contexts/AuthContext';
 import { LoadingSpinner, Button } from '../../../../../../src/components/common';
 import { Student, Homework, Attendance, Parent } from '../../../../../../src/types';
 import { format } from 'date-fns';
@@ -21,6 +22,7 @@ export default function StudentDetailScreen() {
     classId: string;
     studentId: string;
   }>();
+  const { user } = useAuth();
   const { width: windowWidth } = useWindowDimensions();
   const [student, setStudent] = useState<Student | null>(null);
   const [parentDisplayInfo, setParentDisplayInfo] = useState<ParentDisplayInfo[]>([]);
@@ -79,12 +81,14 @@ export default function StudentDetailScreen() {
 
     const unsubHomework = subscribeToHomework(
       studentId,
+      user!.uid,
       (data) => setRecentHomework(data.slice(0, 3)),
       console.error
     );
 
     const unsubAttendance = subscribeToAttendance(
       studentId,
+      user!.uid,
       (data) => setRecentAttendance(data.slice(0, 5)),
       console.error
     );

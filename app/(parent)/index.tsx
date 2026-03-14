@@ -7,7 +7,7 @@ import { useAuth } from '../../src/contexts/AuthContext';
 import { LoadingSpinner } from '../../src/components/common';
 import { Student, Homework, Attendance } from '../../src/types';
 import { firestore } from '../../src/config/firebase';
-import { collection, doc, getDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, limit } from 'firebase/firestore';
 import { format } from 'date-fns';
 
 // Deduplicate students by name (same child in multiple classes)
@@ -79,40 +79,50 @@ export default function ParentHomeScreen() {
 
       setStudents(studentList);
 
-      if (studentList.length > 0) {
-        const studentIds = studentList.map((s) => s.id);
-
+      if (user?.uid) {
+        // Query homework where parent's uid is in parentUserIds array
         const homeworkRef = collection(firestore, 'homework');
         const homeworkQuery = query(
           homeworkRef,
-          where('studentId', 'in', studentIds),
-          orderBy('createdAt', 'desc'),
-          limit(5)
+          where('parentUserIds', 'array-contains', user.uid),
+          limit(20)
         );
         const homeworkSnapshot = await getDocs(homeworkQuery);
 
-        setRecentHomework(
-          homeworkSnapshot.docs.map((docSnap) => ({
+        const homeworkList = homeworkSnapshot.docs
+          .map((docSnap) => ({
             id: docSnap.id,
             ...docSnap.data(),
-          })) as Homework[]
-        );
+          })) as Homework[];
+        // Sort client-side by createdAt desc, take top 5
+        homeworkList.sort((a, b) => {
+          const aTime = a.createdAt?.toMillis?.() ?? 0;
+          const bTime = b.createdAt?.toMillis?.() ?? 0;
+          return bTime - aTime;
+        });
+        setRecentHomework(homeworkList.slice(0, 5));
 
+        // Query attendance where parent's uid is in parentUserIds array
         const attendanceRef = collection(firestore, 'attendance');
         const attendanceQuery = query(
           attendanceRef,
-          where('studentId', 'in', studentIds),
-          orderBy('date', 'desc'),
-          limit(5)
+          where('parentUserIds', 'array-contains', user.uid),
+          limit(20)
         );
         const attendanceSnapshot = await getDocs(attendanceQuery);
 
-        setRecentAttendance(
-          attendanceSnapshot.docs.map((docSnap) => ({
+        const attendanceList = attendanceSnapshot.docs
+          .map((docSnap) => ({
             id: docSnap.id,
             ...docSnap.data(),
-          })) as Attendance[]
-        );
+          })) as Attendance[];
+        // Sort client-side by date desc, take top 5
+        attendanceList.sort((a, b) => {
+          const aTime = a.date?.toMillis?.() ?? 0;
+          const bTime = b.date?.toMillis?.() ?? 0;
+          return bTime - aTime;
+        });
+        setRecentAttendance(attendanceList.slice(0, 5));
       }
     } catch (error) {
       console.error('Error fetching student data:', error);

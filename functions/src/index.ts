@@ -1,4 +1,5 @@
-import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { Expo, ExpoPushMessage } from 'expo-server-sdk';
@@ -211,14 +212,18 @@ interface NewUserData {
   email: string;
 }
 
-// Notify admin when a new teacher account is created
-export const notifyAdminOnTeacherSignup = onDocumentCreated(
+// Notify admin when a teacher verifies their email address
+export const notifyAdminOnTeacherSignup = onDocumentUpdated(
   'users/{userId}',
   async (event) => {
-    const snap = event.data;
-    if (!snap) return;
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after) return;
 
-    const newUser = snap.data() as NewUserData;
+    // Only trigger when emailVerified flips to true for the first time
+    if (before.emailVerified === true || after.emailVerified !== true) return;
+
+    const newUser = after as NewUserData;
     if (newUser.role !== 'teacher') return;
 
     const adminEmail = process.env.ADMIN_EMAIL;
@@ -244,5 +249,252 @@ export const notifyAdminOnTeacherSignup = onDocumentCreated(
     });
 
     console.log(`Admin notified of new teacher signup: ${teacherEmail}`);
+  }
+);
+
+// ─── Cloud Functions for invite acceptance ───────────────────────────────────
+
+/**
+ * When a parent invite is accepted (status changes to 'accepted'):
+ * 1. Update the student doc's parent entry with inviteStatus: 'accepted' and userId
+ * 2. Add userId to student's parentUserIds array
+ * 3. Backfill parentUserIds on all homework/attendance docs for that student
+ */
+export const onInviteAccepted = onDocumentUpdated(
+  'invites/{inviteId}',
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after) return;
+
+    // Only trigger when status changes to 'accepted'
+    if (before.status === 'accepted' || after.status !== 'accepted') return;
+
+    const parentUserId = after.parentId as string;
+    const studentId = after.studentId as string;
+    const parentEmail = (after.email as string).toLowerCase();
+
+    if (!parentUserId || !studentId) {
+      console.error('Missing parentId or studentId on accepted invite');
+      return;
+    }
+
+    try {
+      // 1. Update student doc: set parent's inviteStatus and userId, add to parentUserIds
+      const studentRef = db.collection('students').doc(studentId);
+      const studentDoc = await studentRef.get();
+      if (!studentDoc.exists) {
+        console.log('Student not found:', studentId);
+        return;
+      }
+
+      const studentData = studentDoc.data()!;
+      const parents = studentData.parents || [];
+      const updatedParents = parents.map((p: Parent) => {
+        if (p.email.toLowerCase() === parentEmail) {
+          return { ...p, inviteStatus: 'accepted', userId: parentUserId };
+        }
+        return p;
+      });
+
+      await studentRef.update({
+        parents: updatedParents,
+        parentUserIds: FieldValue.arrayUnion(parentUserId),
+      });
+
+      // 2. Backfill parentUserIds on homework docs for this student
+      const homeworkSnapshot = await db.collection('homework')
+        .where('studentId', '==', studentId)
+        .get();
+
+      const batch = db.batch();
+      homeworkSnapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, {
+          parentUserIds: FieldValue.arrayUnion(parentUserId),
+        });
+      });
+
+      // 3. Backfill parentUserIds on attendance docs for this student
+      const attendanceSnapshot = await db.collection('attendance')
+        .where('studentId', '==', studentId)
+        .get();
+
+      attendanceSnapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, {
+          parentUserIds: FieldValue.arrayUnion(parentUserId),
+        });
+      });
+
+      await batch.commit();
+
+      console.log(`Invite accepted: parent ${parentUserId} linked to student ${studentId}, backfilled ${homeworkSnapshot.size} homework and ${attendanceSnapshot.size} attendance docs`);
+    } catch (error) {
+      console.error('Error in onInviteAccepted:', error);
+    }
+  }
+);
+
+/**
+ * When a teacher invite is accepted (status changes to 'accepted'):
+ * 1. Update the class doc's admin entry with inviteStatus: 'accepted' and userId
+ * 2. Backfill invitedTeacherIds on all student/homework/attendance docs in that class
+ */
+export const onTeacherInviteAccepted = onDocumentUpdated(
+  'adminInvites/{inviteId}',
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after) return;
+
+    // Only trigger when status changes to 'accepted'
+    if (before.status === 'accepted' || after.status !== 'accepted') return;
+
+    const teacherUserId = after.userId as string;
+    const classId = after.classId as string;
+    const teacherEmail = (after.email as string).toLowerCase();
+
+    if (!teacherUserId || !classId) {
+      console.error('Missing userId or classId on accepted admin invite');
+      return;
+    }
+
+    try {
+      // 1. Update class doc: set admin's inviteStatus and userId
+      const classRef = db.collection('classes').doc(classId);
+      const classDoc = await classRef.get();
+      if (!classDoc.exists) {
+        console.log('Class not found:', classId);
+        return;
+      }
+
+      const classData = classDoc.data()!;
+      const admins = classData.admins || [];
+      const updatedAdmins = admins.map((a: { email: string; inviteStatus: string; userId?: string }) => {
+        if (a.email.toLowerCase() === teacherEmail) {
+          return { ...a, inviteStatus: 'accepted', userId: teacherUserId };
+        }
+        return a;
+      });
+
+      await classRef.update({ admins: updatedAdmins });
+
+      // 2. Backfill invitedTeacherIds on student docs in this class
+      const studentsSnapshot = await db.collection('students')
+        .where('classId', '==', classId)
+        .get();
+
+      const batch = db.batch();
+      studentsSnapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, {
+          invitedTeacherIds: FieldValue.arrayUnion(teacherUserId),
+        });
+      });
+
+      // 3. Backfill invitedTeacherIds on homework docs in this class
+      const homeworkSnapshot = await db.collection('homework')
+        .where('classId', '==', classId)
+        .get();
+
+      homeworkSnapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, {
+          invitedTeacherIds: FieldValue.arrayUnion(teacherUserId),
+        });
+      });
+
+      // 4. Backfill invitedTeacherIds on attendance docs in this class
+      const attendanceSnapshot = await db.collection('attendance')
+        .where('classId', '==', classId)
+        .get();
+
+      attendanceSnapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, {
+          invitedTeacherIds: FieldValue.arrayUnion(teacherUserId),
+        });
+      });
+
+      await batch.commit();
+
+      console.log(`Teacher invite accepted: teacher ${teacherUserId} linked to class ${classId}, backfilled ${studentsSnapshot.size} students, ${homeworkSnapshot.size} homework, ${attendanceSnapshot.size} attendance docs`);
+    } catch (error) {
+      console.error('Error in onTeacherInviteAccepted:', error);
+    }
+  }
+);
+
+/**
+ * When a teacher is removed from a class (admins array changes):
+ * Remove their userId from invitedTeacherIds on all student/homework/attendance docs in that class
+ */
+export const onTeacherRemoved = onDocumentUpdated(
+  'classes/{classId}',
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after) return;
+
+    const classId = event.params.classId;
+
+    // Find removed admin userIds
+    const beforeAdminUserIds = new Set(
+      (before.admins || [])
+        .filter((a: { userId?: string; inviteStatus: string }) => a.userId && a.inviteStatus === 'accepted')
+        .map((a: { userId: string }) => a.userId)
+    );
+    const afterAdminUserIds = new Set(
+      (after.admins || [])
+        .filter((a: { userId?: string; inviteStatus: string }) => a.userId && a.inviteStatus === 'accepted')
+        .map((a: { userId: string }) => a.userId)
+    );
+
+    // Find userIds that were removed
+    const removedUserIds: string[] = [];
+    beforeAdminUserIds.forEach((uid) => {
+      if (!afterAdminUserIds.has(uid)) {
+        removedUserIds.push(uid as string);
+      }
+    });
+
+    if (removedUserIds.length === 0) return;
+
+    try {
+      const batch = db.batch();
+
+      for (const removedUserId of removedUserIds) {
+        // Remove from student docs
+        const studentsSnapshot = await db.collection('students')
+          .where('classId', '==', classId)
+          .get();
+        studentsSnapshot.docs.forEach((doc) => {
+          batch.update(doc.ref, {
+            invitedTeacherIds: FieldValue.arrayRemove(removedUserId),
+          });
+        });
+
+        // Remove from homework docs
+        const homeworkSnapshot = await db.collection('homework')
+          .where('classId', '==', classId)
+          .get();
+        homeworkSnapshot.docs.forEach((doc) => {
+          batch.update(doc.ref, {
+            invitedTeacherIds: FieldValue.arrayRemove(removedUserId),
+          });
+        });
+
+        // Remove from attendance docs
+        const attendanceSnapshot = await db.collection('attendance')
+          .where('classId', '==', classId)
+          .get();
+        attendanceSnapshot.docs.forEach((doc) => {
+          batch.update(doc.ref, {
+            invitedTeacherIds: FieldValue.arrayRemove(removedUserId),
+          });
+        });
+      }
+
+      await batch.commit();
+      console.log(`Removed teachers ${removedUserIds.join(', ')} from class ${classId} docs`);
+    } catch (error) {
+      console.error('Error in onTeacherRemoved:', error);
+    }
   }
 );

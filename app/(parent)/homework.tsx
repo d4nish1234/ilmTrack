@@ -8,7 +8,7 @@ import { Student, Homework, HomeworkEvaluation, EVALUATION_LABELS } from '../../
 import { firestore } from '../../src/config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
-import { getHomeworkPaginatedMultiStudent } from '../../src/services/homework.service';
+import { getHomeworkPaginatedForParent } from '../../src/services/homework.service';
 import { format } from 'date-fns';
 
 // Deduplicate students by name (same child in multiple classes)
@@ -116,16 +116,16 @@ export default function ParentHomeworkScreen() {
       .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })) as Student[];
   }, [user?.studentIds]);
 
-  const fetchHomework = useCallback(async (studentIds: string[], isLoadMore = false) => {
-    if (studentIds.length === 0) return;
+  const fetchHomework = useCallback(async (isLoadMore = false) => {
+    if (!user?.uid) return;
 
     if (isLoadMore) {
       setLoadingMore(true);
     }
 
     try {
-      const result = await getHomeworkPaginatedMultiStudent(
-        studentIds,
+      const result = await getHomeworkPaginatedForParent(
+        user.uid,
         PAGE_SIZE,
         isLoadMore ? lastDoc : null
       );
@@ -142,7 +142,7 @@ export default function ParentHomeworkScreen() {
     } finally {
       setLoadingMore(false);
     }
-  }, [lastDoc]);
+  }, [lastDoc, user?.uid]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -154,10 +154,7 @@ export default function ParentHomeworkScreen() {
       // Reset pagination and refetch
       setLastDoc(null);
       setHasMore(false);
-      if (studentList.length > 0) {
-        const studentIds = studentList.map((s) => s.id);
-        await fetchHomework(studentIds, false);
-      }
+      await fetchHomework(false);
     } catch (error) {
       console.error('Error refreshing:', error);
     } finally {
@@ -182,10 +179,9 @@ export default function ParentHomeworkScreen() {
         if (!isMounted) return;
         setStudents(studentList);
 
-        // Fetch homework with pagination
-        if (studentList.length > 0) {
-          const studentIds = studentList.map((s) => s.id);
-          const result = await getHomeworkPaginatedMultiStudent(studentIds, PAGE_SIZE, null);
+        // Fetch homework with pagination (using parentUserIds array-contains)
+        if (user?.uid) {
+          const result = await getHomeworkPaginatedForParent(user.uid, PAGE_SIZE, null);
           if (!isMounted) return;
           setHomework(result.data);
           setLastDoc(result.lastDoc);
@@ -207,11 +203,10 @@ export default function ParentHomeworkScreen() {
   }, [user?.studentIds, fetchStudents]);
 
   const handleLoadMore = useCallback(() => {
-    if (!loadingMore && hasMore && students.length > 0) {
-      const studentIds = students.map((s) => s.id);
-      fetchHomework(studentIds, true);
+    if (!loadingMore && hasMore) {
+      fetchHomework(true);
     }
-  }, [loadingMore, hasMore, students, fetchHomework]);
+  }, [loadingMore, hasMore, fetchHomework]);
 
   const getStudentName = (studentId: string) => {
     const student = students.find((s) => s.id === studentId);

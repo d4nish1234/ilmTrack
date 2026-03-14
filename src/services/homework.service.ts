@@ -8,12 +8,10 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
   onSnapshot,
   serverTimestamp,
   Timestamp,
   limit,
-  startAfter,
   QueryDocumentSnapshot,
   DocumentData,
 } from 'firebase/firestore';
@@ -25,12 +23,16 @@ export async function createHomework(
   studentId: string,
   classId: string,
   teacherId: string,
-  data: CreateHomeworkData
+  data: CreateHomeworkData,
+  parentUserIds: string[] = [],
+  invitedTeacherIds: string[] = []
 ): Promise<string> {
   const docRef = await addDoc(homeworkRef, {
     studentId,
     classId,
     teacherId,
+    parentUserIds,
+    invitedTeacherIds,
     title: data.title,
     description: data.description || null,
     dueDate: data.dueDate
@@ -45,38 +47,45 @@ export async function createHomework(
   return docRef.id;
 }
 
-export async function getHomework(studentId: string): Promise<Homework[]> {
+export async function getHomework(studentId: string, teacherId: string): Promise<Homework[]> {
   const q = query(
     homeworkRef,
     where('studentId', '==', studentId),
-    orderBy('createdAt', 'desc')
+    where('teacherId', '==', teacherId)
   );
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Homework[];
+  return snapshot.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() } as Homework))
+    .sort((a, b) => {
+      const aTime = a.createdAt?.toMillis?.() ?? 0;
+      const bTime = b.createdAt?.toMillis?.() ?? 0;
+      return bTime - aTime;
+    });
 }
 
 export function subscribeToHomework(
   studentId: string,
+  teacherId: string,
   onUpdate: (homework: Homework[]) => void,
   onError: (error: Error) => void
 ): () => void {
   const q = query(
     homeworkRef,
     where('studentId', '==', studentId),
-    orderBy('createdAt', 'desc')
+    where('teacherId', '==', teacherId)
   );
 
   return onSnapshot(
     q,
     (snapshot) => {
-      const homework = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Homework[];
+      const homework = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() } as Homework))
+        .sort((a, b) => {
+          const aTime = a.createdAt?.toMillis?.() ?? 0;
+          const bTime = b.createdAt?.toMillis?.() ?? 0;
+          return bTime - aTime;
+        });
       onUpdate(homework);
     },
     (error) => {
@@ -113,6 +122,7 @@ export async function deleteHomework(homeworkId: string): Promise<void> {
 
 export async function getHomeworkAssignedToday(
   studentId: string,
+  teacherId: string,
   date: Date
 ): Promise<Homework[]> {
   const startOfDay = new Date(date);
@@ -124,6 +134,7 @@ export async function getHomeworkAssignedToday(
   const q = query(
     homeworkRef,
     where('studentId', '==', studentId),
+    where('teacherId', '==', teacherId),
     where('createdAt', '>=', Timestamp.fromDate(startOfDay)),
     where('createdAt', '<=', Timestamp.fromDate(endOfDay))
   );
@@ -137,20 +148,25 @@ export async function getHomeworkAssignedToday(
 
 export async function getRecentPendingHomework(
   studentId: string,
+  teacherId: string,
   limitCount: number = 5
 ): Promise<Homework[]> {
   const q = query(
     homeworkRef,
     where('studentId', '==', studentId),
-    where('status', '==', 'assigned'),
-    orderBy('createdAt', 'desc')
+    where('teacherId', '==', teacherId),
+    where('status', '==', 'assigned')
   );
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.slice(0, limitCount).map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Homework[];
+  return snapshot.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() } as Homework))
+    .sort((a, b) => {
+      const aTime = a.createdAt?.toMillis?.() ?? 0;
+      const bTime = b.createdAt?.toMillis?.() ?? 0;
+      return bTime - aTime;
+    })
+    .slice(0, limitCount);
 }
 
 export interface PaginatedResult<T> {
@@ -161,76 +177,81 @@ export interface PaginatedResult<T> {
 
 export async function getHomeworkPaginated(
   studentId: string,
+  teacherId: string,
   pageSize: number = 10,
   lastDoc?: QueryDocumentSnapshot<DocumentData> | null
 ): Promise<PaginatedResult<Homework>> {
-  let q = query(
-    homeworkRef,
+  const constraints = [
     where('studentId', '==', studentId),
-    orderBy('createdAt', 'desc'),
-    limit(pageSize + 1) // Fetch one extra to check if there are more
-  );
+    where('teacherId', '==', teacherId),
+  ];
 
+  const q = query(homeworkRef, ...constraints);
+  const snapshot = await getDocs(q);
+
+  // Sort client-side by createdAt desc
+  const allDocs = snapshot.docs
+    .map((d) => ({ doc: d, data: { id: d.id, ...d.data() } as Homework }))
+    .sort((a, b) => {
+      const aTime = a.data.createdAt?.toMillis?.() ?? 0;
+      const bTime = b.data.createdAt?.toMillis?.() ?? 0;
+      return bTime - aTime;
+    });
+
+  // Find cursor position if lastDoc provided
+  let startIndex = 0;
   if (lastDoc) {
-    q = query(
-      homeworkRef,
-      where('studentId', '==', studentId),
-      orderBy('createdAt', 'desc'),
-      startAfter(lastDoc),
-      limit(pageSize + 1)
-    );
+    const cursorIndex = allDocs.findIndex((d) => d.doc.id === lastDoc.id);
+    if (cursorIndex >= 0) {
+      startIndex = cursorIndex + 1;
+    }
   }
 
-  const snapshot = await getDocs(q);
-  const hasMore = snapshot.docs.length > pageSize;
-  const docs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs;
+  const page = allDocs.slice(startIndex, startIndex + pageSize);
+  const hasMore = startIndex + pageSize < allDocs.length;
 
   return {
-    data: docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Homework[],
-    lastDoc: docs.length > 0 ? docs[docs.length - 1] : null,
+    data: page.map((d) => d.data),
+    lastDoc: page.length > 0 ? page[page.length - 1].doc : null,
     hasMore,
   };
 }
 
-export async function getHomeworkPaginatedMultiStudent(
-  studentIds: string[],
+// Parent-specific: query by parentUserIds array-contains
+export async function getHomeworkPaginatedForParent(
+  parentUserId: string,
   pageSize: number = 10,
   lastDoc?: QueryDocumentSnapshot<DocumentData> | null
 ): Promise<PaginatedResult<Homework>> {
-  if (studentIds.length === 0) {
-    return { data: [], lastDoc: null, hasMore: false };
-  }
-
-  let q = query(
+  const q = query(
     homeworkRef,
-    where('studentId', 'in', studentIds),
-    orderBy('createdAt', 'desc'),
-    limit(pageSize + 1)
+    where('parentUserIds', 'array-contains', parentUserId)
   );
+  const snapshot = await getDocs(q);
 
+  // Sort client-side by createdAt desc
+  const allDocs = snapshot.docs
+    .map((d) => ({ doc: d, data: { id: d.id, ...d.data() } as Homework }))
+    .sort((a, b) => {
+      const aTime = a.data.createdAt?.toMillis?.() ?? 0;
+      const bTime = b.data.createdAt?.toMillis?.() ?? 0;
+      return bTime - aTime;
+    });
+
+  let startIndex = 0;
   if (lastDoc) {
-    q = query(
-      homeworkRef,
-      where('studentId', 'in', studentIds),
-      orderBy('createdAt', 'desc'),
-      startAfter(lastDoc),
-      limit(pageSize + 1)
-    );
+    const cursorIndex = allDocs.findIndex((d) => d.doc.id === lastDoc.id);
+    if (cursorIndex >= 0) {
+      startIndex = cursorIndex + 1;
+    }
   }
 
-  const snapshot = await getDocs(q);
-  const hasMore = snapshot.docs.length > pageSize;
-  const docs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs;
+  const page = allDocs.slice(startIndex, startIndex + pageSize);
+  const hasMore = startIndex + pageSize < allDocs.length;
 
   return {
-    data: docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Homework[],
-    lastDoc: docs.length > 0 ? docs[docs.length - 1] : null,
+    data: page.map((d) => d.data),
+    lastDoc: page.length > 0 ? page[page.length - 1].doc : null,
     hasMore,
   };
 }

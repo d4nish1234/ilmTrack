@@ -9,7 +9,7 @@ import { ClassDropdown } from '../../../src/components/teacher';
 import { LoadingSpinner } from '../../../src/components/common';
 import { Student } from '../../../src/types';
 import { firestore } from '../../../src/config/firebase';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 export default function ClassesScreen() {
   const { user } = useAuth();
@@ -54,16 +54,15 @@ export default function ClassesScreen() {
     const q = query(
       studentsRef,
       where('classId', '==', selectedClassId),
-      orderBy('lastName', 'asc')
+      where('teacherId', '==', user?.uid)
     );
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const studentList = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Student[];
+        const studentList = snapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() } as Student))
+          .sort((a, b) => a.lastName.localeCompare(b.lastName));
         setStudents(studentList);
         setFilteredStudents(studentList);
         setLoading(false);

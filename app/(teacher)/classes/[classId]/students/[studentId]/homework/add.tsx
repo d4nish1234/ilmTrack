@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { Snackbar, Portal } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -8,7 +8,9 @@ import * as yup from 'yup';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../../../src/contexts/AuthContext';
 import { createHomework } from '../../../../../../../src/services/homework.service';
+import { getStudent } from '../../../../../../../src/services/student.service';
 import { Button, Input } from '../../../../../../../src/components/common';
+import { Student } from '../../../../../../../src/types';
 
 const schema = yup.object({
   title: yup.string().required('Title is required'),
@@ -26,6 +28,13 @@ export default function AddHomeworkScreen() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [student, setStudent] = useState<Student | null>(null);
+
+  useEffect(() => {
+    if (studentId) {
+      getStudent(studentId).then(setStudent);
+    }
+  }, [studentId]);
 
   const { control, handleSubmit } = useForm<FormData>({
     resolver: yupResolver(schema),
@@ -47,7 +56,7 @@ export default function AddHomeworkScreen() {
         title: data.title,
         description: data.description,
         notes: data.notes,
-      });
+      }, student?.parentUserIds || [], student?.invitedTeacherIds || []);
       router.back();
     } catch (err: any) {
       console.error('Error creating homework:', err);

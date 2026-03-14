@@ -7,7 +7,7 @@ import { LoadingSpinner } from '../../src/components/common';
 import { Student, Attendance } from '../../src/types';
 import { firestore } from '../../src/config/firebase';
 import { doc, getDoc, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
-import { getAttendancePaginatedMultiStudent } from '../../src/services/attendance.service';
+import { getAttendancePaginatedForParent } from '../../src/services/attendance.service';
 import { format } from 'date-fns';
 
 // Deduplicate students by name (same child in multiple classes)
@@ -73,16 +73,16 @@ export default function ParentAttendanceScreen() {
       .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })) as Student[];
   }, [user?.studentIds]);
 
-  const fetchAttendance = useCallback(async (studentIds: string[], isLoadMore = false) => {
-    if (studentIds.length === 0) return;
+  const fetchAttendance = useCallback(async (isLoadMore = false) => {
+    if (!user?.uid) return;
 
     if (isLoadMore) {
       setLoadingMore(true);
     }
 
     try {
-      const result = await getAttendancePaginatedMultiStudent(
-        studentIds,
+      const result = await getAttendancePaginatedForParent(
+        user.uid,
         PAGE_SIZE,
         isLoadMore ? lastDoc : null
       );
@@ -99,7 +99,7 @@ export default function ParentAttendanceScreen() {
     } finally {
       setLoadingMore(false);
     }
-  }, [lastDoc]);
+  }, [lastDoc, user?.uid]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -111,10 +111,7 @@ export default function ParentAttendanceScreen() {
       // Reset pagination and refetch
       setLastDoc(null);
       setHasMore(false);
-      if (studentList.length > 0) {
-        const studentIds = studentList.map((s) => s.id);
-        await fetchAttendance(studentIds, false);
-      }
+      await fetchAttendance(false);
     } catch (error) {
       console.error('Error refreshing:', error);
     } finally {
@@ -139,10 +136,9 @@ export default function ParentAttendanceScreen() {
         if (!isMounted) return;
         setStudents(studentList);
 
-        // Fetch attendance with pagination
-        if (studentList.length > 0) {
-          const studentIds = studentList.map((s) => s.id);
-          const result = await getAttendancePaginatedMultiStudent(studentIds, PAGE_SIZE, null);
+        // Fetch attendance with pagination (using parentUserIds array-contains)
+        if (user?.uid) {
+          const result = await getAttendancePaginatedForParent(user.uid, PAGE_SIZE, null);
           if (!isMounted) return;
           setAttendance(result.data);
           setLastDoc(result.lastDoc);
@@ -164,11 +160,10 @@ export default function ParentAttendanceScreen() {
   }, [user?.studentIds, fetchStudents]);
 
   const handleLoadMore = useCallback(() => {
-    if (!loadingMore && hasMore && students.length > 0) {
-      const studentIds = students.map((s) => s.id);
-      fetchAttendance(studentIds, true);
+    if (!loadingMore && hasMore) {
+      fetchAttendance(true);
     }
-  }, [loadingMore, hasMore, students, fetchAttendance]);
+  }, [loadingMore, hasMore, fetchAttendance]);
 
   const getStudentName = (studentId: string) => {
     const student = students.find((s) => s.id === studentId);

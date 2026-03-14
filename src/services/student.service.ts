@@ -8,17 +8,36 @@ import {
   updateDoc,
   query,
   where,
-  orderBy,
   onSnapshot,
   serverTimestamp,
   writeBatch,
   arrayUnion,
 } from 'firebase/firestore';
 import { Student, CreateStudentData, UpdateStudentData, Parent, User } from '../types';
-import { incrementStudentCount, decrementStudentCount } from './class.service';
+import { incrementStudentCount, decrementStudentCount, getClass } from './class.service';
 import { unlinkAllParentsFromStudent } from '../utils/parentLinkCleanup';
 
 const studentsRef = collection(firestore, 'students');
+
+/**
+ * Extract accepted parent userIds from a student's parents array.
+ */
+export function getParentUserIds(parents: Parent[]): string[] {
+  return parents
+    .filter((p) => p.userId && p.inviteStatus === 'accepted')
+    .map((p) => p.userId!);
+}
+
+/**
+ * Get accepted invited teacher userIds for a class.
+ */
+export async function getInvitedTeacherIds(classId: string): Promise<string[]> {
+  const classDoc = await getClass(classId);
+  if (!classDoc) return [];
+  return (classDoc.admins || [])
+    .filter((a) => a.userId && a.inviteStatus === 'accepted')
+    .map((a) => a.userId!);
+}
 
 export async function createStudent(
   classId: string,
@@ -32,11 +51,16 @@ export async function createStudent(
     inviteStatus: 'pending' as const,
   }));
 
+  // Get invited teacher IDs for this class
+  const invitedTeacherIds = await getInvitedTeacherIds(classId);
+
   const docRef = await addDoc(studentsRef, {
     ...data,
     classId,
     teacherId,
     parents,
+    parentUserIds: [],
+    invitedTeacherIds,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -59,38 +83,37 @@ export async function createStudent(
   return docRef.id;
 }
 
-export async function getStudents(classId: string): Promise<Student[]> {
+export async function getStudents(classId: string, teacherId: string): Promise<Student[]> {
   const q = query(
     studentsRef,
     where('classId', '==', classId),
-    orderBy('lastName', 'asc')
+    where('teacherId', '==', teacherId)
   );
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Student[];
+  return snapshot.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() } as Student))
+    .sort((a, b) => a.lastName.localeCompare(b.lastName));
 }
 
 export function subscribeToStudents(
   classId: string,
+  teacherId: string,
   onUpdate: (students: Student[]) => void,
   onError: (error: Error) => void
 ): () => void {
   const q = query(
     studentsRef,
     where('classId', '==', classId),
-    orderBy('lastName', 'asc')
+    where('teacherId', '==', teacherId)
   );
 
   return onSnapshot(
     q,
     (snapshot) => {
-      const students = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Student[];
+      const students = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() } as Student))
+        .sort((a, b) => a.lastName.localeCompare(b.lastName));
       onUpdate(students);
     },
     (error) => {
@@ -133,27 +156,44 @@ export async function updateStudent(
   data: UpdateStudentData
 ): Promise<void> {
   const docRef = doc(firestore, 'students', studentId);
-  await updateDoc(docRef, {
+
+  const updateData: Record<string, unknown> = {
     ...data,
     updatedAt: serverTimestamp(),
-  });
+  };
+
+  // If parents are being updated, recalculate parentUserIds
+  if (data.parents) {
+    updateData.parentUserIds = getParentUserIds(data.parents);
+  }
+
+  await updateDoc(docRef, updateData);
 }
 
 export async function deleteStudent(
   studentId: string,
-  classId: string
+  classId: string,
+  teacherId: string
 ): Promise<void> {
   // Remove studentId from all linked parents' user documents
   await unlinkAllParentsFromStudent(studentId);
 
-  // Delete all homework for this student
+  // Delete all homework for this student (must include teacherId for rules)
   const homeworkRef = collection(firestore, 'homework');
-  const homeworkQuery = query(homeworkRef, where('studentId', '==', studentId));
+  const homeworkQuery = query(
+    homeworkRef,
+    where('studentId', '==', studentId),
+    where('teacherId', '==', teacherId)
+  );
   const homeworkSnapshot = await getDocs(homeworkQuery);
 
-  // Delete all attendance for this student
+  // Delete all attendance for this student (must include teacherId for rules)
   const attendanceRef = collection(firestore, 'attendance');
-  const attendanceQuery = query(attendanceRef, where('studentId', '==', studentId));
+  const attendanceQuery = query(
+    attendanceRef,
+    where('studentId', '==', studentId),
+    where('teacherId', '==', teacherId)
+  );
   const attendanceSnapshot = await getDocs(attendanceQuery);
 
   const batch = writeBatch(firestore);
@@ -177,11 +217,10 @@ export async function deleteStudent(
 
 export async function searchStudents(
   classId: string,
+  teacherId: string,
   queryStr: string
 ): Promise<Student[]> {
-  // For simple search, we fetch all and filter client-side
-  // For production, consider using Algolia or similar
-  const students = await getStudents(classId);
+  const students = await getStudents(classId, teacherId);
   const lowerQuery = queryStr.toLowerCase();
 
   return students.filter(
@@ -259,6 +298,10 @@ export async function linkExistingStudentToClass(
     throw new Error('Student is already in this class');
   }
 
+  // Get parentUserIds from existing parents and invitedTeacherIds from new class
+  const parentUserIds = getParentUserIds(existingStudent.parents || []);
+  const invitedTeacherIds = await getInvitedTeacherIds(newClassId);
+
   // Create a new student record for this class with the same info
   const docRef = await addDoc(studentsRef, {
     firstName: existingStudent.firstName,
@@ -266,6 +309,8 @@ export async function linkExistingStudentToClass(
     classId: newClassId,
     teacherId: existingStudent.teacherId,
     parents: existingStudent.parents,
+    parentUserIds,
+    invitedTeacherIds,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });

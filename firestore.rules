@@ -13,8 +13,29 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
-    // Users collection - users can read/write their own profile
-    // Also allow reading other users for admin email lookup
+    // Fallback: checks user profile for linked studentIds (for old docs without parentUserIds)
+    function isLinkedParent(studentId) {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return userData.keys().hasAll(['studentIds']) && userData.studentIds.hasAny([studentId]);
+    }
+
+    // Fallback: checks user profile for adminClassIds (for old docs without invitedTeacherIds)
+    function isAdminOfClass(classId) {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return userData.keys().hasAll(['adminClassIds']) && userData.adminClassIds.hasAny([classId]);
+    }
+
+    // Field-based: user's uid is in parentUserIds array on the document
+    function isInParentUserIds(data) {
+      return data.keys().hasAll(['parentUserIds']) && request.auth.uid in data.parentUserIds;
+    }
+
+    // Field-based: user's uid is in invitedTeacherIds array on the document
+    function isInInvitedTeacherIds(data) {
+      return data.keys().hasAll(['invitedTeacherIds']) && request.auth.uid in data.invitedTeacherIds;
+    }
+
+    // Users collection
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isOwner(userId);
@@ -22,48 +43,80 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && isOwner(userId);
     }
 
-    // Classes collection - teachers can manage their own classes, admins can read/update
+    // Classes collection
     match /classes/{classId} {
-      // Owner or admin can read
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() &&
         request.resource.data.teacherId == request.auth.uid;
-      // Owner or admin can update
-      allow update: if isAuthenticated();
-      // Only owner can delete
+      allow update: if isAuthenticated() && (
+        resource.data.teacherId == request.auth.uid ||
+        isAdminOfClass(classId)
+      );
       allow delete: if isAuthenticated() &&
         resource.data.teacherId == request.auth.uid;
     }
 
     // Students collection
     match /students/{studentId} {
-      // Teachers and admins can manage students
-      // Parents can read students if they have the studentId in their user profile
-      // For simplicity, we allow read if authenticated (parent access is controlled by studentIds in user profile)
-      allow read: if isAuthenticated();
-      // Allow create/update/delete for authenticated teachers (owner or admin)
-      // App logic controls access via class membership
-      allow create, update, delete: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        resource.data.teacherId == request.auth.uid ||
+        isInParentUserIds(resource.data) ||
+        isInInvitedTeacherIds(resource.data) ||
+        isLinkedParent(studentId) ||
+        isAdminOfClass(resource.data.classId)
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.teacherId == request.auth.uid ||
+        isInInvitedTeacherIds(request.resource.data) ||
+        isAdminOfClass(request.resource.data.classId)
+      );
+      allow update, delete: if isAuthenticated() && (
+        resource.data.teacherId == request.auth.uid ||
+        isInInvitedTeacherIds(resource.data) ||
+        isAdminOfClass(resource.data.classId)
+      );
     }
 
     // Homework collection
     match /homework/{homeworkId} {
-      // Teachers and admins can manage homework
-      // Parents can read homework for their linked students
-      allow read: if isAuthenticated();
-      // Allow create/update/delete for authenticated teachers (owner or admin)
-      // App logic controls access via class membership
-      allow create, update, delete: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        resource.data.teacherId == request.auth.uid ||
+        isInParentUserIds(resource.data) ||
+        isInInvitedTeacherIds(resource.data) ||
+        isLinkedParent(resource.data.studentId) ||
+        isAdminOfClass(resource.data.classId)
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.teacherId == request.auth.uid ||
+        isInInvitedTeacherIds(request.resource.data) ||
+        isAdminOfClass(request.resource.data.classId)
+      );
+      allow update, delete: if isAuthenticated() && (
+        resource.data.teacherId == request.auth.uid ||
+        isInInvitedTeacherIds(resource.data) ||
+        isAdminOfClass(resource.data.classId)
+      );
     }
 
     // Attendance collection
     match /attendance/{attendanceId} {
-      // Teachers and admins can manage attendance
-      // Parents can read attendance for their linked students
-      allow read: if isAuthenticated();
-      // Allow create/update/delete for authenticated teachers (owner or admin)
-      // App logic controls access via class membership
-      allow create, update, delete: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        resource.data.teacherId == request.auth.uid ||
+        isInParentUserIds(resource.data) ||
+        isInInvitedTeacherIds(resource.data) ||
+        isLinkedParent(resource.data.studentId) ||
+        isAdminOfClass(resource.data.classId)
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.teacherId == request.auth.uid ||
+        isInInvitedTeacherIds(request.resource.data) ||
+        isAdminOfClass(request.resource.data.classId)
+      );
+      allow update, delete: if isAuthenticated() && (
+        resource.data.teacherId == request.auth.uid ||
+        isInInvitedTeacherIds(resource.data) ||
+        isAdminOfClass(resource.data.classId)
+      );
     }
 
     // Invites collection - for parent invitation tracking
@@ -74,7 +127,7 @@ service cloud.firestore {
       allow delete: if isAuthenticated();
     }
 
-    // Admin invites collection - for class admin invitation tracking
+    // Teacher invites collection - for shared class access tracking
     match /adminInvites/{inviteId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();

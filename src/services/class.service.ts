@@ -113,7 +113,11 @@ export async function deleteClass(
 
   // Delete all students in the class
   const studentsRef = collection(firestore, 'students');
-  const studentsQuery = query(studentsRef, where('classId', '==', classId));
+  const studentsQuery = query(
+    studentsRef,
+    where('classId', '==', classId),
+    where('teacherId', '==', teacherId)
+  );
   const studentsSnapshot = await getDocs(studentsQuery);
 
   const batch = writeBatch(firestore);

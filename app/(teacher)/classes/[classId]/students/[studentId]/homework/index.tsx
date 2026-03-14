@@ -3,6 +3,7 @@ import { StyleSheet, View, FlatList, TouchableOpacity, Keyboard, TouchableWithou
 import { Text, Card, Chip, FAB, Menu, IconButton, Portal, Modal, Divider, TextInput, Button, ActivityIndicator } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { getHomeworkPaginated, updateHomework, deleteHomework, PaginatedResult } from '../../../../../../../src/services/homework.service';
+import { useAuth } from '../../../../../../../src/contexts/AuthContext';
 import { LoadingSpinner } from '../../../../../../../src/components/common';
 import { Homework, HomeworkStatus, HomeworkEvaluation, EVALUATION_LABELS } from '../../../../../../../src/types';
 import { format } from 'date-fns';
@@ -78,6 +79,7 @@ export default function HomeworkListScreen() {
     classId: string;
     studentId: string;
   }>();
+  const { user } = useAuth();
   const [homework, setHomework] = useState<Homework[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -122,6 +124,7 @@ export default function HomeworkListScreen() {
     try {
       const result = await getHomeworkPaginated(
         studentId,
+        user!.uid,
         PAGE_SIZE,
         isLoadMore ? lastDoc : null
       );

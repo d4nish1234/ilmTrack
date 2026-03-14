@@ -3,6 +3,7 @@ import { StyleSheet, View, FlatList } from 'react-native';
 import { Text, Card, Chip, FAB, Menu, IconButton, Divider, Button } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { getAttendancePaginated, updateAttendance, deleteAttendance, PaginatedResult } from '../../../../../../../src/services/attendance.service';
+import { useAuth } from '../../../../../../../src/contexts/AuthContext';
 import { LoadingSpinner } from '../../../../../../../src/components/common';
 import { Attendance, AttendanceStatus } from '../../../../../../../src/types';
 import { format } from 'date-fns';
@@ -13,6 +14,7 @@ export default function AttendanceListScreen() {
     classId: string;
     studentId: string;
   }>();
+  const { user } = useAuth();
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -54,6 +56,7 @@ export default function AttendanceListScreen() {
     try {
       const result = await getAttendancePaginated(
         studentId,
+        user!.uid,
         PAGE_SIZE,
         isLoadMore ? lastDoc : null
       );

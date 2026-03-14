@@ -10,6 +10,7 @@ export interface User {
   role: UserRole;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  emailVerified?: boolean;
   // Push notifications
   expoPushToken?: string;
   notificationsEnabled?: boolean;

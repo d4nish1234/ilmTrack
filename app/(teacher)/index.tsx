@@ -34,7 +34,6 @@ import {
   collection,
   query,
   where,
-  orderBy,
   onSnapshot,
 } from 'firebase/firestore';
 import {
@@ -87,20 +86,18 @@ export default function TeacherHomeScreen() {
 
     setLoading(true);
     const studentsRef = collection(firestore, 'students');
-    // Only filter by classId - user already has access to this class (as owner or admin)
     const q = query(
       studentsRef,
       where('classId', '==', selectedClassId),
-      orderBy('lastName', 'asc')
+      where('teacherId', '==', user.uid)
     );
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const studentList = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Student[];
+        const studentList = snapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() } as Student))
+          .sort((a, b) => a.lastName.localeCompare(b.lastName));
         setStudents(studentList);
         setFilteredStudents(studentList);
         setLoading(false);
@@ -124,7 +121,7 @@ export default function TeacherHomeScreen() {
 
     await Promise.all(
       studentList.map(async (student) => {
-        const attendance = await getStudentAttendanceForDate(student.id, today);
+        const attendance = await getStudentAttendanceForDate(student.id, user!.uid, today);
         attendanceMap[student.id] = attendance?.status || null;
       })
     );
@@ -162,7 +159,9 @@ export default function TeacherHomeScreen() {
         student.id,
         selectedClassId,
         user.uid,
-        new Date()
+        new Date(),
+        student.parentUserIds || [],
+        student.invitedTeacherIds || []
       );
 
       setTodayAttendance((prev) => ({
@@ -193,7 +192,7 @@ export default function TeacherHomeScreen() {
     swipeableRefs.current.get(student.id)?.close();
 
     try {
-      const homework = await getRecentPendingHomework(student.id, 3);
+      const homework = await getRecentPendingHomework(student.id, user!.uid, 3);
       setPendingHomework(homework);
     } catch (error) {
       console.error('Error fetching pending homework:', error);
@@ -236,7 +235,7 @@ export default function TeacherHomeScreen() {
       });
       // Fetch more homework if there are still pending items
       if (selectedStudent && pendingHomework.length > 1) {
-        const moreHomework = await getRecentPendingHomework(selectedStudent.id, 3);
+        const moreHomework = await getRecentPendingHomework(selectedStudent.id, user!.uid, 3);
         setPendingHomework(moreHomework.filter((h) => h.id !== homeworkId));
       }
     } catch (error) {
@@ -288,6 +287,7 @@ export default function TeacherHomeScreen() {
       // Check if homework already assigned today
       const existingHomework = await getHomeworkAssignedToday(
         selectedStudent.id,
+        user.uid,
         new Date()
       );
 
@@ -307,7 +307,9 @@ export default function TeacherHomeScreen() {
                   {
                     title: homeworkTitle.trim(),
                     description: homeworkDescription.trim() || undefined,
-                  }
+                  },
+                  selectedStudent.parentUserIds || [],
+                  selectedStudent.invitedTeacherIds || []
                 );
                 setHomeworkModalVisible(false);
                 Alert.alert('Success', 'Homework assigned successfully');
@@ -322,7 +324,7 @@ export default function TeacherHomeScreen() {
       await createHomework(selectedStudent.id, selectedClassId, user.uid, {
         title: homeworkTitle.trim(),
         description: homeworkDescription.trim() || undefined,
-      });
+      }, selectedStudent.parentUserIds || [], selectedStudent.invitedTeacherIds || []);
 
       setHomeworkModalVisible(false);
       Alert.alert('Success', 'Homework assigned successfully');

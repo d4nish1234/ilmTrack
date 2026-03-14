@@ -7,6 +7,8 @@ export interface Attendance {
   studentId: string;
   classId: string;
   teacherId: string;
+  parentUserIds?: string[];
+  invitedTeacherIds?: string[];
   date: Timestamp;
   status: AttendanceStatus;
   notes?: string;

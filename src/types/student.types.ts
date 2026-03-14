@@ -18,6 +18,8 @@ export interface Student {
   classId: string;
   teacherId: string;
   parents: Parent[];
+  parentUserIds?: string[];
+  invitedTeacherIds?: string[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

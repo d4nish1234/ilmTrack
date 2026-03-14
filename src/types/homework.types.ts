@@ -19,6 +19,8 @@ export interface Homework {
   studentId: string;
   classId: string;
   teacherId: string;
+  parentUserIds?: string[];
+  invitedTeacherIds?: string[];
   title: string;
   description?: string;
   dueDate?: Timestamp;

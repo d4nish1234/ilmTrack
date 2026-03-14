@@ -5,10 +5,12 @@ import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { getClass } from '../../../../src/services/class.service';
 import { subscribeToStudents } from '../../../../src/services/student.service';
 import { LoadingSpinner } from '../../../../src/components/common';
+import { useAuth } from '../../../../src/contexts/AuthContext';
 import { Class, Student } from '../../../../src/types';
 
 export default function ClassDetailScreen() {
   const { classId } = useLocalSearchParams<{ classId: string }>();
+  const { user } = useAuth();
   const [classData, setClassData] = useState<Class | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +47,7 @@ export default function ClassDetailScreen() {
     // Subscribe to students
     const unsubscribe = subscribeToStudents(
       classId,
+      user?.uid ?? '',
       (studentList) => {
         setStudents(studentList);
         setLoading(false);

@@ -34,6 +34,7 @@ import {
   savePushToken,
   removePushToken,
 } from '../services/notification.service';
+import { clearSelectedClassId } from '../utils/storage';
 
 interface AuthContextType {
   user: User | null;
@@ -94,34 +95,14 @@ async function acceptPendingInvites(
     studentIds.push(studentId);
 
     // Update invite status to accepted (if not already)
+    // The Cloud Function (onInviteAccepted) will handle updating the student doc
+    // (parent inviteStatus, userId, parentUserIds) and backfilling homework/attendance docs
     if (invite.status === 'pending') {
       await updateDoc(inviteDoc.ref, {
         status: 'accepted',
         acceptedAt: serverTimestamp(),
         parentId: userId,
       });
-    }
-
-    // Always update the student's parent inviteStatus (handles case where invite was
-    // marked accepted but student doc wasn't updated due to previous permission error)
-    const studentRef = doc(firestore, 'students', studentId);
-    const studentDoc = await getDoc(studentRef);
-    if (studentDoc.exists()) {
-      const studentData = studentDoc.data();
-      const needsUpdate = studentData.parents.some(
-        (parent: { email: string; inviteStatus: string }) =>
-          parent.email.toLowerCase() === email.toLowerCase() &&
-          parent.inviteStatus !== 'accepted'
-      );
-      if (needsUpdate) {
-        const updatedParents = studentData.parents.map((parent: { email: string; inviteStatus: string; userId?: string }) => {
-          if (parent.email.toLowerCase() === email.toLowerCase()) {
-            return { ...parent, inviteStatus: 'accepted', userId };
-          }
-          return parent;
-        });
-        await updateDoc(studentRef, { parents: updatedParents });
-      }
     }
   }
 
@@ -170,34 +151,14 @@ async function acceptPendingAdminInvites(
     classIds.push(classId);
 
     // Update invite status to accepted (if not already)
+    // The Cloud Function (onTeacherInviteAccepted) will handle updating the class doc
+    // (admin inviteStatus, userId) and backfilling invitedTeacherIds on student/homework/attendance docs
     if (invite.status === 'pending') {
       await updateDoc(inviteDoc.ref, {
         status: 'accepted',
         acceptedAt: serverTimestamp(),
         userId,
       });
-    }
-
-    // Update the class's admin record
-    const classRef = doc(firestore, 'classes', classId);
-    const classDoc = await getDoc(classRef);
-    if (classDoc.exists()) {
-      const classData = classDoc.data();
-      const admins = classData.admins || [];
-      const needsUpdate = admins.some(
-        (admin: { email: string; inviteStatus: string }) =>
-          admin.email.toLowerCase() === email.toLowerCase() &&
-          admin.inviteStatus !== 'accepted'
-      );
-      if (needsUpdate) {
-        const updatedAdmins = admins.map((admin: { email: string; inviteStatus: string; userId?: string }) => {
-          if (admin.email.toLowerCase() === email.toLowerCase()) {
-            return { ...admin, inviteStatus: 'accepted', userId };
-          }
-          return admin;
-        });
-        await updateDoc(classRef, { admins: updatedAdmins });
-      }
     }
   }
 
@@ -227,6 +188,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userDoc = await getDoc(doc(firestore, 'users', fbUser.uid));
           if (userDoc.exists()) {
             const userData = { uid: fbUser.uid, ...userDoc.data() } as User;
+
+            // Stamp emailVerified on the Firestore doc the first time the user
+            // logs in with a verified email. The Cloud Function watches for this
+            // field transition to send the admin notification.
+            if (fbUser.emailVerified && !userDoc.data().emailVerified) {
+              await updateDoc(doc(firestore, 'users', fbUser.uid), {
+                emailVerified: true,
+              });
+              userData.emailVerified = true;
+            }
 
             // If parent, check for invites and accept them
             if (userData.role === 'parent' && fbUser.email) {
@@ -335,6 +306,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         // Ignore - signout should proceed even if token removal fails
       }
+    }
+    // Clear persisted class selection so it doesn't leak to the next account
+    try {
+      await clearSelectedClassId();
+    } catch {
+      // Ignore
     }
     await firebaseSignOut(auth);
   }, [firebaseUser]);

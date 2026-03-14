@@ -8,12 +8,9 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
   onSnapshot,
   serverTimestamp,
   Timestamp,
-  limit,
-  startAfter,
   QueryDocumentSnapshot,
   DocumentData,
 } from 'firebase/firestore';
@@ -25,12 +22,16 @@ export async function createAttendance(
   studentId: string,
   classId: string,
   teacherId: string,
-  data: CreateAttendanceData
+  data: CreateAttendanceData,
+  parentUserIds: string[] = [],
+  invitedTeacherIds: string[] = []
 ): Promise<string> {
   const docRef = await addDoc(attendanceRef, {
     studentId,
     classId,
     teacherId,
+    parentUserIds,
+    invitedTeacherIds,
     date: Timestamp.fromDate(data.date),
     status: data.status,
     notes: data.notes || null,
@@ -41,38 +42,45 @@ export async function createAttendance(
   return docRef.id;
 }
 
-export async function getAttendance(studentId: string): Promise<Attendance[]> {
+export async function getAttendance(studentId: string, teacherId: string): Promise<Attendance[]> {
   const q = query(
     attendanceRef,
     where('studentId', '==', studentId),
-    orderBy('date', 'desc')
+    where('teacherId', '==', teacherId)
   );
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Attendance[];
+  return snapshot.docs
+    .map((d) => ({ id: d.id, ...d.data() } as Attendance))
+    .sort((a, b) => {
+      const aTime = a.date?.toMillis?.() ?? 0;
+      const bTime = b.date?.toMillis?.() ?? 0;
+      return bTime - aTime;
+    });
 }
 
 export function subscribeToAttendance(
   studentId: string,
+  teacherId: string,
   onUpdate: (attendance: Attendance[]) => void,
   onError: (error: Error) => void
 ): () => void {
   const q = query(
     attendanceRef,
     where('studentId', '==', studentId),
-    orderBy('date', 'desc')
+    where('teacherId', '==', teacherId)
   );
 
   return onSnapshot(
     q,
     (snapshot) => {
-      const attendance = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Attendance[];
+      const attendance = snapshot.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Attendance))
+        .sort((a, b) => {
+          const aTime = a.date?.toMillis?.() ?? 0;
+          const bTime = b.date?.toMillis?.() ?? 0;
+          return bTime - aTime;
+        });
       onUpdate(attendance);
     },
     (error) => {
@@ -99,6 +107,7 @@ export async function deleteAttendance(attendanceId: string): Promise<void> {
 
 export async function getAttendanceByDate(
   classId: string,
+  teacherId: string,
   date: Date
 ): Promise<Attendance[]> {
   const startOfDay = new Date(date);
@@ -110,19 +119,21 @@ export async function getAttendanceByDate(
   const q = query(
     attendanceRef,
     where('classId', '==', classId),
+    where('teacherId', '==', teacherId),
     where('date', '>=', Timestamp.fromDate(startOfDay)),
     where('date', '<=', Timestamp.fromDate(endOfDay))
   );
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
+  return snapshot.docs.map((d) => ({
+    id: d.id,
+    ...d.data(),
   })) as Attendance[];
 }
 
 export async function getStudentAttendanceForDate(
   studentId: string,
+  teacherId: string,
   date: Date
 ): Promise<Attendance | null> {
   const startOfDay = new Date(date);
@@ -134,6 +145,7 @@ export async function getStudentAttendanceForDate(
   const q = query(
     attendanceRef,
     where('studentId', '==', studentId),
+    where('teacherId', '==', teacherId),
     where('date', '>=', Timestamp.fromDate(startOfDay)),
     where('date', '<=', Timestamp.fromDate(endOfDay))
   );
@@ -143,17 +155,19 @@ export async function getStudentAttendanceForDate(
     return null;
   }
 
-  const doc = snapshot.docs[0];
-  return { id: doc.id, ...doc.data() } as Attendance;
+  const d = snapshot.docs[0];
+  return { id: d.id, ...d.data() } as Attendance;
 }
 
 export async function toggleAttendance(
   studentId: string,
   classId: string,
   teacherId: string,
-  date: Date
+  date: Date,
+  parentUserIds: string[] = [],
+  invitedTeacherIds: string[] = []
 ): Promise<{ action: 'created' | 'updated'; status: 'present' | 'absent' }> {
-  const existing = await getStudentAttendanceForDate(studentId, date);
+  const existing = await getStudentAttendanceForDate(studentId, teacherId, date);
 
   if (existing) {
     const newStatus = existing.status === 'present' ? 'absent' : 'present';
@@ -163,7 +177,7 @@ export async function toggleAttendance(
     await createAttendance(studentId, classId, teacherId, {
       date,
       status: 'present',
-    });
+    }, parentUserIds, invitedTeacherIds);
     return { action: 'created', status: 'present' };
   }
 }
@@ -176,76 +190,76 @@ export interface PaginatedResult<T> {
 
 export async function getAttendancePaginated(
   studentId: string,
+  teacherId: string,
   pageSize: number = 10,
   lastDoc?: QueryDocumentSnapshot<DocumentData> | null
 ): Promise<PaginatedResult<Attendance>> {
-  let q = query(
+  const q = query(
     attendanceRef,
     where('studentId', '==', studentId),
-    orderBy('date', 'desc'),
-    limit(pageSize + 1)
+    where('teacherId', '==', teacherId)
   );
+  const snapshot = await getDocs(q);
 
+  const allDocs = snapshot.docs
+    .map((d) => ({ doc: d, data: { id: d.id, ...d.data() } as Attendance }))
+    .sort((a, b) => {
+      const aTime = a.data.date?.toMillis?.() ?? 0;
+      const bTime = b.data.date?.toMillis?.() ?? 0;
+      return bTime - aTime;
+    });
+
+  let startIndex = 0;
   if (lastDoc) {
-    q = query(
-      attendanceRef,
-      where('studentId', '==', studentId),
-      orderBy('date', 'desc'),
-      startAfter(lastDoc),
-      limit(pageSize + 1)
-    );
+    const cursorIndex = allDocs.findIndex((d) => d.doc.id === lastDoc.id);
+    if (cursorIndex >= 0) {
+      startIndex = cursorIndex + 1;
+    }
   }
 
-  const snapshot = await getDocs(q);
-  const hasMore = snapshot.docs.length > pageSize;
-  const docs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs;
+  const page = allDocs.slice(startIndex, startIndex + pageSize);
+  const hasMore = startIndex + pageSize < allDocs.length;
 
   return {
-    data: docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Attendance[],
-    lastDoc: docs.length > 0 ? docs[docs.length - 1] : null,
+    data: page.map((d) => d.data),
+    lastDoc: page.length > 0 ? page[page.length - 1].doc : null,
     hasMore,
   };
 }
 
-export async function getAttendancePaginatedMultiStudent(
-  studentIds: string[],
+export async function getAttendancePaginatedForParent(
+  parentUserId: string,
   pageSize: number = 10,
   lastDoc?: QueryDocumentSnapshot<DocumentData> | null
 ): Promise<PaginatedResult<Attendance>> {
-  if (studentIds.length === 0) {
-    return { data: [], lastDoc: null, hasMore: false };
-  }
-
-  let q = query(
+  const q = query(
     attendanceRef,
-    where('studentId', 'in', studentIds),
-    orderBy('date', 'desc'),
-    limit(pageSize + 1)
+    where('parentUserIds', 'array-contains', parentUserId)
   );
+  const snapshot = await getDocs(q);
 
+  const allDocs = snapshot.docs
+    .map((d) => ({ doc: d, data: { id: d.id, ...d.data() } as Attendance }))
+    .sort((a, b) => {
+      const aTime = a.data.date?.toMillis?.() ?? 0;
+      const bTime = b.data.date?.toMillis?.() ?? 0;
+      return bTime - aTime;
+    });
+
+  let startIndex = 0;
   if (lastDoc) {
-    q = query(
-      attendanceRef,
-      where('studentId', 'in', studentIds),
-      orderBy('date', 'desc'),
-      startAfter(lastDoc),
-      limit(pageSize + 1)
-    );
+    const cursorIndex = allDocs.findIndex((d) => d.doc.id === lastDoc.id);
+    if (cursorIndex >= 0) {
+      startIndex = cursorIndex + 1;
+    }
   }
 
-  const snapshot = await getDocs(q);
-  const hasMore = snapshot.docs.length > pageSize;
-  const docs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs;
+  const page = allDocs.slice(startIndex, startIndex + pageSize);
+  const hasMore = startIndex + pageSize < allDocs.length;
 
   return {
-    data: docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Attendance[],
-    lastDoc: docs.length > 0 ? docs[docs.length - 1] : null,
+    data: page.map((d) => d.data),
+    lastDoc: page.length > 0 ? page[page.length - 1].doc : null,
     hasMore,
   };
 }
