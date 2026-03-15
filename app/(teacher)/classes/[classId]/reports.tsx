@@ -25,7 +25,6 @@ import {
   query,
   where,
   getDocs,
-  Timestamp,
 } from 'firebase/firestore';
 import {
   format,
@@ -50,7 +49,7 @@ import {
 
 export default function ReportsScreen() {
   const { classId } = useLocalSearchParams<{ classId: string }>();
-  useAuth();
+  const { user } = useAuth();
   const [classData, setClassData] = useState<Class | null>(null);
   const [startDate, setStartDate] = useState(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState(new Date());
@@ -79,9 +78,13 @@ export default function ReportsScreen() {
     }
   };
 
+  const isOwner = classData?.teacherId === user?.uid;
+
   const fetchStudents = async (): Promise<Student[]> => {
     const studentsRef = collection(firestore, 'students');
-    const q = query(studentsRef, where('classId', '==', classId));
+    const q = isOwner
+      ? query(studentsRef, where('classId', '==', classId), where('teacherId', '==', user?.uid))
+      : query(studentsRef, where('classId', '==', classId), where('invitedTeacherIds', 'array-contains', user?.uid));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -94,61 +97,47 @@ export default function ReportsScreen() {
   ): Promise<Attendance[]> => {
     if (studentIds.length === 0) return [];
 
+    const start = startOfDay(startDate).getTime();
+    const end = endOfDay(endDate).getTime();
+    const studentIdSet = new Set(studentIds);
+
+    // Query with security filter, filter by studentIds and date client-side
     const attendanceRef = collection(firestore, 'attendance');
-    const start = Timestamp.fromDate(startOfDay(startDate));
-    const end = Timestamp.fromDate(endOfDay(endDate));
+    const q = isOwner
+      ? query(attendanceRef, where('classId', '==', classId), where('teacherId', '==', user?.uid))
+      : query(attendanceRef, where('classId', '==', classId), where('invitedTeacherIds', 'array-contains', user?.uid));
 
-    // Firestore 'in' queries are limited to 10 items
-    const batches: string[][] = [];
-    for (let i = 0; i < studentIds.length; i += 10) {
-      batches.push(studentIds.slice(i, i + 10));
-    }
-
-    const results: Attendance[] = [];
-    for (const batch of batches) {
-      const q = query(
-        attendanceRef,
-        where('studentId', 'in', batch),
-        where('date', '>=', start),
-        where('date', '<=', end)
-      );
-      const snapshot = await getDocs(q);
-      snapshot.docs.forEach((doc) => {
-        results.push({ id: doc.id, ...doc.data() } as Attendance);
+    const snapshot = await getDocs(q);
+    return snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() } as Attendance))
+      .filter((a) => {
+        if (!studentIdSet.has(a.studentId)) return false;
+        const dateMs = a.date?.toDate().getTime() ?? 0;
+        return dateMs >= start && dateMs <= end;
       });
-    }
-
-    return results;
   };
 
   const fetchHomework = async (studentIds: string[]): Promise<Homework[]> => {
     if (studentIds.length === 0) return [];
 
+    const start = startOfDay(startDate).getTime();
+    const end = endOfDay(endDate).getTime();
+    const studentIdSet = new Set(studentIds);
+
+    // Query with security filter, filter by studentIds and date client-side
     const homeworkRef = collection(firestore, 'homework');
-    const start = Timestamp.fromDate(startOfDay(startDate));
-    const end = Timestamp.fromDate(endOfDay(endDate));
+    const q = isOwner
+      ? query(homeworkRef, where('classId', '==', classId), where('teacherId', '==', user?.uid))
+      : query(homeworkRef, where('classId', '==', classId), where('invitedTeacherIds', 'array-contains', user?.uid));
 
-    // Firestore 'in' queries are limited to 10 items
-    const batches: string[][] = [];
-    for (let i = 0; i < studentIds.length; i += 10) {
-      batches.push(studentIds.slice(i, i + 10));
-    }
-
-    const results: Homework[] = [];
-    for (const batch of batches) {
-      const q = query(
-        homeworkRef,
-        where('studentId', 'in', batch),
-        where('createdAt', '>=', start),
-        where('createdAt', '<=', end)
-      );
-      const snapshot = await getDocs(q);
-      snapshot.docs.forEach((doc) => {
-        results.push({ id: doc.id, ...doc.data() } as Homework);
+    const snapshot = await getDocs(q);
+    return snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() } as Homework))
+      .filter((h) => {
+        if (!studentIdSet.has(h.studentId)) return false;
+        const dateMs = h.createdAt?.toDate().getTime() ?? 0;
+        return dateMs >= start && dateMs <= end;
       });
-    }
-
-    return results;
   };
 
   const exportAttendance = async () => {

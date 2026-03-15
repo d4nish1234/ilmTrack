@@ -8,7 +8,7 @@ import * as yup from 'yup';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../../../src/contexts/AuthContext';
 import { createHomework } from '../../../../../../../src/services/homework.service';
-import { getStudent } from '../../../../../../../src/services/student.service';
+import { getStudent, getInvitedTeacherIds } from '../../../../../../../src/services/student.service';
 import { Button, Input } from '../../../../../../../src/components/common';
 import { Student } from '../../../../../../../src/types';
 
@@ -52,11 +52,12 @@ export default function AddHomeworkScreen() {
     setError(null);
 
     try {
+      const freshTeacherIds = await getInvitedTeacherIds(classId);
       await createHomework(studentId, classId, user.uid, {
         title: data.title,
         description: data.description,
         notes: data.notes,
-      }, student?.parentUserIds || [], student?.invitedTeacherIds || []);
+      }, student?.parentUserIds || [], freshTeacherIds);
       router.back();
     } catch (err: any) {
       console.error('Error creating homework:', err);

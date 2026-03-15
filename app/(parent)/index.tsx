@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, ScrollView, RefreshControl, Linking, Platform } from 'react-native';
 import { Text, Card, Chip, IconButton } from 'react-native-paper';
 import { router } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { LoadingSpinner } from '../../src/components/common';
@@ -33,7 +34,7 @@ export default function ParentHomeScreen() {
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   // App-level notification preference
-  const appNotificationsDisabled = user?.notificationsEnabled === false;
+  const appNotificationsDisabled = user?.notificationsEnabled !== true;
 
   // Check system notification permission status
   useEffect(() => {
@@ -69,13 +70,13 @@ export default function ParentHomeScreen() {
     try {
       const studentDocs = await Promise.all(
         user.studentIds!.map((id) =>
-          getDoc(doc(firestore, 'students', id))
+          getDoc(doc(firestore, 'students', id)).catch(() => null)
         )
       );
 
       const studentList = studentDocs
-        .filter((docSnap) => docSnap.exists())
-        .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })) as Student[];
+        .filter((docSnap) => docSnap?.exists())
+        .map((docSnap) => ({ id: docSnap!.id, ...docSnap!.data() })) as Student[];
 
       setStudents(studentList);
 
@@ -144,6 +145,21 @@ export default function ParentHomeScreen() {
     fetchData();
   }, [fetchData, checkForNewInvites]);
 
+  const navigation = useNavigation();
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <IconButton
+          icon="refresh"
+          iconColor="#fff"
+          size={24}
+          onPress={onRefresh}
+          disabled={refreshing}
+        />
+      ),
+    });
+  }, [navigation, onRefresh, refreshing]);
+
   const getStudentName = (studentId: string) => {
     const student = students.find((s) => s.id === studentId);
     return student ? `${student.firstName} ${student.lastName}` : 'Unknown';
@@ -173,7 +189,12 @@ export default function ParentHomeScreen() {
 
   if (!user?.studentIds?.length) {
     return (
-      <View style={styles.emptyContainer}>
+      <ScrollView
+        contentContainerStyle={styles.emptyContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <Text variant="titleMedium" style={styles.emptyTitle}>
           Welcome, {user?.firstName}!
         </Text>
@@ -181,7 +202,7 @@ export default function ParentHomeScreen() {
           You&apos;re not linked to any students yet. Please wait for a teacher to
           send you an invitation.
         </Text>
-      </View>
+      </ScrollView>
     );
   }
 
@@ -329,6 +350,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   scrollContent: {
+    flexGrow: 1,
     paddingBottom: 24,
   },
   header: {

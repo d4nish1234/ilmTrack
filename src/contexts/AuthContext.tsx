@@ -373,15 +373,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         existingStudentIds
       );
 
-      if (newStudentIds.length > 0) {
-        // Refresh user data to include new studentIds
-        const refreshedDoc = await getDoc(doc(firestore, 'users', firebaseUser.uid));
-        if (refreshedDoc.exists()) {
-          setUser({ uid: firebaseUser.uid, ...refreshedDoc.data() } as User);
-        }
-        return true;
+      // Always refresh user data — studentIds may have changed
+      // (e.g., a teacher deleted a student, removing the parent's link)
+      const refreshedDoc = await getDoc(doc(firestore, 'users', firebaseUser.uid));
+      if (refreshedDoc.exists()) {
+        setUser({ uid: firebaseUser.uid, ...refreshedDoc.data() } as User);
       }
-      return false;
+
+      return newStudentIds.length > 0;
     } catch (error) {
       console.error('Error checking for new invites:', error);
       return false;

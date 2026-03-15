@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, FlatList, TouchableOpacity, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { Text, Card, Chip, FAB, Menu, IconButton, Portal, Modal, Divider, TextInput, Button, ActivityIndicator } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
-import { getHomeworkPaginated, updateHomework, deleteHomework, PaginatedResult } from '../../../../../../../src/services/homework.service';
+import { getHomeworkPaginatedAsTeacher, updateHomework, deleteHomework, PaginatedResult } from '../../../../../../../src/services/homework.service';
 import { useAuth } from '../../../../../../../src/contexts/AuthContext';
 import { LoadingSpinner } from '../../../../../../../src/components/common';
 import { Homework, HomeworkStatus, HomeworkEvaluation, EVALUATION_LABELS } from '../../../../../../../src/types';
@@ -122,7 +122,7 @@ export default function HomeworkListScreen() {
     }
 
     try {
-      const result = await getHomeworkPaginated(
+      const result = await getHomeworkPaginatedAsTeacher(
         studentId,
         user!.uid,
         PAGE_SIZE,

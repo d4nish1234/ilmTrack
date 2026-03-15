@@ -46,6 +46,7 @@ import {
   getRecentPendingHomework,
   updateHomework,
 } from '../../src/services/homework.service';
+import { getInvitedTeacherIds } from '../../src/services/student.service';
 import { Homework, HomeworkStatus, HomeworkEvaluation } from '../../src/types';
 import { format } from 'date-fns';
 
@@ -85,12 +86,23 @@ export default function TeacherHomeScreen() {
     }
 
     setLoading(true);
+
+    // Determine if user is class owner or invited teacher
+    const selectedClass = classes.find((c) => c.id === selectedClassId);
+    const isOwner = selectedClass?.teacherId === user.uid;
+
     const studentsRef = collection(firestore, 'students');
-    const q = query(
-      studentsRef,
-      where('classId', '==', selectedClassId),
-      where('teacherId', '==', user.uid)
-    );
+    const q = isOwner
+      ? query(
+          studentsRef,
+          where('classId', '==', selectedClassId),
+          where('teacherId', '==', user.uid)
+        )
+      : query(
+          studentsRef,
+          where('classId', '==', selectedClassId),
+          where('invitedTeacherIds', 'array-contains', user.uid)
+        );
 
     const unsubscribe = onSnapshot(
       q,
@@ -112,7 +124,7 @@ export default function TeacherHomeScreen() {
     );
 
     return unsubscribe;
-  }, [selectedClassId, user?.uid]);
+  }, [selectedClassId, user?.uid, classes]);
 
   // Fetch today's attendance for all students
   const fetchTodayAttendance = async (studentList: Student[]) => {
@@ -155,13 +167,14 @@ export default function TeacherHomeScreen() {
     if (!user?.uid || !selectedClassId) return;
 
     try {
+      const freshTeacherIds = await getInvitedTeacherIds(selectedClassId);
       const result = await toggleAttendance(
         student.id,
         selectedClassId,
         user.uid,
         new Date(),
         student.parentUserIds || [],
-        student.invitedTeacherIds || []
+        freshTeacherIds
       );
 
       setTodayAttendance((prev) => ({
@@ -300,6 +313,7 @@ export default function TeacherHomeScreen() {
             {
               text: 'Add Anyway',
               onPress: async () => {
+                const freshIds = await getInvitedTeacherIds(selectedClassId);
                 await createHomework(
                   selectedStudent.id,
                   selectedClassId,
@@ -309,7 +323,7 @@ export default function TeacherHomeScreen() {
                     description: homeworkDescription.trim() || undefined,
                   },
                   selectedStudent.parentUserIds || [],
-                  selectedStudent.invitedTeacherIds || []
+                  freshIds
                 );
                 setHomeworkModalVisible(false);
                 Alert.alert('Success', 'Homework assigned successfully');
@@ -321,10 +335,11 @@ export default function TeacherHomeScreen() {
         return;
       }
 
+      const freshTeacherIds = await getInvitedTeacherIds(selectedClassId);
       await createHomework(selectedStudent.id, selectedClassId, user.uid, {
         title: homeworkTitle.trim(),
         description: homeworkDescription.trim() || undefined,
-      }, selectedStudent.parentUserIds || [], selectedStudent.invitedTeacherIds || []);
+      }, selectedStudent.parentUserIds || [], freshTeacherIds);
 
       setHomeworkModalVisible(false);
       Alert.alert('Success', 'Homework assigned successfully');

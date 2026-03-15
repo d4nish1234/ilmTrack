@@ -94,10 +94,13 @@ export async function updateAttendance(
   data: UpdateAttendanceData
 ): Promise<void> {
   const docRef = doc(firestore, 'attendance', attendanceId);
-  await updateDoc(docRef, {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
+  const updateData: Record<string, unknown> = { updatedAt: serverTimestamp() };
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      updateData[key] = value;
+    }
+  }
+  await updateDoc(docRef, updateData);
 }
 
 export async function deleteAttendance(attendanceId: string): Promise<void> {
@@ -182,6 +185,38 @@ export async function toggleAttendance(
   }
 }
 
+// Teacher (owner or invited): query by invitedTeacherIds array-contains
+// This shows ALL attendance for a student regardless of which teacher created it
+export function subscribeToAttendanceAsTeacher(
+  studentId: string,
+  teacherUid: string,
+  onUpdate: (attendance: Attendance[]) => void,
+  onError: (error: Error) => void
+): () => void {
+  const q = query(
+    attendanceRef,
+    where('studentId', '==', studentId),
+    where('invitedTeacherIds', 'array-contains', teacherUid)
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const attendance = snapshot.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Attendance))
+        .sort((a, b) => {
+          const aTime = a.date?.toMillis?.() ?? 0;
+          const bTime = b.date?.toMillis?.() ?? 0;
+          return bTime - aTime;
+        });
+      onUpdate(attendance);
+    },
+    (error) => {
+      onError(error);
+    }
+  );
+}
+
 export interface PaginatedResult<T> {
   data: T[];
   lastDoc: QueryDocumentSnapshot<DocumentData> | null;
@@ -198,6 +233,45 @@ export async function getAttendancePaginated(
     attendanceRef,
     where('studentId', '==', studentId),
     where('teacherId', '==', teacherId)
+  );
+  const snapshot = await getDocs(q);
+
+  const allDocs = snapshot.docs
+    .map((d) => ({ doc: d, data: { id: d.id, ...d.data() } as Attendance }))
+    .sort((a, b) => {
+      const aTime = a.data.date?.toMillis?.() ?? 0;
+      const bTime = b.data.date?.toMillis?.() ?? 0;
+      return bTime - aTime;
+    });
+
+  let startIndex = 0;
+  if (lastDoc) {
+    const cursorIndex = allDocs.findIndex((d) => d.doc.id === lastDoc.id);
+    if (cursorIndex >= 0) {
+      startIndex = cursorIndex + 1;
+    }
+  }
+
+  const page = allDocs.slice(startIndex, startIndex + pageSize);
+  const hasMore = startIndex + pageSize < allDocs.length;
+
+  return {
+    data: page.map((d) => d.data),
+    lastDoc: page.length > 0 ? page[page.length - 1].doc : null,
+    hasMore,
+  };
+}
+
+export async function getAttendancePaginatedAsTeacher(
+  studentId: string,
+  teacherUid: string,
+  pageSize: number = 10,
+  lastDoc?: QueryDocumentSnapshot<DocumentData> | null
+): Promise<PaginatedResult<Attendance>> {
+  const q = query(
+    attendanceRef,
+    where('studentId', '==', studentId),
+    where('invitedTeacherIds', 'array-contains', teacherUid)
   );
   const snapshot = await getDocs(q);
 

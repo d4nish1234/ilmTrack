@@ -6,6 +6,7 @@
 
 ### 1.1 Sign Up — Teacher
 - Sign up with a new email, select **Teacher** role
+- Don't verify yet. Attempt login without verifying email — blocked with message
 - Verify email sent
 - Resend verify email
 - Complete verification
@@ -27,22 +28,16 @@
 - Confirm linked student(s) appear automatically on home screen
 - Sign up with a fresh email (no invite) — confirm empty state shown
 
-### 1.3 Login
+### 1.3 Login - Admin and Parent
 - Login with valid credentials — correct dashboard shown for role
 - Login with wrong password — error shown
 - Use "Forgot Password" — reset email received, can set new password
-
-### 1.4 Email Verification
-- Attempt login without verifying email — blocked with message
-- Verify email and login — access granted
 
 ---
 
 ## 2. Teacher — Classes
 
-
-
-### 2.3 Invite Another Teacher to Class
+### 2.1 Invite Another Teacher to Class
 - Add another teacher's email to the class admin list
 - That teacher receives an invite email
 - Teacher accepts the invite and can see the class and its students
@@ -151,6 +146,7 @@
 
 ### 8.3 Pull to Refresh
 - Pull to refresh checks for new invites — newly linked children appear
+- click on refresh button (top right) of home, homework, and attendance pages to refresh data
 
 ---
 

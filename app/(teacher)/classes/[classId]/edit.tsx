@@ -121,13 +121,13 @@ export default function EditClassScreen() {
 
     // Check if it's the owner's email
     if (newAdminEmail.toLowerCase() === user?.email?.toLowerCase()) {
-      setError('You cannot add yourself as an admin');
+      setError('You cannot add yourself as a teacher');
       return;
     }
 
     // Check if admin already exists
     if (admins.some((a) => a.email.toLowerCase() === newAdminEmail.toLowerCase())) {
-      setError('This email is already an admin');
+      setError('This teacher already has access');
       return;
     }
 
@@ -153,8 +153,8 @@ export default function EditClassScreen() {
 
   const handleRemoveAdmin = (email: string) => {
     Alert.alert(
-      'Remove Admin',
-      `Are you sure you want to remove ${email} as an admin?`,
+      'Remove Teacher',
+      `Are you sure you want to remove ${email}'s access?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -274,7 +274,7 @@ export default function EditClassScreen() {
             <View style={styles.section}>
               <View style={styles.adminHeader}>
                 <Text variant="titleMedium" style={styles.sectionTitle}>
-                  Admins
+                  Teacher Access
                 </Text>
                 {isOwner && !showAddAdmin && (
                   <IconButton
@@ -287,7 +287,7 @@ export default function EditClassScreen() {
               </View>
 
               <Text variant="bodySmall" style={styles.adminNote}>
-                Admins can view and manage students, homework, and attendance for this class.
+                Invited teachers can view and manage students, homework, and attendance for this class.
               </Text>
 
               {showAddAdmin && (
@@ -295,8 +295,8 @@ export default function EditClassScreen() {
                   <Input
                     control={control}
                     name="newAdminEmail"
-                    label="Admin Email"
-                    placeholder="admin@example.com"
+                    label="Teacher Email"
+                    placeholder="teacher@example.com"
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoComplete="email"
@@ -309,7 +309,7 @@ export default function EditClassScreen() {
                       disabled={!newAdminEmail}
                       style={styles.addButton}
                     >
-                      Add Admin
+                      Add Teacher
                     </Button>
                     <Button
                       mode="text"
@@ -326,7 +326,7 @@ export default function EditClassScreen() {
 
               {admins.length === 0 ? (
                 <Text variant="bodyMedium" style={styles.noAdmins}>
-                  No admins added yet
+                  No other teachers added yet
                 </Text>
               ) : (
                 admins.map((admin, index) => (

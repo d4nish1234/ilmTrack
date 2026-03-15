@@ -41,7 +41,7 @@ export default function CreateClassScreen() {
         name: data.name,
         description: data.description,
       });
-      router.back();
+      router.dismiss();
     } catch (err: any) {
       console.error('Error creating class:', err);
       setError('Failed to create class. Please try again.');
@@ -74,7 +74,7 @@ export default function CreateClassScreen() {
             numberOfLines={3}
           />
 
-          <Button onPress={handleSubmit(onSubmit)} loading={loading}>
+          <Button onPress={handleSubmit(onSubmit)} loading={loading} disabled={loading}>
             Create Class
           </Button>
 

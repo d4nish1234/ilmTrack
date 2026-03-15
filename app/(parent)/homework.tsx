@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { StyleSheet, View, FlatList, RefreshControl, ScrollView } from 'react-native';
 import { Text, Card, Chip, IconButton, Button } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useChildFilter } from '../../src/contexts/ChildFilterContext';
 import { LoadingSpinner } from '../../src/components/common';
@@ -107,13 +108,13 @@ export default function ParentHomeworkScreen() {
 
     const studentDocs = await Promise.all(
       user.studentIds!.map((id) =>
-        getDoc(doc(firestore, 'students', id))
+        getDoc(doc(firestore, 'students', id)).catch(() => null)
       )
     );
 
     return studentDocs
-      .filter((docSnap) => docSnap.exists())
-      .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })) as Student[];
+      .filter((docSnap) => docSnap?.exists())
+      .map((docSnap) => ({ id: docSnap!.id, ...docSnap!.data() })) as Student[];
   }, [user?.studentIds]);
 
   const fetchHomework = useCallback(async (isLoadMore = false) => {
@@ -161,6 +162,21 @@ export default function ParentHomeworkScreen() {
       setRefreshing(false);
     }
   }, [fetchStudents, checkForNewInvites, fetchHomework]);
+
+  const navigation = useNavigation();
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <IconButton
+          icon="refresh"
+          iconColor="#fff"
+          size={24}
+          onPress={onRefresh}
+          disabled={refreshing}
+        />
+      ),
+    });
+  }, [navigation, onRefresh, refreshing]);
 
   useEffect(() => {
     if (!user?.studentIds?.length) {
@@ -277,15 +293,11 @@ export default function ParentHomeworkScreen() {
     return <LoadingSpinner message="Loading homework..." />;
   }
 
-  if (!user?.studentIds?.length) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Text variant="bodyMedium" style={styles.emptyText}>
-          No students linked to your account yet.
-        </Text>
-      </View>
-    );
-  }
+  const emptyMessage = !user?.studentIds?.length
+    ? 'No students linked to your account yet.'
+    : selectedChildId
+      ? 'No homework for this child yet.'
+      : 'No homework assigned yet.';
 
   return (
     <View style={styles.container}>
@@ -314,36 +326,35 @@ export default function ParentHomeworkScreen() {
           </ScrollView>
         </View>
       )}
-      {filteredHomework.length > 0 ? (
-        <FlatList
-          data={filteredHomework}
-          renderItem={renderHomework}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          ListFooterComponent={
-            hasMore ? (
-              <Button
-                mode="outlined"
-                onPress={handleLoadMore}
-                loading={loadingMore}
-                disabled={loadingMore}
-                style={styles.loadMoreButton}
-              >
-                Load More
-              </Button>
-            ) : null
-          }
-        />
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Text variant="bodyMedium" style={styles.emptyText}>
-            {selectedChildId ? 'No homework for this child yet.' : 'No homework assigned yet.'}
-          </Text>
-        </View>
-      )}
+      <FlatList
+        data={filteredHomework}
+        renderItem={renderHomework}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={filteredHomework.length > 0 ? styles.listContent : styles.emptyListContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text variant="bodyMedium" style={styles.emptyText}>
+              {emptyMessage}
+            </Text>
+          </View>
+        }
+        ListFooterComponent={
+          hasMore ? (
+            <Button
+              mode="outlined"
+              onPress={handleLoadMore}
+              loading={loadingMore}
+              disabled={loadingMore}
+              style={styles.loadMoreButton}
+            >
+              Load More
+            </Button>
+          ) : null
+        }
+      />
     </View>
   );
 }
@@ -367,6 +378,10 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   listContent: {
+    padding: 16,
+  },
+  emptyListContent: {
+    flexGrow: 1,
     padding: 16,
   },
   card: {

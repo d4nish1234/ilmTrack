@@ -180,9 +180,10 @@ export async function addAdmin(
   if (!userSnapshot.empty) {
     // User exists - auto-accept the invite
     const existingUser = userSnapshot.docs[0];
+    const teacherUserId = existingUser.id;
     newAdmin = {
       email: normalizedEmail,
-      userId: existingUser.id,
+      userId: teacherUserId,
       inviteStatus: 'accepted',
       inviteSentAt: now,
       acceptedAt: now,
@@ -192,6 +193,43 @@ export async function addAdmin(
     await updateDoc(existingUser.ref, {
       adminClassIds: arrayUnion(classId),
     });
+
+    // Backfill invitedTeacherIds on all student/homework/attendance docs in this class
+    // (Cloud Function won't fire since adminInvite is created as 'accepted')
+    const classOwnerId = classDoc.teacherId;
+    const batch = writeBatch(firestore);
+
+    const studentsQuery = query(
+      collection(firestore, 'students'),
+      where('classId', '==', classId),
+      where('teacherId', '==', classOwnerId)
+    );
+    const studentsSnap = await getDocs(studentsQuery);
+    studentsSnap.docs.forEach((d) => {
+      batch.update(d.ref, { invitedTeacherIds: arrayUnion(teacherUserId) });
+    });
+
+    const homeworkQuery = query(
+      collection(firestore, 'homework'),
+      where('classId', '==', classId),
+      where('teacherId', '==', classOwnerId)
+    );
+    const homeworkSnap = await getDocs(homeworkQuery);
+    homeworkSnap.docs.forEach((d) => {
+      batch.update(d.ref, { invitedTeacherIds: arrayUnion(teacherUserId) });
+    });
+
+    const attendanceQuery = query(
+      collection(firestore, 'attendance'),
+      where('classId', '==', classId),
+      where('teacherId', '==', classOwnerId)
+    );
+    const attendanceSnap = await getDocs(attendanceQuery);
+    attendanceSnap.docs.forEach((d) => {
+      batch.update(d.ref, { invitedTeacherIds: arrayUnion(teacherUserId) });
+    });
+
+    await batch.commit();
   } else {
     // User doesn't exist - create pending invite
     newAdmin = {

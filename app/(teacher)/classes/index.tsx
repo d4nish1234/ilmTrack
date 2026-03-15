@@ -51,11 +51,19 @@ export default function ClassesScreen() {
 
     setLoading(true);
     const studentsRef = collection(firestore, 'students');
-    const q = query(
-      studentsRef,
-      where('classId', '==', selectedClassId),
-      where('teacherId', '==', user?.uid)
-    );
+    const selectedClass = classes.find((c) => c.id === selectedClassId);
+    const isOwner = selectedClass?.teacherId === user?.uid;
+    const q = isOwner
+      ? query(
+          studentsRef,
+          where('classId', '==', selectedClassId),
+          where('teacherId', '==', user?.uid)
+        )
+      : query(
+          studentsRef,
+          where('classId', '==', selectedClassId),
+          where('invitedTeacherIds', 'array-contains', user?.uid)
+        );
 
     const unsubscribe = onSnapshot(
       q,
@@ -74,7 +82,7 @@ export default function ClassesScreen() {
     );
 
     return unsubscribe;
-  }, [selectedClassId, user?.uid]);
+  }, [selectedClassId, user?.uid, classes]);
 
   // Filter students based on search query
   useEffect(() => {

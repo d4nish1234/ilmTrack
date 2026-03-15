@@ -27,7 +27,7 @@ import {
   getStudentAttendanceForDate,
   updateAttendance,
 } from '../../../../../../../src/services/attendance.service';
-import { getStudent } from '../../../../../../../src/services/student.service';
+import { getStudent, getInvitedTeacherIds } from '../../../../../../../src/services/student.service';
 import { Button, Input } from '../../../../../../../src/components/common';
 import { AttendanceStatus, Student } from '../../../../../../../src/types';
 import {
@@ -118,11 +118,12 @@ export default function AddAttendanceScreen() {
         return;
       }
 
+      const freshTeacherIds = await getInvitedTeacherIds(classId);
       await createAttendance(studentId, classId, user.uid, {
         date,
         status,
         notes: data.notes,
-      }, student?.parentUserIds || [], student?.invitedTeacherIds || []);
+      }, student?.parentUserIds || [], freshTeacherIds);
       router.back();
     } catch (err) {
       console.error('Error creating attendance:', err);

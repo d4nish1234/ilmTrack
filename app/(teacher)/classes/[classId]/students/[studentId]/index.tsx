@@ -3,8 +3,8 @@ import { StyleSheet, View, ScrollView, useWindowDimensions } from 'react-native'
 import { Text, Card, Chip, IconButton, Menu, Portal } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { subscribeToStudent, getUserById } from '../../../../../../src/services/student.service';
-import { subscribeToHomework } from '../../../../../../src/services/homework.service';
-import { subscribeToAttendance } from '../../../../../../src/services/attendance.service';
+import { subscribeToHomeworkAsTeacher } from '../../../../../../src/services/homework.service';
+import { subscribeToAttendanceAsTeacher } from '../../../../../../src/services/attendance.service';
 import { useAuth } from '../../../../../../src/contexts/AuthContext';
 import { LoadingSpinner, Button } from '../../../../../../src/components/common';
 import { Student, Homework, Attendance, Parent } from '../../../../../../src/types';
@@ -79,14 +79,14 @@ export default function StudentDetailScreen() {
       }
     );
 
-    const unsubHomework = subscribeToHomework(
+    const unsubHomework = subscribeToHomeworkAsTeacher(
       studentId,
       user!.uid,
       (data) => setRecentHomework(data.slice(0, 3)),
       console.error
     );
 
-    const unsubAttendance = subscribeToAttendance(
+    const unsubAttendance = subscribeToAttendanceAsTeacher(
       studentId,
       user!.uid,
       (data) => setRecentAttendance(data.slice(0, 5)),

@@ -29,14 +29,19 @@ export function getParentUserIds(parents: Parent[]): string[] {
 }
 
 /**
- * Get accepted invited teacher userIds for a class.
+ * Get all teacher userIds who should have access to docs in this class.
+ * Includes the class owner AND all accepted invited teachers.
  */
 export async function getInvitedTeacherIds(classId: string): Promise<string[]> {
   const classDoc = await getClass(classId);
   if (!classDoc) return [];
-  return (classDoc.admins || [])
-    .filter((a) => a.userId && a.inviteStatus === 'accepted')
-    .map((a) => a.userId!);
+  const teacherIds: string[] = [classDoc.teacherId];
+  for (const a of classDoc.admins || []) {
+    if (a.userId && a.inviteStatus === 'accepted') {
+      teacherIds.push(a.userId);
+    }
+  }
+  return teacherIds;
 }
 
 export async function createStudent(
@@ -65,19 +70,27 @@ export async function createStudent(
     updatedAt: serverTimestamp(),
   });
 
-  // Increment student count in class
-  await incrementStudentCount(classId);
+  // Increment student count in class (non-blocking — don't fail the whole operation)
+  try {
+    await incrementStudentCount(classId);
+  } catch (err) {
+    console.error('Failed to increment student count:', err);
+  }
 
   // Create invite documents for each parent (triggers Cloud Function)
   const invitesRef = collection(firestore, 'invites');
   for (const parent of parents) {
-    await addDoc(invitesRef, {
-      email: parent.email,
-      studentId: docRef.id,
-      teacherId,
-      status: 'pending',
-      createdAt: serverTimestamp(),
-    });
+    try {
+      await addDoc(invitesRef, {
+        email: parent.email,
+        studentId: docRef.id,
+        teacherId,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.error(`Failed to create invite for ${parent.email}:`, err);
+    }
   }
 
   return docRef.id;
@@ -106,6 +119,32 @@ export function subscribeToStudents(
     studentsRef,
     where('classId', '==', classId),
     where('teacherId', '==', teacherId)
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const students = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() } as Student))
+        .sort((a, b) => a.lastName.localeCompare(b.lastName));
+      onUpdate(students);
+    },
+    (error) => {
+      onError(error);
+    }
+  );
+}
+
+export function subscribeToStudentsAsAdmin(
+  classId: string,
+  adminUid: string,
+  onUpdate: (students: Student[]) => void,
+  onError: (error: Error) => void
+): () => void {
+  const q = query(
+    studentsRef,
+    where('classId', '==', classId),
+    where('invitedTeacherIds', 'array-contains', adminUid)
   );
 
   return onSnapshot(
@@ -317,28 +356,36 @@ export async function linkExistingStudentToClass(
 
   const newStudentId = docRef.id;
 
-  // Increment student count in the new class
-  await incrementStudentCount(newClassId);
+  // Increment student count in the new class (non-blocking)
+  try {
+    await incrementStudentCount(newClassId);
+  } catch (err) {
+    console.error('Failed to increment student count:', err);
+  }
 
   // Handle parents: link already-signed-up parents directly, create invites for others
   const invitesRef = collection(firestore, 'invites');
 
   for (const parent of existingStudent.parents || []) {
-    if (parent.userId && parent.inviteStatus === 'accepted') {
-      // Parent already signed up - directly add new studentId to their profile
-      const userRef = doc(firestore, 'users', parent.userId);
-      await updateDoc(userRef, {
-        studentIds: arrayUnion(newStudentId),
-      });
-    } else {
-      // Parent hasn't signed up yet - create an invite for the new student record
-      await addDoc(invitesRef, {
-        email: parent.email,
-        studentId: newStudentId,
-        teacherId: existingStudent.teacherId,
-        status: 'pending',
-        createdAt: serverTimestamp(),
-      });
+    try {
+      if (parent.userId && parent.inviteStatus === 'accepted') {
+        // Parent already signed up - directly add new studentId to their profile
+        const userRef = doc(firestore, 'users', parent.userId);
+        await updateDoc(userRef, {
+          studentIds: arrayUnion(newStudentId),
+        });
+      } else {
+        // Parent hasn't signed up yet - create an invite for the new student record
+        await addDoc(invitesRef, {
+          email: parent.email,
+          studentId: newStudentId,
+          teacherId: existingStudent.teacherId,
+          status: 'pending',
+          createdAt: serverTimestamp(),
+        });
+      }
+    } catch (err) {
+      console.error(`Failed to process parent ${parent.email}:`, err);
     }
   }
 

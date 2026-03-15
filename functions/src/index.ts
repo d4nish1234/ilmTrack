@@ -205,6 +205,54 @@ export const sendParentInviteEmail = onDocumentCreated(
   }
 );
 
+// Send a teacher invite email when an admin invite document is created
+export const sendTeacherInviteEmail = onDocumentCreated(
+  'adminInvites/{inviteId}',
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const invite = snap.data();
+    const email = invite.email as string;
+    const classId = invite.classId as string;
+
+    if (!email || !classId) return;
+
+    try {
+      // Fetch class name and owner
+      const classDoc = await db.collection('classes').doc(classId).get();
+      const className = classDoc.exists ? classDoc.data()!.name : 'a class';
+      const teacherId = classDoc.exists ? classDoc.data()!.teacherId : null;
+
+      let ownerName = 'A teacher';
+      if (teacherId) {
+        const ownerDoc = await db.collection('users').doc(teacherId).get();
+        if (ownerDoc.exists) {
+          ownerName = `${ownerDoc.data()!.firstName} ${ownerDoc.data()!.lastName}`;
+        }
+      }
+
+      await sendEmail({
+        to: email,
+        subject: `You've been invited to co-teach "${className}" on IlmTrack`,
+        html: `
+          <p>Assalamu Alaikum,</p>
+          <p>${ownerName} has invited you to co-teach <strong>${className}</strong> on IlmTrack.</p>
+          <p>As a co-teacher, you'll be able to view students, assign homework, and mark attendance for this class.</p>
+          <p>To get started, download the IlmTrack app and sign up with this email address (<strong>${email}</strong>).</p>
+          <p>Once you sign in, the class will appear automatically.</p>
+          <br/>
+          <p>JazakAllah Khair,<br/>The IlmTrack Team</p>
+        `,
+      });
+
+      console.log(`Teacher invite email sent to ${email} for class ${classId}`);
+    } catch (error) {
+      console.error('Error in sendTeacherInviteEmail:', error);
+    }
+  }
+);
+
 interface NewUserData {
   role: string;
   firstName: string;

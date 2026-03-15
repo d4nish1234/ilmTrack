@@ -3,7 +3,7 @@ import { StyleSheet, View, FlatList, TouchableOpacity } from 'react-native';
 import { Text, Card, FAB, IconButton, Menu } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { getClass } from '../../../../src/services/class.service';
-import { subscribeToStudents } from '../../../../src/services/student.service';
+import { subscribeToStudents, subscribeToStudentsAsAdmin } from '../../../../src/services/student.service';
 import { LoadingSpinner } from '../../../../src/components/common';
 import { useAuth } from '../../../../src/contexts/AuthContext';
 import { Class, Student } from '../../../../src/types';
@@ -37,29 +37,42 @@ export default function ClassDetailScreen() {
   }, []);
 
   useEffect(() => {
-    if (!classId) return;
+    if (!classId || !user?.uid) return;
 
-    // Fetch class details
+    // Fetch class details, then subscribe to students with the right query
     getClass(classId).then((data) => {
       setClassData(data);
     });
 
-    // Subscribe to students
-    const unsubscribe = subscribeToStudents(
-      classId,
-      user?.uid ?? '',
-      (studentList) => {
-        setStudents(studentList);
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Error fetching students:', error);
-        setLoading(false);
-      }
-    );
+    // Determine if user is class owner or invited teacher
+    // We need the class data to decide, so fetch it first
+    let unsubscribe: (() => void) | undefined;
 
-    return unsubscribe;
-  }, [classId]);
+    getClass(classId).then((data) => {
+      if (!data) {
+        setLoading(false);
+        return;
+      }
+
+      const isOwner = data.teacherId === user.uid;
+      const subscribeFn = isOwner ? subscribeToStudents : subscribeToStudentsAsAdmin;
+
+      unsubscribe = subscribeFn(
+        classId,
+        user.uid,
+        (studentList) => {
+          setStudents(studentList);
+          setLoading(false);
+        },
+        (error) => {
+          console.error('Error fetching students:', error);
+          setLoading(false);
+        }
+      );
+    });
+
+    return () => unsubscribe?.();
+  }, [classId, user?.uid]);
 
   const handleStudentPress = (student: Student) => {
     router.push(`/(teacher)/classes/${classId}/students/${student.id}`);
