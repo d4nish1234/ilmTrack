@@ -22,15 +22,7 @@ export default function TeacherLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Home',
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="home" size={size} color={color} />
-            ),
-          }}
-          listeners={{
-            tabPress: () => {
-              router.navigate('/(teacher)');
-            },
+            href: null, // Hide from tab bar
           }}
         />
         <Tabs.Screen
@@ -48,7 +40,6 @@ export default function TeacherLayout() {
           }}
           listeners={{
             tabPress: (e) => {
-              // Navigate to classes index to reset the stack
               router.navigate('/(teacher)/classes');
             },
           }}
