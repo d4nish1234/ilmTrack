@@ -173,7 +173,7 @@ export default function ParentAttendanceScreen() {
     return () => {
       isMounted = false;
     };
-  }, [user?.studentIds, fetchStudents]);
+  }, [user?.studentIds, user?.uid, fetchStudents]);
 
   const handleLoadMore = useCallback(() => {
     if (!loadingMore && hasMore) {

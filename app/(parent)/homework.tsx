@@ -7,8 +7,7 @@ import { useChildFilter } from '../../src/contexts/ChildFilterContext';
 import { LoadingSpinner } from '../../src/components/common';
 import { Student, Homework, HomeworkEvaluation, EVALUATION_LABELS } from '../../src/types';
 import { firestore } from '../../src/config/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { doc, getDoc, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { getHomeworkPaginatedForParent } from '../../src/services/homework.service';
 import { format } from 'date-fns';
 
@@ -216,7 +215,7 @@ export default function ParentHomeworkScreen() {
     return () => {
       isMounted = false;
     };
-  }, [user?.studentIds, fetchStudents]);
+  }, [user?.studentIds, user?.uid, fetchStudents]);
 
   const handleLoadMore = useCallback(() => {
     if (!loadingMore && hasMore) {

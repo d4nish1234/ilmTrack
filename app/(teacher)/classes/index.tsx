@@ -97,6 +97,21 @@ export default function ClassesScreen() {
     setMenuVisible(false);
   }, []);
 
+  // Fetch today's attendance for all students
+  const fetchTodayAttendance = useCallback(async (studentList: Student[]) => {
+    const today = new Date();
+    const attendanceMap: TodayAttendance = {};
+
+    await Promise.all(
+      studentList.map(async (student) => {
+        const attendance = await getStudentAttendanceForDate(student.id, user!.uid, today);
+        attendanceMap[student.id] = attendance?.status || null;
+      })
+    );
+
+    setTodayAttendance(attendanceMap);
+  }, [user]);
+
   // Fetch students when class changes
   useEffect(() => {
     if (!selectedClassId || !user?.uid) {
@@ -142,22 +157,7 @@ export default function ClassesScreen() {
     );
 
     return unsubscribe;
-  }, [selectedClassId, user?.uid, classes]);
-
-  // Fetch today's attendance for all students
-  const fetchTodayAttendance = async (studentList: Student[]) => {
-    const today = new Date();
-    const attendanceMap: TodayAttendance = {};
-
-    await Promise.all(
-      studentList.map(async (student) => {
-        const attendance = await getStudentAttendanceForDate(student.id, user!.uid, today);
-        attendanceMap[student.id] = attendance?.status || null;
-      })
-    );
-
-    setTodayAttendance(attendanceMap);
-  };
+  }, [selectedClassId, user?.uid, classes, fetchTodayAttendance]);
 
   // Filter students based on search query
   useEffect(() => {

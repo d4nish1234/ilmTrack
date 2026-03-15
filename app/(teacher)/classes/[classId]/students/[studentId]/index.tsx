@@ -98,7 +98,7 @@ export default function StudentDetailScreen() {
       unsubHomework();
       unsubAttendance();
     };
-  }, [studentId]);
+  }, [studentId, user]);
 
   // Menu handlers - increment key on open to force fresh Menu state
   const MENU_DEBOUNCE_MS = 300;

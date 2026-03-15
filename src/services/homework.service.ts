@@ -11,7 +11,6 @@ import {
   onSnapshot,
   serverTimestamp,
   Timestamp,
-  limit,
   QueryDocumentSnapshot,
   DocumentData,
 } from 'firebase/firestore';

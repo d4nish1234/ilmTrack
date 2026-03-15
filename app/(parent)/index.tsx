@@ -131,7 +131,7 @@ export default function ParentHomeScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.studentIds]);
+  }, [user?.studentIds, user?.uid]);
 
   useEffect(() => {
     fetchData();

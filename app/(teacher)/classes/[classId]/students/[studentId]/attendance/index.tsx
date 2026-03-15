@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, FlatList } from 'react-native';
 import { Text, Card, Chip, FAB, Menu, IconButton, Divider, Button } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
-import { getAttendancePaginatedAsTeacher, updateAttendance, deleteAttendance, PaginatedResult } from '../../../../../../../src/services/attendance.service';
+import { getAttendancePaginatedAsTeacher, updateAttendance, deleteAttendance } from '../../../../../../../src/services/attendance.service';
 import { useAuth } from '../../../../../../../src/contexts/AuthContext';
 import { LoadingSpinner } from '../../../../../../../src/components/common';
 import { Attendance, AttendanceStatus } from '../../../../../../../src/types';
@@ -74,11 +74,11 @@ export default function AttendanceListScreen() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [studentId, lastDoc]);
+  }, [studentId, lastDoc, user]);
 
   useEffect(() => {
     fetchAttendance(false);
-  }, [studentId]);
+  }, [studentId, fetchAttendance]);
 
   const handleLoadMore = () => {
     if (!loadingMore && hasMore) {
