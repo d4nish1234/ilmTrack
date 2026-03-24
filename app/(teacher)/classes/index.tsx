@@ -52,7 +52,7 @@ interface TodayAttendance {
 export default function ClassesScreen() {
   const { user } = useAuth();
   const { classes, loading: classesLoading } = useClasses();
-  const { selectedClassId } = useSelectedClass();
+  const { selectedClassId, clearSelection } = useSelectedClass();
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -111,6 +111,13 @@ export default function ClassesScreen() {
 
     setTodayAttendance(attendanceMap);
   }, [user]);
+
+  // Clear selected class if it was deleted
+  useEffect(() => {
+    if (!classesLoading && selectedClassId && !classes.find((c) => c.id === selectedClassId)) {
+      clearSelection();
+    }
+  }, [classes, classesLoading, selectedClassId, clearSelection]);
 
   // Fetch students when class changes
   useEffect(() => {
