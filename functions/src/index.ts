@@ -1,4 +1,5 @@
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { initializeApp } from 'firebase-admin/app';
 import { Expo, ExpoPushMessage } from 'expo-server-sdk';
@@ -545,3 +546,92 @@ export const onTeacherRemoved = onDocumentUpdated(
     }
   }
 );
+
+/**
+ * HTTPS callable: accept all pending parent invites for the calling user's email.
+ * Called directly from the client so linking is synchronous and doesn't depend
+ * on the Firestore trigger firing.
+ *
+ * Returns the list of studentIds that were newly linked.
+ */
+export const acceptParentInvites = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Must be signed in');
+  }
+
+  const parentUserId = request.auth.uid;
+  const email = (request.data?.email as string | undefined)?.toLowerCase().trim();
+
+  if (!email) {
+    throw new HttpsError('invalid-argument', 'email is required');
+  }
+
+  const invitesSnapshot = await db.collection('invites')
+    .where('email', '==', email)
+    .get();
+
+  if (invitesSnapshot.empty) {
+    return { studentIds: [] };
+  }
+
+  const newStudentIds: string[] = [];
+
+  for (const inviteDoc of invitesSnapshot.docs) {
+    const invite = inviteDoc.data();
+    const studentId = invite.studentId as string;
+    if (!studentId) continue;
+
+    const studentRef = db.collection('students').doc(studentId);
+    const studentDoc = await studentRef.get();
+    if (!studentDoc.exists) continue;
+
+    const studentData = studentDoc.data()!;
+    const currentParentUserIds: string[] = studentData.parentUserIds || [];
+
+    // Already fully linked — skip
+    if (currentParentUserIds.includes(parentUserId)) continue;
+
+    newStudentIds.push(studentId);
+
+    // Mark invite accepted
+    if (invite.status === 'pending') {
+      await inviteDoc.ref.update({
+        status: 'accepted',
+        acceptedAt: FieldValue.serverTimestamp(),
+        parentId: parentUserId,
+      });
+    }
+
+    // Update student doc: set parent inviteStatus + userId, add to parentUserIds
+    const parents = (studentData.parents || []) as Parent[];
+    const updatedParents = parents.map((p) =>
+      p.email.toLowerCase() === email
+        ? { ...p, inviteStatus: 'accepted', userId: parentUserId }
+        : p
+    );
+
+    await studentRef.update({
+      parents: updatedParents,
+      parentUserIds: FieldValue.arrayUnion(parentUserId),
+    });
+
+    // Backfill parentUserIds on homework + attendance docs
+    const [homeworkSnap, attendanceSnap] = await Promise.all([
+      db.collection('homework').where('studentId', '==', studentId).get(),
+      db.collection('attendance').where('studentId', '==', studentId).get(),
+    ]);
+
+    const batch = db.batch();
+    homeworkSnap.docs.forEach((d) =>
+      batch.update(d.ref, { parentUserIds: FieldValue.arrayUnion(parentUserId) })
+    );
+    attendanceSnap.docs.forEach((d) =>
+      batch.update(d.ref, { parentUserIds: FieldValue.arrayUnion(parentUserId) })
+    );
+    await batch.commit();
+
+    console.log(`Linked parent ${parentUserId} to student ${studentId}, backfilled ${homeworkSnap.size} homework and ${attendanceSnap.size} attendance docs`);
+  }
+
+  return { studentIds: newStudentIds };
+});

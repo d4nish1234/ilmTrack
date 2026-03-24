@@ -27,7 +27,8 @@ import {
   serverTimestamp,
   arrayUnion,
 } from 'firebase/firestore';
-import { auth, firestore } from '../config/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { auth, firestore, functions } from '../config/firebase';
 import { User, UserRole } from '../types';
 import {
   registerForPushNotifications,
@@ -60,61 +61,32 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Check for invites and link parent to students
-// Handles both pending invites AND already-accepted invites that weren't fully processed
+// Check for invites and link parent to students via HTTPS callable (uses Admin SDK,
+// so it can update student/homework/attendance docs regardless of security rules).
 async function acceptPendingInvites(
   userId: string,
   email: string,
   existingStudentIds: string[] = []
 ): Promise<string[]> {
-  const invitesRef = collection(firestore, 'invites');
-
-  // Query ALL invites for this email (not just pending)
-  const q = query(
-    invitesRef,
-    where('email', '==', email.toLowerCase())
+  const acceptInvites = httpsCallable<{ email: string }, { studentIds: string[] }>(
+    functions,
+    'acceptParentInvites'
   );
 
-  const snapshot = await getDocs(q);
-  if (snapshot.empty) {
-    return [];
-  }
-
-  const studentIds: string[] = [];
-
-  // Process each invite
-  for (const inviteDoc of snapshot.docs) {
-    const invite = inviteDoc.data();
-    const studentId = invite.studentId;
-
-    // Skip if parent already has this student linked
-    if (existingStudentIds.includes(studentId)) {
-      continue;
-    }
-
-    studentIds.push(studentId);
-
-    // Update invite status to accepted (if not already)
-    // The Cloud Function (onInviteAccepted) will handle updating the student doc
-    // (parent inviteStatus, userId, parentUserIds) and backfilling homework/attendance docs
-    if (invite.status === 'pending') {
-      await updateDoc(inviteDoc.ref, {
-        status: 'accepted',
-        acceptedAt: serverTimestamp(),
-        parentId: userId,
-      });
-    }
-  }
+  const result = await acceptInvites({ email: email.toLowerCase() });
+  const newStudentIds = result.data.studentIds.filter(
+    (id) => !existingStudentIds.includes(id)
+  );
 
   // Add studentIds to user profile
-  if (studentIds.length > 0) {
+  if (newStudentIds.length > 0) {
     const userRef = doc(firestore, 'users', userId);
     await updateDoc(userRef, {
-      studentIds: arrayUnion(...studentIds),
+      studentIds: arrayUnion(...newStudentIds),
     });
   }
 
-  return studentIds;
+  return newStudentIds;
 }
 
 // Check for admin invites and link teacher to classes they administer
