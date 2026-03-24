@@ -177,12 +177,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const signingUp = React.useRef(false);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
 
       if (fbUser) {
+        // Skip Firestore operations during signup — signUp handles everything
+        if (signingUp.current) {
+          return;
+        }
+
         // Fetch user profile from Firestore
         try {
           const userDoc = await getDoc(doc(firestore, 'users', fbUser.uid));
@@ -267,32 +273,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       firstName: string,
       lastName: string
     ) => {
-      const { user: fbUser } = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      // Prevent onAuthStateChanged from racing with signup Firestore operations
+      signingUp.current = true;
 
-      // Create user document in Firestore
-      const userData = {
-        uid: fbUser.uid,
-        email: email.toLowerCase(),
-        firstName,
-        lastName,
-        role,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        ...(role === 'teacher' ? { classIds: [] } : { studentIds: [] }),
-      };
+      try {
+        const { user: fbUser } = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
 
-      await setDoc(doc(firestore, 'users', fbUser.uid), userData);
+        // Ensure the auth token is available for Firestore before proceeding
+        await fbUser.getIdToken();
 
-      // Send email verification
-      await sendEmailVerification(fbUser);
+        // Create user document in Firestore
+        const userData = {
+          uid: fbUser.uid,
+          email: email.toLowerCase(),
+          firstName,
+          lastName,
+          role,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          ...(role === 'teacher' ? { classIds: [] } : { studentIds: [] }),
+        };
 
-      // If parent, immediately check and accept any pending invites
-      if (role === 'parent') {
-        await acceptPendingInvites(fbUser.uid, email);
+        await setDoc(doc(firestore, 'users', fbUser.uid), userData);
+
+        // Send email verification
+        await sendEmailVerification(fbUser);
+
+        // If parent, immediately check and accept any pending invites
+        if (role === 'parent') {
+          await acceptPendingInvites(fbUser.uid, email);
+        }
+
+        // Set user state directly since we skipped onAuthStateChanged
+        const createdDoc = await getDoc(doc(firestore, 'users', fbUser.uid));
+        if (createdDoc.exists()) {
+          setUser({ uid: fbUser.uid, ...createdDoc.data() } as User);
+        }
+      } finally {
+        signingUp.current = false;
+        setLoading(false);
       }
     },
     []

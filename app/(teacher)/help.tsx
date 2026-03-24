@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, ScrollView, Linking } from 'react-native';
+import { StyleSheet, View, ScrollView, Linking, Alert } from 'react-native';
 import { Text, List, Divider, Card } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
@@ -40,8 +40,14 @@ const FAQ_ITEMS = [
 ];
 
 export default function TeacherHelpScreen() {
-  const handleEmailSupport = () => {
-    Linking.openURL('mailto:info@youngmomins.com?subject=IlmTrack Support Request');
+  const handleEmailSupport = async () => {
+    const url = 'mailto:info@youngmomins.com?subject=IlmTrack%20Support%20Request';
+    const canOpen = await Linking.canOpenURL(url);
+    if (canOpen) {
+      Linking.openURL(url);
+    } else {
+      Alert.alert('Contact Support', 'Email us at info@youngmomins.com');
+    }
   };
 
   return (

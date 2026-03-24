@@ -142,11 +142,13 @@ export default function HomeworkListScreen() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [studentId, lastDoc, user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentId, lastDoc]);
 
   useEffect(() => {
     fetchHomework(false);
-  }, [studentId, fetchHomework]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentId]);
 
   const handleLoadMore = () => {
     if (!loadingMore && hasMore) {

@@ -98,7 +98,8 @@ export default function StudentDetailScreen() {
       unsubHomework();
       unsubAttendance();
     };
-  }, [studentId, user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentId]);
 
   // Menu handlers - increment key on open to force fresh Menu state
   const MENU_DEBOUNCE_MS = 300;

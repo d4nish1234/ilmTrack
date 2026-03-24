@@ -611,7 +611,7 @@ export default function ClassesScreen() {
             Welcome, {user?.firstName}!
           </Text>
           <Text variant="bodyMedium" style={styles.emptyMessage}>
-            Create your first class to get started
+            Create your first class to get started, or if you are waiting to be invited to a class, please reach out to the other teacher.
           </Text>
           <FAB
             icon="plus"
@@ -620,7 +620,16 @@ export default function ClassesScreen() {
             onPress={() => router.push('/(teacher)/classes/create')}
           />
         </View>
-      ) : null}
+      ) : (
+        <View style={styles.emptyState}>
+          <Text variant="titleMedium" style={styles.emptyTitle}>
+            Select a class
+          </Text>
+          <Text variant="bodyMedium" style={styles.emptyMessage}>
+            Use the dropdown above to select a class
+          </Text>
+        </View>
+      )}
 
       {/* Homework Modal */}
       <Portal>
