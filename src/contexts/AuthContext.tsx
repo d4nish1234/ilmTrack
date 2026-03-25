@@ -339,8 +339,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const freshUser = auth.currentUser;
     if (freshUser) {
       setFirebaseUser(freshUser);
+
+      // onAuthStateChanged doesn't reliably re-fire after reload(), so stamp
+      // emailVerified here if it just became true, then notify admin via callable.
+      if (freshUser.emailVerified && user && !user.emailVerified) {
+        try {
+          await updateDoc(doc(firestore, 'users', freshUser.uid), {
+            emailVerified: true,
+          });
+          setUser((prev) => (prev ? { ...prev, emailVerified: true } : prev));
+
+        } catch (error) {
+          console.error('Error stamping emailVerified:', error);
+        }
+      }
     }
-  }, [firebaseUser]);
+  }, [firebaseUser, user]);
 
   const registerPushNotifications = useCallback(async () => {
     if (!firebaseUser) return;

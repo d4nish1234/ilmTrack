@@ -77,7 +77,7 @@ export async function createStudent(
     console.error('Failed to increment student count:', err);
   }
 
-  // Create invite documents for each parent (triggers Cloud Function)
+  // Create invite documents for each parent (triggers sendParentInviteEmail Cloud Function)
   const invitesRef = collection(firestore, 'invites');
   for (const parent of parents) {
     try {

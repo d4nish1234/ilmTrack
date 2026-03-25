@@ -131,7 +131,7 @@ export default function EditParentsScreen() {
       // Update the student document
       await updateStudent(studentId, { parents: updatedParents });
 
-      // Create invites for new parents
+      // Create invites for new parents (triggers sendParentInviteEmail Cloud Function)
       const invitesRef = collection(firestore, 'invites');
       for (const parent of newParents) {
         await addDoc(invitesRef, {

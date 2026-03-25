@@ -73,7 +73,7 @@ interface HomeworkData {
 
 // Trigger when homework is created (v2)
 export const notifyParentsOnHomework = onDocumentCreated(
-  'homework/{homeworkId}',
+  { document: 'homework/{homeworkId}', region: 'us-central1' },
   async (event) => {
     const snap = event.data;
     if (!snap) {
@@ -164,7 +164,7 @@ interface InviteData {
 
 // Send a parent invite email when an invite document is created
 export const sendParentInviteEmail = onDocumentCreated(
-  'invites/{inviteId}',
+  { document: 'invites/{inviteId}', region: 'us-central1' },
   async (event) => {
     const snap = event.data;
     if (!snap) return;
@@ -207,7 +207,7 @@ export const sendParentInviteEmail = onDocumentCreated(
 
 // Send a teacher invite email when an admin invite document is created
 export const sendTeacherInviteEmail = onDocumentCreated(
-  'adminInvites/{inviteId}',
+  { document: 'adminInvites/{inviteId}', region: 'us-central1' },
   async (event) => {
     const snap = event.data;
     if (!snap) return;
@@ -262,7 +262,7 @@ interface NewUserData {
 
 // Notify admin when a teacher verifies their email address
 export const notifyAdminOnTeacherSignup = onDocumentUpdated(
-  'users/{userId}',
+  { document: 'users/{userId}', region: 'us-central1' },
   async (event) => {
     const before = event.data?.before.data();
     const after = event.data?.after.data();
@@ -309,7 +309,7 @@ export const notifyAdminOnTeacherSignup = onDocumentUpdated(
  * 3. Backfill parentUserIds on all homework/attendance docs for that student
  */
 export const onInviteAccepted = onDocumentUpdated(
-  'invites/{inviteId}',
+  { document: 'invites/{inviteId}', region: 'us-central1' },
   async (event) => {
     const before = event.data?.before.data();
     const after = event.data?.after.data();
@@ -388,7 +388,7 @@ export const onInviteAccepted = onDocumentUpdated(
  * 2. Backfill invitedTeacherIds on all student/homework/attendance docs in that class
  */
 export const onTeacherInviteAccepted = onDocumentUpdated(
-  'adminInvites/{inviteId}',
+  { document: 'adminInvites/{inviteId}', region: 'us-central1' },
   async (event) => {
     const before = event.data?.before.data();
     const after = event.data?.after.data();
@@ -474,7 +474,7 @@ export const onTeacherInviteAccepted = onDocumentUpdated(
  * Remove their userId from invitedTeacherIds on all student/homework/attendance docs in that class
  */
 export const onTeacherRemoved = onDocumentUpdated(
-  'classes/{classId}',
+  { document: 'classes/{classId}', region: 'us-central1' },
   async (event) => {
     const before = event.data?.before.data();
     const after = event.data?.after.data();
@@ -635,3 +635,4 @@ export const acceptParentInvites = onCall(async (request) => {
 
   return { studentIds: newStudentIds };
 });
+
