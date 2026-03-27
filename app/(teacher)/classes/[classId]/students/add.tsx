@@ -92,6 +92,7 @@ export default function AddStudentScreen() {
   const [step, setStep] = useState<Step>('email');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [parentEmail, setParentEmail] = useState('');
   const [allMatchingStudents, setAllMatchingStudents] = useState<Student[]>([]);
   const [uniqueStudents, setUniqueStudents] = useState<Student[]>([]);
@@ -218,7 +219,9 @@ export default function AddStudentScreen() {
         lastName: data.lastName,
         parents: data.parents as any,
       });
-      router.back();
+      const parentNames = (data.parents || []).map((p) => p.firstName).join(' & ');
+      setSuccess(`Student added! Invite sent to ${parentNames}`);
+      setTimeout(() => router.back(), 2000);
     } catch (err: any) {
       console.error('Error creating student:', err);
       setError('Failed to add student. Please try again.');
@@ -587,6 +590,13 @@ export default function AddStudentScreen() {
           duration={4000}
         >
           {error}
+        </Snackbar>
+        <Snackbar
+          visible={!!success}
+          onDismiss={() => setSuccess(null)}
+          duration={2000}
+        >
+          {success}
         </Snackbar>
       </Portal>
     </SafeAreaView>

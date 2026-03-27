@@ -71,7 +71,10 @@ export function useClasses() {
       unsubscribeAdmin = subscribeToClassesByIds(
         adminClassIds,
         (updatedClasses) => {
-          adminClassesRef.current = updatedClasses;
+          // Filter to only classes where this user is still an active admin
+          adminClassesRef.current = updatedClasses.filter((c) =>
+            c.admins?.some((a) => a.userId === user.uid)
+          );
           adminLoaded = true;
           if (ownedLoaded && adminLoaded) {
             setLoading(false);

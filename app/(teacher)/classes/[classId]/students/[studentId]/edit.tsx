@@ -103,7 +103,9 @@ export default function EditStudentScreen() {
             setDeleting(true);
             try {
               await deleteStudent(studentId, classId, user!.uid);
-              // Navigate back to class detail
+              // Dismiss all stacked screens (student detail, etc.) to avoid
+              // stale listeners on the deleted doc, then go to class detail
+              router.dismissAll();
               router.replace(`/(teacher)/classes/${classId}`);
             } catch (error) {
               console.error('Error deleting student:', error);

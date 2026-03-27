@@ -50,6 +50,7 @@ export default function EditParentsScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const { control, handleSubmit, reset } = useForm<FormData>({
     resolver: yupResolver(schema),
@@ -143,7 +144,21 @@ export default function EditParentsScreen() {
         });
       }
 
-      router.back();
+      // Show success message then navigate back
+      const messages: string[] = [];
+      if (newParents.length > 0) {
+        const names = newParents.map((p) => p.firstName).join(' & ');
+        messages.push(`Invite sent to ${names}`);
+      }
+      if (removedParents.length > 0) {
+        messages.push(`${removedParents.length} parent${removedParents.length > 1 ? 's' : ''} removed`);
+      }
+      if (messages.length > 0) {
+        setSuccess(messages.join('. '));
+        setTimeout(() => router.back(), 2000);
+      } else {
+        router.back();
+      }
     } catch (err: any) {
       console.error('Error updating parents:', err);
       setError('Failed to update parents. Please try again.');
@@ -329,6 +344,13 @@ export default function EditParentsScreen() {
             duration={4000}
           >
             {error}
+          </Snackbar>
+          <Snackbar
+            visible={!!success}
+            onDismiss={() => setSuccess(null)}
+            duration={2000}
+          >
+            {success}
           </Snackbar>
         </Portal>
       </SafeAreaView>
