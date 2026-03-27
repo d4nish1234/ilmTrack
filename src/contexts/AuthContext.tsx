@@ -280,6 +280,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await acceptPendingInvites(fbUser.uid, email);
         }
 
+        // If teacher, immediately check and accept any pending admin invites
+        if (role === 'teacher') {
+          await acceptPendingAdminInvites(fbUser.uid, email);
+        }
+
         // Set user state directly since we skipped onAuthStateChanged
         const createdDoc = await getDoc(doc(firestore, 'users', fbUser.uid));
         if (createdDoc.exists()) {

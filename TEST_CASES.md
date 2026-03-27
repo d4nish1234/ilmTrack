@@ -14,8 +14,8 @@
 - Confirm redirected to teacher home after login
 
 ### 1.2 Create Class
-- Create a new class — appears in class list
 - Attempt to create with empty name — validation error shown
+- Create a new class — appears in class list
 
 ### 1.3 Edit Class
 - Rename a class — change saved and reflected in list
@@ -40,7 +40,7 @@
 ### 2.1 Invite Another Teacher to Class
 - Add another teacher's email to the class admin list
 - That teacher receives an invite email
-- Teacher accepts the invite and can see the class and its students
+[TODO]- Teacher accepts the invite and can see the class and its students
 - Remove that teacher from class — they lose access to the class data
 
 ---

@@ -192,6 +192,10 @@ export const sendParentInviteEmail = onDocumentCreated(
           <p>${teacherName} has added you as a parent/guardian for <strong>${studentName}</strong> on IlmTrack.</p>
           <p>IlmTrack lets you view your child's homework assignments and attendance records.</p>
           <p>To get started, download the IlmTrack app and sign up with this email address (<strong>${invite.email}</strong>).</p>
+          <p>
+            <a href="https://apps.apple.com/us/app/ilmtrack/id6758573901">Download for iOS</a> &nbsp;|&nbsp;
+            <a href="https://play.google.com/store/apps/details?id=com.danishmahboob.ilmtrack">Download for Android</a>
+          </p>
           <p>Once you sign in, ${studentName}'s records will appear automatically.</p>
           <br/>
           <p>JazakAllah Khair,<br/>The IlmTrack Team</p>
@@ -240,6 +244,10 @@ export const sendTeacherInviteEmail = onDocumentCreated(
           <p>${ownerName} has invited you to co-teach <strong>${className}</strong> on IlmTrack.</p>
           <p>As a co-teacher, you'll be able to view students, assign homework, and mark attendance for this class.</p>
           <p>To get started, download the IlmTrack app and sign up with this email address (<strong>${email}</strong>).</p>
+          <p>
+            <a href="https://apps.apple.com/us/app/ilmtrack/id6758573901">Download for iOS</a> &nbsp;|&nbsp;
+            <a href="https://play.google.com/store/apps/details?id=com.danishmahboob.ilmtrack">Download for Android</a>
+          </p>
           <p>Once you sign in, the class will appear automatically.</p>
           <br/>
           <p>JazakAllah Khair,<br/>The IlmTrack Team</p>
