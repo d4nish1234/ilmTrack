@@ -110,7 +110,7 @@ export async function deleteAttendance(attendanceId: string): Promise<void> {
 
 export async function getAttendanceByDate(
   classId: string,
-  teacherId: string,
+  callerUid: string,
   date: Date
 ): Promise<Attendance[]> {
   const startOfDay = new Date(date);
@@ -122,7 +122,7 @@ export async function getAttendanceByDate(
   const q = query(
     attendanceRef,
     where('classId', '==', classId),
-    where('teacherId', '==', teacherId),
+    where('invitedTeacherIds', 'array-contains', callerUid),
     where('date', '>=', Timestamp.fromDate(startOfDay)),
     where('date', '<=', Timestamp.fromDate(endOfDay))
   );
@@ -136,7 +136,7 @@ export async function getAttendanceByDate(
 
 export async function getStudentAttendanceForDate(
   studentId: string,
-  teacherId: string,
+  callerUid: string,
   date: Date
 ): Promise<Attendance | null> {
   const startOfDay = new Date(date);
@@ -148,7 +148,7 @@ export async function getStudentAttendanceForDate(
   const q = query(
     attendanceRef,
     where('studentId', '==', studentId),
-    where('teacherId', '==', teacherId),
+    where('invitedTeacherIds', 'array-contains', callerUid),
     where('date', '>=', Timestamp.fromDate(startOfDay)),
     where('date', '<=', Timestamp.fromDate(endOfDay))
   );

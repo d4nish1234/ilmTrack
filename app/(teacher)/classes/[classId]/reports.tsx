@@ -103,9 +103,7 @@ export default function ReportsScreen() {
 
     // Query with security filter, filter by studentIds and date client-side
     const attendanceRef = collection(firestore, 'attendance');
-    const q = isOwner
-      ? query(attendanceRef, where('classId', '==', classId), where('teacherId', '==', user?.uid))
-      : query(attendanceRef, where('classId', '==', classId), where('invitedTeacherIds', 'array-contains', user?.uid));
+    const q = query(attendanceRef, where('classId', '==', classId), where('invitedTeacherIds', 'array-contains', user?.uid));
 
     const snapshot = await getDocs(q);
     return snapshot.docs

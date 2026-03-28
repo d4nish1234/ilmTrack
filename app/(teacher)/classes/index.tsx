@@ -28,13 +28,12 @@ import { useAuth } from '../../../src/contexts/AuthContext';
 import { useClasses } from '../../../src/hooks/useClasses';
 import { useSelectedClass } from '../../../src/hooks/useSelectedClass';
 import { ClassDropdown } from '../../../src/components/teacher';
-import { LoadingSpinner } from '../../../src/components/common';
+import { LoadingSpinner, AppSnackbar } from '../../../src/components/common';
 import { Student, AttendanceStatus, Homework, HomeworkStatus, HomeworkEvaluation } from '../../../src/types';
 import { firestore } from '../../../src/config/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import {
   toggleAttendance,
-  getStudentAttendanceForDate,
 } from '../../../src/services/attendance.service';
 import {
   createHomework,
@@ -81,6 +80,9 @@ export default function ClassesScreen() {
 
   const swipeableRefs = useRef<Map<string, Swipeable | null>>(new Map());
 
+  // Snackbar state
+  const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
+
   // Menu handlers
   const MENU_DEBOUNCE_MS = 300;
 
@@ -96,21 +98,6 @@ export default function ClassesScreen() {
     lastMenuActionRef.current = Date.now();
     setMenuVisible(false);
   }, []);
-
-  // Fetch today's attendance for all students
-  const fetchTodayAttendance = useCallback(async (studentList: Student[]) => {
-    const today = new Date();
-    const attendanceMap: TodayAttendance = {};
-
-    await Promise.all(
-      studentList.map(async (student) => {
-        const attendance = await getStudentAttendanceForDate(student.id, user!.uid, today);
-        attendanceMap[student.id] = attendance?.status || null;
-      })
-    );
-
-    setTodayAttendance(attendanceMap);
-  }, [user]);
 
   // Clear selected class if it was deleted
   useEffect(() => {
@@ -153,9 +140,6 @@ export default function ClassesScreen() {
         setStudents(studentList);
         setFilteredStudents(studentList);
         setLoading(false);
-
-        // Fetch today's attendance for all students
-        fetchTodayAttendance(studentList);
       },
       (error) => {
         console.error('Error fetching students:', error);
@@ -164,7 +148,48 @@ export default function ClassesScreen() {
     );
 
     return unsubscribe;
-  }, [selectedClassId, user?.uid, classes, fetchTodayAttendance]);
+  }, [selectedClassId, user?.uid, classes]);
+
+  // Real-time listener for today's attendance
+  useEffect(() => {
+    if (!selectedClassId || !user?.uid) {
+      setTodayAttendance({});
+      return;
+    }
+
+    const today = new Date();
+    const startOfDay = new Date(today);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(today);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const attendanceRef = collection(firestore, 'attendance');
+
+    const q = query(
+      attendanceRef,
+      where('classId', '==', selectedClassId),
+      where('invitedTeacherIds', 'array-contains', user?.uid),
+      where('date', '>=', Timestamp.fromDate(startOfDay)),
+      where('date', '<=', Timestamp.fromDate(endOfDay))
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const attendanceMap: TodayAttendance = {};
+        snapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          attendanceMap[data.studentId] = data.status || null;
+        });
+        setTodayAttendance(attendanceMap);
+      },
+      (error) => {
+        console.error('Error listening to attendance:', error);
+      }
+    );
+
+    return unsubscribe;
+  }, [selectedClassId, user?.uid, classes]);
 
   // Filter students based on search query
   useEffect(() => {
@@ -206,6 +231,7 @@ export default function ClassesScreen() {
         [student.id]: result.status,
       }));
 
+      setSnackbarMessage(`${student.firstName} marked as ${result.status}`);
       swipeableRefs.current.get(student.id)?.close();
     } catch (error) {
       console.error('Error toggling attendance:', error);
@@ -257,6 +283,7 @@ export default function ClassesScreen() {
         updateData.notes = comment;
       }
       await updateHomework(homeworkId, updateData);
+      setSnackbarMessage(`Homework marked as ${status}`);
       setPendingHomework((prev) => prev.filter((h) => h.id !== homeworkId));
       setSelectedEvaluations((prev) => {
         const updated = { ...prev };
@@ -346,7 +373,7 @@ export default function ClassesScreen() {
                   freshIds
                 );
                 setHomeworkModalVisible(false);
-                Alert.alert('Success', 'Homework assigned successfully');
+                setSnackbarMessage('Homework assigned successfully');
               },
             },
           ]
@@ -362,7 +389,7 @@ export default function ClassesScreen() {
       }, selectedStudent.parentUserIds || [], freshTeacherIds);
 
       setHomeworkModalVisible(false);
-      Alert.alert('Success', 'Homework assigned successfully');
+      setSnackbarMessage('Homework assigned successfully');
     } catch (error) {
       console.error('Error creating homework:', error);
       Alert.alert('Error', 'Failed to assign homework');
@@ -585,6 +612,7 @@ export default function ClassesScreen() {
               data={filteredStudents}
               renderItem={renderStudent}
               keyExtractor={(item) => item.id}
+              extraData={todayAttendance}
               contentContainerStyle={styles.listContent}
             />
           ) : students.length === 0 ? (
@@ -813,6 +841,11 @@ export default function ClassesScreen() {
           </View>
         </Modal>
       </Portal>
+      <AppSnackbar
+        type="success"
+        message={snackbarMessage}
+        onDismiss={() => setSnackbarMessage(null)}
+      />
     </GestureHandlerRootView>
   );
 }
