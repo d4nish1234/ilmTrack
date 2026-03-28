@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, ScrollView, Linking, Alert } from 'react-native';
-import { Text, List, Divider, Card } from 'react-native-paper';
+import { Text, List, Divider, Card, Portal, Modal, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
+import { useAuth } from '../../src/contexts/AuthContext';
+import { Button } from '../../src/components/common';
 
 const FAQ_ITEMS = [
   {
@@ -37,9 +39,44 @@ const FAQ_ITEMS = [
     question: 'How do I enable notifications?',
     answer: 'Go to Settings and toggle on Notifications. You\'ll receive alerts when new homework is assigned or attendance is marked.',
   },
+  {
+    question: 'How do I delete my account?',
+    answer: 'Scroll to the Danger Zone section at the bottom of this page and tap "Delete Account". After deletion, you can create a new account if needed (for example, if you accidentally signed up as a parent instead of a teacher).',
+  },
 ];
 
 export default function ParentHelpScreen() {
+  const { deleteAccount } = useAuth();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword.trim()) {
+      Alert.alert('Error', 'Please enter your password to confirm.');
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      await deleteAccount(deletePassword);
+    } catch (error: any) {
+      console.error('Delete account error:', error);
+      if (error?.code === 'auth/wrong-password' || error?.code === 'auth/invalid-credential') {
+        Alert.alert('Incorrect Password', 'The password you entered is incorrect. Please try again.');
+      } else {
+        Alert.alert('Error', 'Failed to delete account. Please try again.');
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const openDeleteConfirm = () => {
+    setDeletePassword('');
+    setShowDeleteConfirm(true);
+  };
+
   const handleEmailSupport = async () => {
     const url = 'mailto:info@youngmomins.com?subject=ilmTrack%20Support%20Request';
     const canOpen = await Linking.canOpenURL(url);
@@ -144,6 +181,27 @@ export default function ParentHelpScreen() {
             </Card.Content>
           </Card>
 
+          <Divider style={styles.divider} />
+
+          {/* Danger Zone */}
+          <View style={styles.dangerZone}>
+            <Text variant="titleMedium" style={styles.dangerTitle}>
+              Danger Zone
+            </Text>
+            <Text variant="bodySmall" style={styles.dangerNote}>
+              Permanently delete your account and remove access to all linked children. This cannot be undone.
+            </Text>
+            <Button
+              mode="outlined"
+              onPress={openDeleteConfirm}
+              textColor="#d32f2f"
+              style={styles.deleteButton}
+              icon="delete"
+            >
+              Delete Account
+            </Button>
+          </View>
+
           {/* App Info */}
           <View style={styles.appInfo}>
             <Text variant="bodySmall" style={styles.appVersion}>
@@ -151,6 +209,57 @@ export default function ParentHelpScreen() {
             </Text>
           </View>
         </ScrollView>
+
+        {/* Delete Account Confirmation Modal */}
+        <Portal>
+          <Modal
+            visible={showDeleteConfirm}
+            onDismiss={() => !deleting && setShowDeleteConfirm(false)}
+            contentContainerStyle={styles.modalContainer}
+          >
+            <Text variant="titleLarge" style={styles.deleteModalTitle}>
+              Delete Account?
+            </Text>
+
+            <Text variant="bodyMedium" style={styles.deleteModalText}>
+              This will permanently delete your account and remove your access to all linked children. This action cannot be undone.
+            </Text>
+
+            <Text variant="bodyMedium" style={styles.deleteModalText}>
+              You can create a new account afterwards if needed.
+            </Text>
+
+            <TextInput
+              label="Enter your password to confirm"
+              value={deletePassword}
+              onChangeText={setDeletePassword}
+              mode="outlined"
+              secureTextEntry
+              style={styles.passwordInput}
+              autoCapitalize="none"
+            />
+
+            <View style={styles.modalActions}>
+              <Button
+                mode="contained"
+                buttonColor="#d32f2f"
+                textColor="#fff"
+                onPress={handleDeleteAccount}
+                loading={deleting}
+                disabled={deleting || !deletePassword.trim()}
+              >
+                Yes, Delete My Account
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+            </View>
+          </Modal>
+        </Portal>
       </SafeAreaView>
     </>
   );
@@ -224,6 +333,49 @@ const styles = StyleSheet.create({
   },
   contactItem: {
     paddingLeft: 0,
+  },
+  dangerZone: {
+    padding: 16,
+    backgroundColor: '#fff5f5',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ffcdd2',
+  },
+  dangerTitle: {
+    fontWeight: '600',
+    color: '#d32f2f',
+    marginBottom: 8,
+  },
+  dangerNote: {
+    color: '#666',
+    marginBottom: 16,
+  },
+  deleteButton: {
+    borderColor: '#d32f2f',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    margin: 20,
+    padding: 24,
+    borderRadius: 12,
+  },
+  deleteModalTitle: {
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 16,
+    color: '#d32f2f',
+  },
+  deleteModalText: {
+    color: '#444',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  passwordInput: {
+    marginBottom: 12,
+    backgroundColor: '#fff',
+  },
+  modalActions: {
+    marginTop: 8,
   },
   appInfo: {
     alignItems: 'center',

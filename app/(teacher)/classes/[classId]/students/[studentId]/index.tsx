@@ -3,8 +3,8 @@ import { StyleSheet, View, ScrollView, useWindowDimensions } from 'react-native'
 import { Text, Card, Chip, IconButton, Menu, Portal } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { subscribeToStudent, getUserById } from '../../../../../../src/services/student.service';
-import { subscribeToHomework, subscribeToHomeworkAsTeacher } from '../../../../../../src/services/homework.service';
-import { subscribeToAttendance, subscribeToAttendanceAsTeacher } from '../../../../../../src/services/attendance.service';
+import { subscribeToHomeworkAsTeacher } from '../../../../../../src/services/homework.service';
+import { subscribeToAttendanceAsTeacher } from '../../../../../../src/services/attendance.service';
 import { useAuth } from '../../../../../../src/contexts/AuthContext';
 import { LoadingSpinner, Button } from '../../../../../../src/components/common';
 import { Student, Homework, Attendance, Parent } from '../../../../../../src/types';
@@ -85,23 +85,20 @@ export default function StudentDetailScreen() {
       }
     );
 
-    // Use the right subscription based on whether user is class owner or co-teacher
-    const isAdmin = user!.adminClassIds?.includes(classId!) ?? false;
-    const homeworkSub = isAdmin ? subscribeToHomeworkAsTeacher : subscribeToHomework;
-    const attendanceSub = isAdmin ? subscribeToAttendanceAsTeacher : subscribeToAttendance;
-
-    const unsubHomework = homeworkSub(
+    // Always use AsTeacher variants — invitedTeacherIds includes the class owner,
+    // so these work for both owners and co-teachers and show ALL records.
+    const unsubHomework = subscribeToHomeworkAsTeacher(
       studentId,
       user!.uid,
-      (data) => setRecentHomework(data.slice(0, 3)),
-      (err) => { if (!err.message?.includes('permissions')) console.error(err); }
+      (data: Homework[]) => setRecentHomework(data.slice(0, 3)),
+      (err: Error) => { if (!err.message?.includes('permissions')) console.error(err); }
     );
 
-    const unsubAttendance = attendanceSub(
+    const unsubAttendance = subscribeToAttendanceAsTeacher(
       studentId,
       user!.uid,
-      (data) => setRecentAttendance(data.slice(0, 5)),
-      (err) => { if (!err.message?.includes('permissions')) console.error(err); }
+      (data: Attendance[]) => setRecentAttendance(data.slice(0, 5)),
+      (err: Error) => { if (!err.message?.includes('permissions')) console.error(err); }
     );
 
     return () => {

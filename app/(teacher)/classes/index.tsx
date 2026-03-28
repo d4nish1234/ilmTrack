@@ -39,7 +39,7 @@ import {
 import {
   createHomework,
   getHomeworkAssignedToday,
-  getRecentPendingHomework,
+  getRecentPendingHomeworkAsTeacher,
   updateHomework,
 } from '../../../src/services/homework.service';
 import { getInvitedTeacherIds } from '../../../src/services/student.service';
@@ -229,7 +229,7 @@ export default function ClassesScreen() {
     swipeableRefs.current.get(student.id)?.close();
 
     try {
-      const homework = await getRecentPendingHomework(student.id, user!.uid, 3);
+      const homework = await getRecentPendingHomeworkAsTeacher(student.id, user!.uid, 3);
       setPendingHomework(homework);
     } catch (error) {
       console.error('Error fetching pending homework:', error);
@@ -269,7 +269,7 @@ export default function ClassesScreen() {
         return updated;
       });
       if (selectedStudent && pendingHomework.length > 1) {
-        const moreHomework = await getRecentPendingHomework(selectedStudent.id, user!.uid, 3);
+        const moreHomework = await getRecentPendingHomeworkAsTeacher(selectedStudent.id, user!.uid, 3);
         setPendingHomework(moreHomework.filter((h) => h.id !== homeworkId));
       }
     } catch (error) {

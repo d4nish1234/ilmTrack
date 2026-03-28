@@ -64,6 +64,10 @@
 - Search by first/last name — correct students returned
 - Search with no match — empty state shown
 
+### 3.5 Test homework
+- Create a homework and attendance with main teacher and ensure co-teacher can evaluate that homework and view attendance
+- Create a homework and attendance with co teacher and ensure the main teacher can evaluate that homework and view attendance
+
 ---
 
 ## 4. Teacher — Homework
@@ -206,6 +210,23 @@
 
 ### 12.3 Account Info
 - Name and email displayed correctly in settings
+
+### 12.4 Delete Account — Parent
+- Open Help & Support from parent settings — Danger Zone section visible at the bottom with red title and bordered container
+- Tap "Delete Account" in Danger Zone — confirmation modal appears with warning text
+- Tap "Cancel" — modal dismisses, account unchanged
+- Tap "Yes, Delete My Account" — loading state shown while deletion is in progress
+- After deletion: redirected to login/signup screen
+- Attempt to sign in with the deleted account credentials — login fails (account no longer exists)
+- Sign up with the same email after deletion — new account created successfully (clean slate, no linked children)
+- Verify the deleted user's Firestore `users` doc no longer exists
+- If session is too old (`auth/requires-recent-login`): error message instructs user to sign out and back in before retrying
+- Parent FAQ entry "How do I delete my account?" references the Danger Zone section on the Help & Support page
+
+### 12.5 Delete Account — Teacher (not supported)
+- Confirm there is no "Delete Account" button or Danger Zone on the teacher settings or help pages
+- Open teacher Help & Support — FAQ entry "How do I delete my account?" is present
+- FAQ answer directs teacher to email info@youngmomins.com for deletion request
 
 ---
 

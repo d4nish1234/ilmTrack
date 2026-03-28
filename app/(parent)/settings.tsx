@@ -241,6 +241,7 @@ export default function ParentSettingsScreen() {
             </Button>
           </View>
         </Modal>
+
       </Portal>
     </SafeAreaView>
   );

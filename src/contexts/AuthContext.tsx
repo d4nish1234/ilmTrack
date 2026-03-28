@@ -14,6 +14,9 @@ import {
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
   sendEmailVerification,
+  deleteUser as firebaseDeleteUser,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
 } from 'firebase/auth';
 import {
   doc,
@@ -21,6 +24,7 @@ import {
   setDoc,
   getDocs,
   updateDoc,
+  deleteDoc,
   collection,
   query,
   where,
@@ -57,6 +61,7 @@ interface AuthContextType {
   reloadFirebaseUser: () => Promise<void>;
   registerPushNotifications: () => Promise<void>;
   checkForNewInvites: () => Promise<boolean>;
+  deleteAccount: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -373,6 +378,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [firebaseUser]);
 
+  const deleteAccount = useCallback(async (password: string) => {
+    if (!firebaseUser || !user) throw new Error('No user logged in');
+    if (user.role !== 'parent') throw new Error('Only parent accounts can be deleted');
+    if (!firebaseUser.email) throw new Error('No email on account');
+
+    // Re-authenticate before destructive operation
+    const credential = EmailAuthProvider.credential(firebaseUser.email, password);
+    await reauthenticateWithCredential(firebaseUser, credential);
+
+    // Remove push token
+    try {
+      await removePushToken(firebaseUser.uid);
+    } catch {
+      // Ignore - deletion should proceed
+    }
+
+    // Delete Firestore user document
+    await deleteDoc(doc(firestore, 'users', firebaseUser.uid));
+
+    // Clear persisted class selection
+    try {
+      await clearSelectedClassId();
+    } catch {
+      // Ignore
+    }
+
+    // Delete Firebase Auth account (must be last - loses auth)
+    await firebaseDeleteUser(firebaseUser);
+  }, [firebaseUser, user]);
+
   // Check for new invites (for parents who are already signed in)
   const checkForNewInvites = useCallback(async (): Promise<boolean> => {
     if (!firebaseUser?.email || !user || user.role !== 'parent') {
@@ -417,6 +452,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         reloadFirebaseUser,
         registerPushNotifications,
         checkForNewInvites,
+        deleteAccount,
       }}
     >
       {children}

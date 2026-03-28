@@ -168,6 +168,31 @@ export async function getRecentPendingHomework(
     .slice(0, limitCount);
 }
 
+// Like getRecentPendingHomework but uses invitedTeacherIds array-contains,
+// so it finds ALL pending homework regardless of which teacher created it.
+export async function getRecentPendingHomeworkAsTeacher(
+  studentId: string,
+  teacherUid: string,
+  limitCount: number = 5
+): Promise<Homework[]> {
+  const q = query(
+    homeworkRef,
+    where('studentId', '==', studentId),
+    where('invitedTeacherIds', 'array-contains', teacherUid),
+    where('status', '==', 'assigned')
+  );
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() } as Homework))
+    .sort((a, b) => {
+      const aTime = a.createdAt?.toMillis?.() ?? 0;
+      const bTime = b.createdAt?.toMillis?.() ?? 0;
+      return bTime - aTime;
+    })
+    .slice(0, limitCount);
+}
+
 export interface PaginatedResult<T> {
   data: T[];
   lastDoc: QueryDocumentSnapshot<DocumentData> | null;

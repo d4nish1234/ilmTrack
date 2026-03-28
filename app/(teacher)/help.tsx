@@ -37,6 +37,10 @@ const FAQ_ITEMS = [
     question: 'How do I export reports?',
     answer: 'Go to the Classes tab, tap the three-dot menu, and select "Reports". Choose a date range and export attendance or homework data as CSV.',
   },
+  {
+    question: 'How do I delete my account?',
+    answer: 'Teacher accounts cannot be deleted from within the app due to the data linked to your classes, students, and records. To request account deletion, please email info@youngmomins.com and we will assist you.',
+  },
 ];
 
 export default function TeacherHelpScreen() {
