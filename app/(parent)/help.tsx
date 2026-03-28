@@ -41,7 +41,7 @@ const FAQ_ITEMS = [
 
 export default function ParentHelpScreen() {
   const handleEmailSupport = async () => {
-    const url = 'mailto:info@youngmomins.com?subject=IlmTrack%20Support%20Request';
+    const url = 'mailto:info@youngmomins.com?subject=ilmTrack%20Support%20Request';
     const canOpen = await Linking.canOpenURL(url);
     if (canOpen) {
       Linking.openURL(url);
@@ -147,7 +147,7 @@ export default function ParentHelpScreen() {
           {/* App Info */}
           <View style={styles.appInfo}>
             <Text variant="bodySmall" style={styles.appVersion}>
-              IlmTrack v1.0.0
+              ilmTrack v1.0.0
             </Text>
           </View>
         </ScrollView>

@@ -186,19 +186,19 @@ export const sendParentInviteEmail = onDocumentCreated(
 
       await sendEmail({
         to: invite.email,
-        subject: `You've been invited to view ${studentName}'s progress on IlmTrack`,
+        subject: `You've been invited to view ${studentName}'s progress on ilmTrack`,
         html: `
           <p>Assalamu Alaikum,</p>
-          <p>${teacherName} has added you as a parent/guardian for <strong>${studentName}</strong> on IlmTrack.</p>
-          <p>IlmTrack lets you view your child's homework assignments and attendance records.</p>
-          <p>To get started, download the IlmTrack app and sign up with this email address (<strong>${invite.email}</strong>).</p>
+          <p>${teacherName} has added you as a parent/guardian for <strong>${studentName}</strong> on ilmTrack.</p>
+          <p>ilmTrack lets you view your child's homework assignments and attendance records.</p>
+          <p>To get started, download the ilmTrack app and sign up with this email address (<strong>${invite.email}</strong>).</p>
           <p>
             <a href="https://apps.apple.com/us/app/ilmtrack/id6758573901">Download for iOS</a> &nbsp;|&nbsp;
             <a href="https://play.google.com/store/apps/details?id=com.danishmahboob.ilmtrack">Download for Android</a>
           </p>
           <p>Once you sign in, ${studentName}'s records will appear automatically.</p>
           <br/>
-          <p>JazakAllah Khair,<br/>The IlmTrack Team</p>
+          <p>JazakAllah Khair,<br/>The ilmTrack Team</p>
         `,
       });
 
@@ -238,19 +238,19 @@ export const sendTeacherInviteEmail = onDocumentCreated(
 
       await sendEmail({
         to: email,
-        subject: `You've been invited to co-teach "${className}" on IlmTrack`,
+        subject: `You've been invited to co-teach "${className}" on ilmTrack`,
         html: `
           <p>Assalamu Alaikum,</p>
-          <p>${ownerName} has invited you to co-teach <strong>${className}</strong> on IlmTrack.</p>
+          <p>${ownerName} has invited you to co-teach <strong>${className}</strong> on ilmTrack.</p>
           <p>As a co-teacher, you'll be able to view students, assign homework, and mark attendance for this class.</p>
-          <p>To get started, download the IlmTrack app and sign up with this email address (<strong>${email}</strong>).</p>
+          <p>To get started, download the ilmTrack app and sign up with this email address (<strong>${email}</strong>).</p>
           <p>
             <a href="https://apps.apple.com/us/app/ilmtrack/id6758573901">Download for iOS</a> &nbsp;|&nbsp;
             <a href="https://play.google.com/store/apps/details?id=com.danishmahboob.ilmtrack">Download for Android</a>
           </p>
           <p>Once you sign in, the class will appear automatically.</p>
           <br/>
-          <p>JazakAllah Khair,<br/>The IlmTrack Team</p>
+          <p>JazakAllah Khair,<br/>The ilmTrack Team</p>
         `,
       });
 
@@ -293,9 +293,9 @@ export const notifyAdminOnTeacherSignup = onDocumentUpdated(
 
     await sendEmail({
       to: adminEmail,
-      subject: `New teacher signed up on IlmTrack: ${teacherName}`,
+      subject: `New teacher signed up on ilmTrack: ${teacherName}`,
       html: `
-        <p>A new teacher account has been created on IlmTrack.</p>
+        <p>A new teacher account has been created on ilmTrack.</p>
         <ul>
           <li><strong>Name:</strong> ${teacherName}</li>
           <li><strong>Email:</strong> ${teacherEmail}</li>

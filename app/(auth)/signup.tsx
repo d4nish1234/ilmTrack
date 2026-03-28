@@ -126,7 +126,7 @@ export default function SignupScreen() {
       >
         <View style={styles.header}>
           <Text variant="displaySmall" style={styles.title}>
-            IlmTrack
+            ilmTrack
           </Text>
           <Text variant="bodyLarge" style={styles.subtitle}>
             Create your account

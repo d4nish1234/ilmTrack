@@ -6,6 +6,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Linking,
 } from 'react-native';
 import { Text, Snackbar, Portal } from 'react-native-paper';
 import { Link } from 'expo-router';
@@ -71,7 +72,16 @@ export default function LoginScreen() {
       >
         <View style={styles.header}>
           <Text variant="displaySmall" style={styles.title}>
-            IlmTrack
+            ilmTrack
+          </Text>
+          <Text variant="bodySmall" style={styles.byLine}>
+            by{' '}
+            <Text
+              style={styles.byLineLink}
+              onPress={() => Linking.openURL('https://youngmomins.com')}
+            >
+              Young Momins
+            </Text>
           </Text>
           <Text variant="bodyLarge" style={styles.subtitle}>
             Sign in to continue
@@ -149,6 +159,14 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: 'bold',
     color: '#1a73e8',
+  },
+  byLine: {
+    color: '#999',
+    marginTop: 2,
+  },
+  byLineLink: {
+    color: '#1a73e8',
+    textDecorationLine: 'underline',
   },
   subtitle: {
     color: '#666',
