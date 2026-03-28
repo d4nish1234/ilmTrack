@@ -49,6 +49,7 @@ export default function EditClassScreen() {
   const [addingAdmin, setAddingAdmin] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [showAddAdmin, setShowAddAdmin] = useState(false);
 
   const { control, handleSubmit, reset, watch, setValue } = useForm<FormData>({
@@ -60,7 +61,14 @@ export default function EditClassScreen() {
     },
   });
 
+  const watchedName = watch('name');
+  const watchedDescription = watch('description');
   const newAdminEmail = watch('newAdminEmail');
+
+  const hasClassChanges =
+    classData != null &&
+    (watchedName !== classData.name ||
+      (watchedDescription || '') !== (classData.description || ''));
 
   useEffect(() => {
     if (!classId) return;
@@ -99,13 +107,24 @@ export default function EditClassScreen() {
         name: data.name,
         description: data.description,
       });
-      router.back();
+      // Update local classData so hasClassChanges becomes false
+      setClassData({ ...classData, name: data.name!, description: data.description || '' });
+      setSuccess('Class details updated');
     } catch (err: any) {
       console.error('Error updating class:', err);
       setError('Failed to update class. Please try again.');
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleCancelEdit = () => {
+    if (!classData) return;
+    reset({
+      name: classData.name,
+      description: classData.description || '',
+      newAdminEmail: '',
+    });
   };
 
   const handleAddAdmin = async () => {
@@ -143,6 +162,7 @@ export default function EditClassScreen() {
       }
       setValue('newAdminEmail', '');
       setShowAddAdmin(false);
+      setSuccess('Teacher invite sent');
     } catch (err: any) {
       console.error('Error adding admin:', err);
       setError(err.message || 'Failed to add admin');
@@ -169,6 +189,7 @@ export default function EditClassScreen() {
               if (updatedClass) {
                 setAdmins(updatedClass.admins || []);
               }
+              setSuccess('Teacher access removed');
             } catch (err: any) {
               console.error('Error removing admin:', err);
               setError(err.message || 'Failed to remove admin');
@@ -195,8 +216,9 @@ export default function EditClassScreen() {
             setDeleting(true);
             try {
               await deleteClass(classId, user.uid);
-              // Navigate back to classes list
-              router.replace('/(teacher)/classes');
+              Alert.alert('Class Deleted', 'The class and all its records have been deleted.', [
+                { text: 'OK', onPress: () => router.replace('/(teacher)/classes') },
+              ]);
             } catch (error) {
               console.error('Error deleting class:', error);
               setError('Failed to delete class. Please try again.');
@@ -267,6 +289,17 @@ export default function EditClassScreen() {
                 multiline
                 numberOfLines={3}
               />
+
+              {hasClassChanges && (
+                <View style={styles.classActions}>
+                  <Button onPress={handleSubmit(onSubmit)} loading={saving}>
+                    Save Changes
+                  </Button>
+                  <Button mode="outlined" onPress={handleCancelEdit}>
+                    Cancel
+                  </Button>
+                </View>
+              )}
             </View>
 
             <Divider style={styles.divider} />
@@ -359,16 +392,6 @@ export default function EditClassScreen() {
               )}
             </View>
 
-            <View style={styles.actions}>
-              <Button onPress={handleSubmit(onSubmit)} loading={saving}>
-                Save Changes
-              </Button>
-
-              <Button mode="outlined" onPress={() => router.back()}>
-                Cancel
-              </Button>
-            </View>
-
             {isOwner && (
               <>
                 <Divider style={styles.dangerDivider} />
@@ -401,6 +424,14 @@ export default function EditClassScreen() {
             duration={4000}
           >
             {error}
+          </Snackbar>
+          <Snackbar
+            visible={!!success}
+            onDismiss={() => setSuccess(null)}
+            duration={3000}
+            style={styles.successSnackbar}
+          >
+            {success}
           </Snackbar>
         </Portal>
       </SafeAreaView>
@@ -490,8 +521,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textTransform: 'capitalize',
   },
-  actions: {
-    marginTop: 16,
+  classActions: {
+    marginTop: 8,
   },
   dangerDivider: {
     marginTop: 32,
@@ -516,5 +547,8 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     borderColor: '#d32f2f',
+  },
+  successSnackbar: {
+    backgroundColor: '#2e7d32',
   },
 });

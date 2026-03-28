@@ -21,6 +21,7 @@ export default function CreateClassScreen() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const { control, handleSubmit } = useForm<FormData>({
     resolver: yupResolver(schema),
@@ -41,7 +42,8 @@ export default function CreateClassScreen() {
         name: data.name,
         description: data.description,
       });
-      router.dismiss();
+      setSuccess(`"${data.name}" created successfully`);
+      setTimeout(() => router.dismiss(), 1500);
     } catch (err: any) {
       console.error('Error creating class:', err);
       setError('Failed to create class. Please try again.');
@@ -91,6 +93,14 @@ export default function CreateClassScreen() {
       >
         {error}
       </Snackbar>
+      <Snackbar
+        visible={!!success}
+        onDismiss={() => setSuccess(null)}
+        duration={1500}
+        style={styles.successSnackbar}
+      >
+        {success}
+      </Snackbar>
     </SafeAreaView>
   );
 }
@@ -105,5 +115,8 @@ const styles = StyleSheet.create({
   },
   form: {
     padding: 16,
+  },
+  successSnackbar: {
+    backgroundColor: '#2e7d32',
   },
 });
