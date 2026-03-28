@@ -7,7 +7,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { Text, Snackbar, IconButton, Portal, Chip } from 'react-native-paper';
+import { Text, IconButton, Chip } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -15,7 +15,7 @@ import * as yup from 'yup';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../../src/contexts/AuthContext';
 import { getStudent, updateStudent } from '../../../../../../src/services/student.service';
-import { Button, Input, LoadingSpinner } from '../../../../../../src/components/common';
+import { Button, Input, LoadingSpinner, AppSnackbar } from '../../../../../../src/components/common';
 import { firestore } from '../../../../../../src/config/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Student, Parent } from '../../../../../../src/types';
@@ -337,22 +337,8 @@ export default function EditParentsScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
 
-        <Portal>
-          <Snackbar
-            visible={!!error}
-            onDismiss={() => setError(null)}
-            duration={4000}
-          >
-            {error}
-          </Snackbar>
-          <Snackbar
-            visible={!!success}
-            onDismiss={() => setSuccess(null)}
-            duration={2000}
-          >
-            {success}
-          </Snackbar>
-        </Portal>
+        <AppSnackbar message={error} onDismiss={() => setError(null)} />
+        <AppSnackbar type="success" message={success} onDismiss={() => setSuccess(null)} />
       </SafeAreaView>
     </>
   );

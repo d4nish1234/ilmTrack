@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { Snackbar, Portal } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -9,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../../../src/contexts/AuthContext';
 import { createHomework } from '../../../../../../../src/services/homework.service';
 import { getStudent, getInvitedTeacherIds } from '../../../../../../../src/services/student.service';
-import { Button, Input } from '../../../../../../../src/components/common';
+import { Button, Input, AppSnackbar } from '../../../../../../../src/components/common';
 import { Student } from '../../../../../../../src/types';
 
 const schema = yup.object({
@@ -115,15 +114,7 @@ export default function AddHomeworkScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <Portal>
-        <Snackbar
-          visible={!!error}
-          onDismiss={() => setError(null)}
-          duration={4000}
-        >
-          {error}
-        </Snackbar>
-      </Portal>
+      <AppSnackbar message={error} onDismiss={() => setError(null)} />
     </SafeAreaView>
   );
 }

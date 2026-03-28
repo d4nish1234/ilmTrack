@@ -7,7 +7,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { Text, Snackbar, IconButton, Portal, Divider } from 'react-native-paper';
+import { Text, IconButton, Divider } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -15,7 +15,7 @@ import * as yup from 'yup';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getStudent, updateStudent, deleteStudent } from '../../../../../../src/services/student.service';
 import { useAuth } from '../../../../../../src/contexts/AuthContext';
-import { Button, Input, LoadingSpinner } from '../../../../../../src/components/common';
+import { Button, Input, LoadingSpinner, AppSnackbar } from '../../../../../../src/components/common';
 import { Student } from '../../../../../../src/types';
 
 const schema = yup.object({
@@ -209,15 +209,7 @@ export default function EditStudentScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
 
-        <Portal>
-          <Snackbar
-            visible={!!error}
-            onDismiss={() => setError(null)}
-            duration={4000}
-          >
-            {error}
-          </Snackbar>
-        </Portal>
+        <AppSnackbar message={error} onDismiss={() => setError(null)} />
       </SafeAreaView>
     </>
   );

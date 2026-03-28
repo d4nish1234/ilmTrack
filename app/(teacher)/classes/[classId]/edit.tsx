@@ -7,7 +7,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { Text, Snackbar, IconButton, Portal, Chip, Divider } from 'react-native-paper';
+import { Text, IconButton, Chip, Divider } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -21,7 +21,7 @@ import {
   removeAdmin,
   deleteClass,
 } from '../../../../src/services/class.service';
-import { Button, Input, LoadingSpinner } from '../../../../src/components/common';
+import { Button, Input, LoadingSpinner, AppSnackbar } from '../../../../src/components/common';
 import { Class, Admin } from '../../../../src/types';
 
 const adminSchema = yup.object({
@@ -417,23 +417,8 @@ export default function EditClassScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
 
-        <Portal>
-          <Snackbar
-            visible={!!error}
-            onDismiss={() => setError(null)}
-            duration={4000}
-          >
-            {error}
-          </Snackbar>
-          <Snackbar
-            visible={!!success}
-            onDismiss={() => setSuccess(null)}
-            duration={3000}
-            style={styles.successSnackbar}
-          >
-            {success}
-          </Snackbar>
-        </Portal>
+        <AppSnackbar message={error} onDismiss={() => setError(null)} />
+        <AppSnackbar type="success" message={success} onDismiss={() => setSuccess(null)} />
       </SafeAreaView>
     </>
   );
@@ -547,8 +532,5 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     borderColor: '#d32f2f',
-  },
-  successSnackbar: {
-    backgroundColor: '#2e7d32',
   },
 });

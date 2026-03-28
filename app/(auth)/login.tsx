@@ -8,13 +8,13 @@ import {
   Alert,
   Linking,
 } from 'react-native';
-import { Text, Snackbar, Portal } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { Link } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useAuth } from '../../src/contexts/AuthContext';
-import { Button, Input } from '../../src/components/common';
+import { Button, Input, AppSnackbar } from '../../src/components/common';
 import { getAuthErrorMessage } from '../../src/utils/authErrors';
 
 const schema = yup.object({
@@ -125,19 +125,7 @@ export default function LoginScreen() {
         </View>
       </ScrollView>
 
-      <Portal>
-        <Snackbar
-          visible={!!error}
-          onDismiss={() => setError(null)}
-          duration={4000}
-          action={{
-            label: 'Dismiss',
-            onPress: () => setError(null),
-          }}
-        >
-          {error}
-        </Snackbar>
-      </Portal>
+      <AppSnackbar message={error} onDismiss={() => setError(null)} />
     </KeyboardAvoidingView>
   );
 }

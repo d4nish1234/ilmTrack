@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import {
   Text,
-  Snackbar,
   SegmentedButtons,
   Portal,
   Modal,
@@ -28,7 +27,7 @@ import {
   updateAttendance,
 } from '../../../../../../../src/services/attendance.service';
 import { getStudent, getInvitedTeacherIds } from '../../../../../../../src/services/student.service';
-import { Button, Input } from '../../../../../../../src/components/common';
+import { Button, Input, AppSnackbar } from '../../../../../../../src/components/common';
 import { AttendanceStatus, Student } from '../../../../../../../src/types';
 import {
   format,
@@ -337,15 +336,7 @@ export default function AddAttendanceScreen() {
         </Modal>
       </Portal>
 
-      <Portal>
-        <Snackbar
-          visible={!!error}
-          onDismiss={() => setError(null)}
-          duration={4000}
-        >
-          {error}
-        </Snackbar>
-      </Portal>
+      <AppSnackbar message={error} onDismiss={() => setError(null)} />
     </SafeAreaView>
   );
 }

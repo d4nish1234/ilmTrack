@@ -7,7 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { Text, Snackbar, Divider, IconButton, Portal, Card, RadioButton } from 'react-native-paper';
+import { Text, Divider, IconButton, Card, RadioButton } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -15,7 +15,7 @@ import * as yup from 'yup';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../src/contexts/AuthContext';
 import { createStudent, linkExistingStudentToClass } from '../../../../../src/services/student.service';
-import { Button, Input } from '../../../../../src/components/common';
+import { Button, Input, AppSnackbar } from '../../../../../src/components/common';
 import { firestore } from '../../../../../src/config/firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { Student, User } from '../../../../../src/types';
@@ -319,11 +319,7 @@ export default function AddStudentScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
 
-        <Portal>
-          <Snackbar visible={!!error} onDismiss={() => setError(null)} duration={4000}>
-            {error}
-          </Snackbar>
-        </Portal>
+        <AppSnackbar message={error} onDismiss={() => setError(null)} />
       </SafeAreaView>
     );
   }
@@ -406,11 +402,7 @@ export default function AddStudentScreen() {
           </View>
         </ScrollView>
 
-        <Portal>
-          <Snackbar visible={!!error} onDismiss={() => setError(null)} duration={4000}>
-            {error}
-          </Snackbar>
-        </Portal>
+        <AppSnackbar message={error} onDismiss={() => setError(null)} />
       </SafeAreaView>
     );
   }
@@ -583,22 +575,8 @@ export default function AddStudentScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <Portal>
-        <Snackbar
-          visible={!!error}
-          onDismiss={() => setError(null)}
-          duration={4000}
-        >
-          {error}
-        </Snackbar>
-        <Snackbar
-          visible={!!success}
-          onDismiss={() => setSuccess(null)}
-          duration={2000}
-        >
-          {success}
-        </Snackbar>
-      </Portal>
+      <AppSnackbar message={error} onDismiss={() => setError(null)} />
+      <AppSnackbar type="success" message={success} onDismiss={() => setSuccess(null)} />
     </SafeAreaView>
   );
 }

@@ -7,13 +7,13 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { Text, Snackbar, SegmentedButtons, Portal } from 'react-native-paper';
+import { Text, SegmentedButtons } from 'react-native-paper';
 import { Link } from 'expo-router';
 import { useForm, useWatch } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useAuth } from '../../src/contexts/AuthContext';
-import { Button, Input } from '../../src/components/common';
+import { Button, Input, AppSnackbar } from '../../src/components/common';
 import { UserRole } from '../../src/types';
 import { getAuthErrorMessage } from '../../src/utils/authErrors';
 import { getInvitedParentInfo } from '../../src/services/student.service';
@@ -215,19 +215,7 @@ export default function SignupScreen() {
         </View>
       </ScrollView>
 
-      <Portal>
-        <Snackbar
-          visible={!!error}
-          onDismiss={() => setError(null)}
-          duration={4000}
-          action={{
-            label: 'Dismiss',
-            onPress: () => setError(null),
-          }}
-        >
-          {error}
-        </Snackbar>
-      </Portal>
+      <AppSnackbar message={error} onDismiss={() => setError(null)} />
     </KeyboardAvoidingView>
   );
 }

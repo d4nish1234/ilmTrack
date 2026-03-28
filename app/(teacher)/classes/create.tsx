@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, KeyboardAvoidingView, Platform } from 'react-native';
-import { Snackbar } from 'react-native-paper';
 import { router } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -8,7 +7,7 @@ import * as yup from 'yup';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { createClass } from '../../../src/services/class.service';
-import { Button, Input } from '../../../src/components/common';
+import { Button, Input, AppSnackbar } from '../../../src/components/common';
 
 const schema = yup.object({
   name: yup.string().required('Class name is required'),
@@ -21,7 +20,6 @@ export default function CreateClassScreen() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const { control, handleSubmit } = useForm<FormData>({
     resolver: yupResolver(schema),
@@ -42,12 +40,10 @@ export default function CreateClassScreen() {
         name: data.name,
         description: data.description,
       });
-      setSuccess(`"${data.name}" created successfully`);
-      setTimeout(() => router.dismiss(), 1500);
+      setTimeout(() => router.dismiss(), 500);
     } catch (err: any) {
       console.error('Error creating class:', err);
       setError('Failed to create class. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
@@ -86,21 +82,7 @@ export default function CreateClassScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      <Snackbar
-        visible={!!error}
-        onDismiss={() => setError(null)}
-        duration={4000}
-      >
-        {error}
-      </Snackbar>
-      <Snackbar
-        visible={!!success}
-        onDismiss={() => setSuccess(null)}
-        duration={1500}
-        style={styles.successSnackbar}
-      >
-        {success}
-      </Snackbar>
+      <AppSnackbar message={error} onDismiss={() => setError(null)} wrapInPortal={false} />
     </SafeAreaView>
   );
 }
@@ -115,8 +97,5 @@ const styles = StyleSheet.create({
   },
   form: {
     padding: 16,
-  },
-  successSnackbar: {
-    backgroundColor: '#2e7d32',
   },
 });
