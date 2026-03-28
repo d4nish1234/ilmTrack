@@ -365,6 +365,14 @@ When you see index errors in the console, click the link provided to create the 
 - Variable names must start with `EXPO_PUBLIC_` to be accessible in the app
 - Restart Metro with `--clear` flag after changing `.env`
 
+## Generating TEST_CASES.md as PDF
+
+```bash
+npx md-to-pdf TEST_CASES.md
+```
+
+This produces `TEST_CASES.pdf` in the project root.
+
 ## Support
 
 For questions or issues, contact: info@youngmomins.com
