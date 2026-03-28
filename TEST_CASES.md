@@ -40,7 +40,7 @@
 ### 2.1 Invite Another Teacher to Class
 - Add another teacher's email to the class admin list
 - That teacher receives an invite email
-[TODO]- Teacher accepts the invite and can see the class and its students
+- Teacher accepts the invite and can see the class and its students
 - Remove that teacher from class — they lose access to the class data
 
 ---
@@ -69,7 +69,7 @@
 ## 4. Teacher — Homework
 
 ### 4.1 Assign Homework
-- Assign homework to a student with a title and due date
+- Assign homework to a student with a title, notes and description
 - Appears in student's homework list
 - Parent receives push notification (if token registered)
 
@@ -170,7 +170,7 @@
 - Filter by child works
 
 ### 10.2 Pagination
-- Load more shows older records
+- Load more shows older records (10+ records)
 
 ---
 
