@@ -202,7 +202,6 @@ export default function AddStudentScreen() {
       } else {
         setError('Failed to add student to class. Please try again.');
       }
-    } finally {
       setLoading(false);
     }
   };
@@ -225,7 +224,6 @@ export default function AddStudentScreen() {
     } catch (err: any) {
       console.error('Error creating student:', err);
       setError('Failed to add student. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
@@ -389,7 +387,7 @@ export default function AddStudentScreen() {
             <Button
               onPress={handleSelectExisting}
               loading={loading}
-              disabled={!selectedStudentId || (() => {
+              disabled={loading || !selectedStudentId || (() => {
                 const selected = uniqueStudents.find(s => s.id === selectedStudentId);
                 return selected ? isStudentNameInClass(allMatchingStudents, selected, classId!) : false;
               })()}
@@ -565,6 +563,7 @@ export default function AddStudentScreen() {
             <Button
               onPress={studentForm.handleSubmit(handleAddNewStudent)}
               loading={loading}
+              disabled={loading}
             >
               Add Student
             </Button>

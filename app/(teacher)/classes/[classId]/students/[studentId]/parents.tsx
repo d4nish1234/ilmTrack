@@ -162,7 +162,6 @@ export default function EditParentsScreen() {
     } catch (err: any) {
       console.error('Error updating parents:', err);
       setError('Failed to update parents. Please try again.');
-    } finally {
       setSaving(false);
     }
   };
@@ -326,7 +325,7 @@ export default function EditParentsScreen() {
             })}
 
             <View style={styles.actions}>
-              <Button onPress={handleSubmit(onSubmit)} loading={saving}>
+              <Button onPress={handleSubmit(onSubmit)} loading={saving} disabled={saving}>
                 Save Changes
               </Button>
 
