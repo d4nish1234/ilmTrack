@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -15,6 +15,7 @@ import * as yup from 'yup';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../src/contexts/AuthContext';
 import { createStudent, linkExistingStudentToClass } from '../../../../../src/services/student.service';
+import { getClass } from '../../../../../src/services/class.service';
 import { Button, Input, AppSnackbar } from '../../../../../src/components/common';
 import { firestore } from '../../../../../src/config/firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
@@ -89,6 +90,16 @@ type Step = 'email' | 'select-or-add' | 'add-student';
 export default function AddStudentScreen() {
   const { classId } = useLocalSearchParams<{ classId: string }>();
   const { user } = useAuth();
+  const [classOwnerId, setClassOwnerId] = useState<string | null>(null);
+
+  // Fetch the class owner's teacherId so co-teachers create students under the correct owner
+  useEffect(() => {
+    if (!classId) return;
+    getClass(classId).then((cls) => {
+      if (cls) setClassOwnerId(cls.teacherId);
+    });
+  }, [classId]);
+
   const [step, setStep] = useState<Step>('email');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -148,8 +159,12 @@ export default function AddStudentScreen() {
       }
 
       // Look for students with this parent email
+      // Co-teachers must query via invitedTeacherIds to satisfy security rules
       const studentsRef = collection(firestore, 'students');
-      const q = query(studentsRef, where('teacherId', '==', user?.uid));
+      const isOwner = !classOwnerId || classOwnerId === user?.uid;
+      const q = isOwner
+        ? query(studentsRef, where('teacherId', '==', user?.uid))
+        : query(studentsRef, where('invitedTeacherIds', 'array-contains', user?.uid));
       const snapshot = await getDocs(q);
 
       const matchingStudents: Student[] = [];
@@ -213,7 +228,7 @@ export default function AddStudentScreen() {
     setError(null);
 
     try {
-      await createStudent(classId, user.uid, {
+      await createStudent(classId, classOwnerId || user.uid, {
         firstName: data.firstName,
         lastName: data.lastName,
         parents: data.parents as any,

@@ -213,20 +213,46 @@
 
 ### 12.4 Delete Account — Parent
 - Open Help & Support from parent settings — Danger Zone section visible at the bottom with red title and bordered container
-- Tap "Delete Account" in Danger Zone — confirmation modal appears with warning text
+- Tap "Delete Account" in Danger Zone — confirmation modal appears
+- Modal lists all linked students by name (e.g. "You will lose access to: • Ahmad • Sara")
+- Modal shows re-linking message: "If you re-create your account with the same email, you will be re-linked to your students automatically."
 - Tap "Cancel" — modal dismisses, account unchanged
-- Tap "Yes, Delete My Account" — loading state shown while deletion is in progress
+- Enter wrong password and tap "Yes, Delete My Account" — error shown ("Incorrect Password")
+- Enter correct password and tap "Yes, Delete My Account" — loading state shown while deletion is in progress
 - After deletion: redirected to login/signup screen
 - Attempt to sign in with the deleted account credentials — login fails (account no longer exists)
-- Sign up with the same email after deletion — new account created successfully (clean slate, no linked children)
+- Sign up with the same email after deletion — new account created, automatically re-linked to students
 - Verify the deleted user's Firestore `users` doc no longer exists
-- If session is too old (`auth/requires-recent-login`): error message instructs user to sign out and back in before retrying
 - Parent FAQ entry "How do I delete my account?" references the Danger Zone section on the Help & Support page
 
-### 12.5 Delete Account — Teacher (not supported)
-- Confirm there is no "Delete Account" button or Danger Zone on the teacher settings or help pages
-- Open teacher Help & Support — FAQ entry "How do I delete my account?" is present
-- FAQ answer directs teacher to email info@youngmomins.com for deletion request
+### 12.5 Delete Account — Teacher
+- Open teacher Help & Support — Danger Zone section visible at the bottom with red title and bordered container
+- FAQ entry "How do I delete my account?" references the Danger Zone section
+- Tap "Delete Account" — confirmation modal appears
+- Modal lists owned classes with student counts (e.g. "• Quran Class (5 students)")
+- Modal lists co-teacher classes (e.g. "You will be removed as co-teacher from: • Tajweed Class")
+- Modal shows warning: "This action cannot be undone."
+- Tap "Cancel" — modal dismisses, account unchanged
+- Enter wrong password and tap "Yes, Delete My Account" — error shown ("Incorrect Password")
+- Enter correct password and confirm — loading state shown
+
+### 12.6 Delete Account — Teacher (Class Owner Only)
+- Teacher owns 2 classes with students and is NOT a co-teacher
+- Delete account — both classes and all their students, homework, attendance records are deleted
+- Parent links for all students in those classes are cleaned up (studentIds removed from parent user docs)
+- Teacher's `users` doc and Firebase Auth account no longer exist
+
+### 12.7 Delete Account — Teacher (Co-Teacher Only)
+- Teacher owns no classes but is co-teacher on 1 class
+- Delete account — teacher is removed from that class's admins array
+- Teacher's userId removed from `invitedTeacherIds` on student/homework/attendance docs (via Cloud Function)
+- Original class owner's class and data are unaffected
+
+### 12.8 Delete Account — Teacher (Owner + Co-Teacher)
+- Teacher owns 2 classes and is co-teacher on 1 other class
+- Confirmation modal shows all 3 classes: 2 owned (will be deleted) and 1 shared (will be removed from)
+- Delete account — owned classes fully deleted, removed as co-teacher from the other class
+- All cleanup verified as in 12.6 and 12.7 combined
 
 ---
 

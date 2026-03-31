@@ -10,6 +10,8 @@ interface ButtonProps {
   disabled?: boolean;
   icon?: string;
   style?: object;
+  textColor?: string;
+  buttonColor?: string;
 }
 
 export function Button({
@@ -20,6 +22,8 @@ export function Button({
   disabled = false,
   icon,
   style,
+  textColor,
+  buttonColor,
 }: ButtonProps) {
   return (
     <PaperButton
@@ -30,6 +34,8 @@ export function Button({
       icon={icon}
       style={[styles.button, style]}
       contentStyle={styles.content}
+      textColor={textColor}
+      buttonColor={buttonColor}
     >
       {children}
     </PaperButton>

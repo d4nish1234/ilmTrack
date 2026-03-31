@@ -18,6 +18,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { Class, CreateClassData, UpdateClassData, Admin } from '../types';
+import { unlinkAllParentsFromStudent } from '../utils/parentLinkCleanup';
 
 const classesRef = collection(firestore, 'classes');
 
@@ -111,7 +112,7 @@ export async function deleteClass(
     classIds: arrayRemove(classId),
   });
 
-  // Delete all students in the class
+  // Unlink all parents from every student in the class (best-effort)
   const studentsRef = collection(firestore, 'students');
   const studentsQuery = query(
     studentsRef,
@@ -120,16 +121,44 @@ export async function deleteClass(
   );
   const studentsSnapshot = await getDocs(studentsQuery);
 
-  const batch = writeBatch(firestore);
-  studentsSnapshot.docs.forEach((docSnap) => {
-    batch.delete(docSnap.ref);
-  });
+  for (const studentDoc of studentsSnapshot.docs) {
+    try {
+      await unlinkAllParentsFromStudent(studentDoc.id);
+    } catch (err) {
+      console.error(`Failed to unlink parents for student ${studentDoc.id}:`, err);
+    }
+  }
 
-  // Delete the class
-  const classRef = doc(firestore, 'classes', classId);
-  batch.delete(classRef);
+  // Collect all docs to delete: homework, attendance, students, and the class
+  const docsToDelete: import('firebase/firestore').DocumentReference[] = [];
 
-  await batch.commit();
+  const homeworkRef = collection(firestore, 'homework');
+  const homeworkQuery = query(
+    homeworkRef,
+    where('classId', '==', classId),
+    where('teacherId', '==', teacherId)
+  );
+  const homeworkSnapshot = await getDocs(homeworkQuery);
+  homeworkSnapshot.docs.forEach((d) => docsToDelete.push(d.ref));
+
+  const attendanceRef = collection(firestore, 'attendance');
+  const attendanceQuery = query(
+    attendanceRef,
+    where('classId', '==', classId),
+    where('teacherId', '==', teacherId)
+  );
+  const attendanceSnapshot = await getDocs(attendanceQuery);
+  attendanceSnapshot.docs.forEach((d) => docsToDelete.push(d.ref));
+
+  studentsSnapshot.docs.forEach((d) => docsToDelete.push(d.ref));
+  docsToDelete.push(doc(firestore, 'classes', classId));
+
+  // Firestore batches limited to 500 ops — chunk accordingly
+  for (let i = 0; i < docsToDelete.length; i += 500) {
+    const batch = writeBatch(firestore);
+    docsToDelete.slice(i, i + 500).forEach((ref) => batch.delete(ref));
+    await batch.commit();
+  }
 }
 
 export async function incrementStudentCount(classId: string): Promise<void> {

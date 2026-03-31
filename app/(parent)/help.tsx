@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, ScrollView, Linking, Alert } from 'react-native';
 import { Text, List, Divider, Card, Portal, Modal, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { Button } from '../../src/components/common';
+import { getStudent } from '../../src/services/student.service';
+import { Student } from '../../src/types';
 
 const FAQ_ITEMS = [
   {
@@ -46,10 +48,31 @@ const FAQ_ITEMS = [
 ];
 
 export default function ParentHelpScreen() {
-  const { deleteAccount } = useAuth();
+  const { deleteAccount, user } = useAuth();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
+  const [linkedStudents, setLinkedStudents] = useState<Student[]>([]);
+
+  useEffect(() => {
+    const fetchLinkedStudents = async () => {
+      if (!user?.studentIds?.length) {
+        setLinkedStudents([]);
+        return;
+      }
+      const students: Student[] = [];
+      for (const id of user.studentIds) {
+        try {
+          const s = await getStudent(id);
+          if (s) students.push(s);
+        } catch {
+          // Skip students that can't be fetched
+        }
+      }
+      setLinkedStudents(students);
+    };
+    fetchLinkedStudents();
+  }, [user?.studentIds]);
 
   const handleDeleteAccount = async () => {
     if (!deletePassword.trim()) {
@@ -221,12 +244,21 @@ export default function ParentHelpScreen() {
               Delete Account?
             </Text>
 
-            <Text variant="bodyMedium" style={styles.deleteModalText}>
-              This will permanently delete your account and remove your access to all linked children. This action cannot be undone.
-            </Text>
+            {linkedStudents.length > 0 && (
+              <View style={styles.studentListContainer}>
+                <Text variant="bodyMedium" style={styles.deleteModalText}>
+                  You will lose access to:
+                </Text>
+                {linkedStudents.map((s) => (
+                  <Text key={s.id} variant="bodyMedium" style={styles.studentListItem}>
+                    {'\u2022'} {s.firstName} {s.lastName}
+                  </Text>
+                ))}
+              </View>
+            )}
 
             <Text variant="bodyMedium" style={styles.deleteModalText}>
-              You can create a new account afterwards if needed.
+              If you re-create your account with the same email, you will be re-linked to your students automatically.
             </Text>
 
             <TextInput
@@ -369,6 +401,15 @@ const styles = StyleSheet.create({
     color: '#444',
     textAlign: 'center',
     marginBottom: 12,
+  },
+  studentListContainer: {
+    marginBottom: 8,
+  },
+  studentListItem: {
+    color: '#444',
+    textAlign: 'center',
+    fontWeight: '600',
+    marginBottom: 2,
   },
   passwordInput: {
     marginBottom: 12,

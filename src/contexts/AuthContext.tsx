@@ -40,6 +40,7 @@ import {
   removePushToken,
 } from '../services/notification.service';
 import { clearSelectedClassId } from '../utils/storage';
+import { deleteClass, removeAdmin, getClassesByIds } from '../services/class.service';
 
 interface AuthContextType {
   user: User | null;
@@ -62,6 +63,7 @@ interface AuthContextType {
   registerPushNotifications: () => Promise<void>;
   checkForNewInvites: () => Promise<boolean>;
   deleteAccount: (password: string) => Promise<void>;
+  deleteTeacherAccount: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -408,6 +410,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseDeleteUser(firebaseUser);
   }, [firebaseUser, user]);
 
+  const deleteTeacherAccount = useCallback(async (password: string) => {
+    if (!firebaseUser || !user) throw new Error('No user logged in');
+    if (user.role !== 'teacher') throw new Error('Only teacher accounts use this method');
+    if (!firebaseUser.email) throw new Error('No email on account');
+
+    // Re-authenticate before destructive operation
+    const credential = EmailAuthProvider.credential(firebaseUser.email, password);
+    await reauthenticateWithCredential(firebaseUser, credential);
+
+    // Remove push token
+    try {
+      await removePushToken(firebaseUser.uid);
+    } catch {
+      // Ignore - deletion should proceed
+    }
+
+    // Delete all owned classes (includes full cleanup of students, homework, attendance, parent links)
+    const ownedClassIds = user.classIds || [];
+    for (const classId of ownedClassIds) {
+      try {
+        await deleteClass(classId, firebaseUser.uid);
+      } catch (err) {
+        console.error(`Failed to delete owned class ${classId}:`, err);
+      }
+    }
+
+    // Remove self as co-teacher from all admin classes
+    const adminClassIds = user.adminClassIds || [];
+    if (adminClassIds.length > 0) {
+      const adminClasses = await getClassesByIds(adminClassIds);
+      for (const cls of adminClasses) {
+        try {
+          // Find our admin entry by userId to get the email used
+          const adminEntry = cls.admins?.find((a) => a.userId === firebaseUser.uid);
+          if (adminEntry) {
+            await removeAdmin(cls.id, adminEntry.email);
+          }
+        } catch (err) {
+          console.error(`Failed to remove self from admin class ${cls.id}:`, err);
+        }
+      }
+    }
+
+    // Delete Firestore user document
+    await deleteDoc(doc(firestore, 'users', firebaseUser.uid));
+
+    // Clear persisted class selection
+    try {
+      await clearSelectedClassId();
+    } catch {
+      // Ignore
+    }
+
+    // Delete Firebase Auth account (must be last - loses auth)
+    await firebaseDeleteUser(firebaseUser);
+  }, [firebaseUser, user]);
+
   // Check for new invites (for parents who are already signed in)
   const checkForNewInvites = useCallback(async (): Promise<boolean> => {
     if (!firebaseUser?.email || !user || user.role !== 'parent') {
@@ -453,6 +512,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         registerPushNotifications,
         checkForNewInvites,
         deleteAccount,
+        deleteTeacherAccount,
       }}
     >
       {children}

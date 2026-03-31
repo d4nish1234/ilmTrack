@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(GCLOUD=/Users/danishmahboob/Downloads/google-cloud-sdk/bin/gcloud)",
+      "Bash($GCLOUD run:*)",
+      "Bash(GCLOUD=/Users/danishmahboob/Downloads/google-cloud-sdk/bin/gcloud SA=\"698370474025-compute@developer.gserviceaccount.com\" __NEW_LINE_c81862c25bafcac8__ for fn in sendparentinviteemail sendteacherinviteemail notifyparentsonhomework notifyadminonteachersignup oninviteaccepted onteacherinviteaccepted onteacherremoved acceptparentinvites notifyadminteacherverified sendparentinviteemailcallable)",
+      "Bash(do echo:*)",
+      "Bash(~/Downloads/google-cloud-sdk/bin/gcloud logging:*)",
+      "Bash(~/Downloads/google-cloud-sdk/bin/gcloud pubsub:*)",
+      "Bash(~/Downloads/google-cloud-sdk/bin/gcloud eventarc:*)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in d.items\\(\\)}, indent=2\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(''''State:'''', d.get\\(''''state''''\\)\\); print\\(''''MessageCount:'''', d.get\\(''''messageRetentionDuration''''\\)\\)\")",
+      "Bash(for fn:*)",
+      "Bash(do)",
+      "Bash(~/Downloads/google-cloud-sdk/bin/gcloud functions:*)",
+      "Bash(done)"
+    ]
+  }
+}
