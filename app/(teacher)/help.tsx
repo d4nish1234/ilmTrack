@@ -1,12 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { StyleSheet, View, ScrollView, Linking, Alert } from 'react-native';
-import { Text, List, Divider, Card, Portal, Modal, TextInput } from 'react-native-paper';
+import { Text, List, Divider, Card } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
-import { useAuth } from '../../src/contexts/AuthContext';
-import { Button } from '../../src/components/common';
-import { getClassesByIds } from '../../src/services/class.service';
-import { Class } from '../../src/types';
 
 const FAQ_ITEMS = [
   {
@@ -43,71 +39,11 @@ const FAQ_ITEMS = [
   },
   {
     question: 'How do I delete my account?',
-    answer: 'Scroll to the Danger Zone section at the bottom of this page and tap "Delete Account". All classes you own and their data will be permanently deleted. You will also be removed as a co-teacher from any shared classes.',
+    answer: 'Go to Settings and scroll to the Danger Zone section at the bottom. Tap "Delete Account". All classes you own and their data will be permanently deleted. You will also be removed as a co-teacher from any shared classes.',
   },
 ];
 
 export default function TeacherHelpScreen() {
-  const { deleteTeacherAccount, user } = useAuth();
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deletePassword, setDeletePassword] = useState('');
-  const [ownedClasses, setOwnedClasses] = useState<Class[]>([]);
-  const [adminClasses, setAdminClasses] = useState<Class[]>([]);
-
-  useEffect(() => {
-    const fetchClasses = async () => {
-      if (!user) return;
-      try {
-        if (user.classIds?.length) {
-          const owned = await getClassesByIds(user.classIds);
-          setOwnedClasses(owned);
-        }
-      } catch (err) {
-        console.error('Failed to fetch owned classes:', err);
-      }
-      try {
-        if (user.adminClassIds?.length) {
-          const admin = await getClassesByIds(user.adminClassIds);
-          // Only show classes where this user is actually in the admins array
-          // (adminClassIds on user doc may be stale if they were removed)
-          const verified = admin.filter((cls) =>
-            cls.admins?.some((a) => a.userId === user.uid)
-          );
-          setAdminClasses(verified);
-        }
-      } catch (err) {
-        console.error('Failed to fetch admin classes:', err);
-      }
-    };
-    fetchClasses();
-  }, [user?.classIds, user?.adminClassIds]);
-
-  const handleDeleteAccount = async () => {
-    if (!deletePassword.trim()) {
-      Alert.alert('Error', 'Please enter your password to confirm.');
-      return;
-    }
-
-    setDeleting(true);
-    try {
-      await deleteTeacherAccount(deletePassword);
-    } catch (error: any) {
-      console.error('Delete account error:', error);
-      if (error?.code === 'auth/wrong-password' || error?.code === 'auth/invalid-credential') {
-        Alert.alert('Incorrect Password', 'The password you entered is incorrect. Please try again.');
-      } else {
-        Alert.alert('Error', 'Failed to delete account. Please try again.');
-      }
-      setDeleting(false);
-    }
-  };
-
-  const openDeleteConfirm = () => {
-    setDeletePassword('');
-    setShowDeleteConfirm(true);
-  };
-
   const handleEmailSupport = async () => {
     const url = 'mailto:info@youngmomins.com?subject=ilmTrack%20Support%20Request';
     const canOpen = await Linking.canOpenURL(url);
@@ -212,27 +148,6 @@ export default function TeacherHelpScreen() {
             </Card.Content>
           </Card>
 
-          <Divider style={styles.divider} />
-
-          {/* Danger Zone */}
-          <View style={styles.dangerZone}>
-            <Text variant="titleMedium" style={styles.dangerTitle}>
-              Danger Zone
-            </Text>
-            <Text variant="bodySmall" style={styles.dangerNote}>
-              Permanently delete your account, all your classes, students, and their records. This cannot be undone.
-            </Text>
-            <Button
-              mode="outlined"
-              onPress={openDeleteConfirm}
-              textColor="#d32f2f"
-              style={styles.deleteButton}
-              icon="delete"
-            >
-              Delete Account
-            </Button>
-          </View>
-
           {/* App Info */}
           <View style={styles.appInfo}>
             <Text variant="bodySmall" style={styles.appVersion}>
@@ -241,78 +156,6 @@ export default function TeacherHelpScreen() {
           </View>
         </ScrollView>
 
-        {/* Delete Account Confirmation Modal */}
-        <Portal>
-          <Modal
-            visible={showDeleteConfirm}
-            onDismiss={() => !deleting && setShowDeleteConfirm(false)}
-            contentContainerStyle={styles.modalContainer}
-          >
-            <Text variant="titleLarge" style={styles.deleteModalTitle}>
-              Delete Account?
-            </Text>
-
-            {ownedClasses.length > 0 && (
-              <View style={styles.classListContainer}>
-                <Text variant="bodyMedium" style={styles.deleteModalText}>
-                  The following classes and ALL their data will be permanently deleted:
-                </Text>
-                {ownedClasses.map((cls) => (
-                  <Text key={cls.id} variant="bodyMedium" style={styles.classListItem}>
-                    {'\u2022'} {cls.name} ({cls.studentCount} student{cls.studentCount !== 1 ? 's' : ''})
-                  </Text>
-                ))}
-              </View>
-            )}
-
-            {adminClasses.length > 0 && (
-              <View style={styles.classListContainer}>
-                <Text variant="bodyMedium" style={styles.deleteModalText}>
-                  You will be removed as co-teacher from:
-                </Text>
-                {adminClasses.map((cls) => (
-                  <Text key={cls.id} variant="bodyMedium" style={styles.classListItem}>
-                    {'\u2022'} {cls.name}
-                  </Text>
-                ))}
-              </View>
-            )}
-
-            <Text variant="bodyMedium" style={styles.deleteModalWarning}>
-              This action cannot be undone.
-            </Text>
-
-            <TextInput
-              label="Enter your password to confirm"
-              value={deletePassword}
-              onChangeText={setDeletePassword}
-              mode="outlined"
-              secureTextEntry
-              style={styles.passwordInput}
-              autoCapitalize="none"
-            />
-
-            <View style={styles.modalActions}>
-              <Button
-                mode="contained"
-                buttonColor="#d32f2f"
-                textColor="#fff"
-                onPress={handleDeleteAccount}
-                loading={deleting}
-                disabled={deleting || !deletePassword.trim()}
-              >
-                Yes, Delete My Account
-              </Button>
-              <Button
-                mode="outlined"
-                onPress={() => setShowDeleteConfirm(false)}
-                disabled={deleting}
-              >
-                Cancel
-              </Button>
-            </View>
-          </Modal>
-        </Portal>
       </SafeAreaView>
     </>
   );
@@ -386,64 +229,6 @@ const styles = StyleSheet.create({
   },
   contactItem: {
     paddingLeft: 0,
-  },
-  dangerZone: {
-    padding: 16,
-    backgroundColor: '#fff5f5',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ffcdd2',
-  },
-  dangerTitle: {
-    fontWeight: '600',
-    color: '#d32f2f',
-    marginBottom: 8,
-  },
-  dangerNote: {
-    color: '#666',
-    marginBottom: 16,
-  },
-  deleteButton: {
-    borderColor: '#d32f2f',
-  },
-  modalContainer: {
-    backgroundColor: '#fff',
-    margin: 20,
-    padding: 24,
-    borderRadius: 12,
-  },
-  deleteModalTitle: {
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 16,
-    color: '#d32f2f',
-  },
-  deleteModalText: {
-    color: '#444',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  deleteModalWarning: {
-    color: '#d32f2f',
-    textAlign: 'center',
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  classListContainer: {
-    marginBottom: 8,
-  },
-  classListItem: {
-    color: '#444',
-    textAlign: 'center',
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  passwordInput: {
-    marginBottom: 12,
-    backgroundColor: '#fff',
-  },
-  modalActions: {
-    marginTop: 8,
   },
   appInfo: {
     alignItems: 'center',
