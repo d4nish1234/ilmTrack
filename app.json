@@ -25,7 +25,8 @@
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#1a73e8"
       },
-      "package": "com.danishmahboob.ilmtrack"
+      "package": "com.danishmahboob.ilmtrack",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
