@@ -374,6 +374,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = await registerForPushNotifications();
       if (token) {
         await savePushToken(firebaseUser.uid, token);
+        await updateDoc(doc(firestore, 'users', firebaseUser.uid), {
+          notificationsEnabled: true,
+        });
+        const userDoc = await getDoc(doc(firestore, 'users', firebaseUser.uid));
+        if (userDoc.exists()) {
+          setUser({ uid: firebaseUser.uid, ...userDoc.data() } as User);
+        }
       }
     } catch (error) {
       console.error('Error registering push notifications:', error);
