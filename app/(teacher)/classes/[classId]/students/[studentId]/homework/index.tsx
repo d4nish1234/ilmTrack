@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { StyleSheet, View, FlatList, TouchableOpacity, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { Text, Card, Chip, FAB, Menu, IconButton, Portal, Modal, Divider, TextInput, Button } from 'react-native-paper';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { getHomeworkPaginatedAsTeacher, updateHomework, deleteHomework } from '../../../../../../../src/services/homework.service';
 import { useAuth } from '../../../../../../../src/contexts/AuthContext';
 import { LoadingSpinner } from '../../../../../../../src/components/common';
@@ -145,10 +145,12 @@ export default function HomeworkListScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentId, lastDoc]);
 
-  useEffect(() => {
-    fetchHomework(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [studentId]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchHomework(false);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [studentId])
+  );
 
   const handleLoadMore = () => {
     if (!loadingMore && hasMore) {
