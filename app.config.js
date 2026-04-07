@@ -2,7 +2,7 @@ module.exports = {
   expo: {
     name: 'ilmTrack',
     slug: 'ilmtrack',
-    version: '1.0.0',
+    version: '1.0.1',
     orientation: 'portrait',
     scheme: 'ilmtrack',
     userInterfaceStyle: 'light',
@@ -15,7 +15,7 @@ module.exports = {
       icon: './assets/icon.png',
       supportsTablet: true,
       bundleIdentifier: 'com.danishmahboob.ilmtrack',
-      buildNumber: '2',
+      buildNumber: '3',
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
       },
