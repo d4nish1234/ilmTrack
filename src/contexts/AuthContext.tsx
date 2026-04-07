@@ -62,6 +62,7 @@ interface AuthContextType {
   reloadFirebaseUser: () => Promise<void>;
   registerPushNotifications: () => Promise<void>;
   checkForNewInvites: () => Promise<boolean>;
+  checkForNewAdminInvites: () => Promise<boolean>;
   deleteAccount: (password: string) => Promise<void>;
   deleteTeacherAccount: (password: string) => Promise<void>;
 }
@@ -474,6 +475,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseDeleteUser(firebaseUser);
   }, [firebaseUser, user]);
 
+  // Check for new admin invites (for teachers who are already signed in)
+  const checkForNewAdminInvites = useCallback(async (): Promise<boolean> => {
+    if (!firebaseUser?.email || !user || user.role !== 'teacher') {
+      return false;
+    }
+
+    try {
+      const existingAdminClassIds = user.adminClassIds || [];
+      const newAdminClassIds = await acceptPendingAdminInvites(
+        firebaseUser.uid,
+        firebaseUser.email,
+        existingAdminClassIds
+      );
+
+      // Always refresh user data so useClasses picks up any changes
+      const refreshedDoc = await getDoc(doc(firestore, 'users', firebaseUser.uid));
+      if (refreshedDoc.exists()) {
+        setUser({ uid: firebaseUser.uid, ...refreshedDoc.data() } as User);
+      }
+
+      return newAdminClassIds.length > 0;
+    } catch (error) {
+      console.error('Error checking for new admin invites:', error);
+      return false;
+    }
+  }, [firebaseUser, user]);
+
   // Check for new invites (for parents who are already signed in)
   const checkForNewInvites = useCallback(async (): Promise<boolean> => {
     if (!firebaseUser?.email || !user || user.role !== 'parent') {
@@ -518,6 +546,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         reloadFirebaseUser,
         registerPushNotifications,
         checkForNewInvites,
+        checkForNewAdminInvites,
         deleteAccount,
         deleteTeacherAccount,
       }}

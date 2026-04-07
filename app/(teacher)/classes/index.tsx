@@ -23,7 +23,7 @@ import {
   Button,
 } from 'react-native-paper';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { useClasses } from '../../../src/hooks/useClasses';
 import { useSelectedClass } from '../../../src/hooks/useSelectedClass';
@@ -49,8 +49,9 @@ interface TodayAttendance {
 }
 
 export default function ClassesScreen() {
-  const { user } = useAuth();
+  const { user, checkForNewAdminInvites } = useAuth();
   const { classes, loading: classesLoading } = useClasses();
+  const [refreshing, setRefreshing] = useState(false);
   const { selectedClassId, clearSelection } = useSelectedClass();
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
@@ -79,6 +80,16 @@ export default function ClassesScreen() {
   const [homeworkComments, setHomeworkComments] = useState<Record<string, string>>({});
 
   const swipeableRefs = useRef<Map<string, Swipeable | null>>(new Map());
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await checkForNewAdminInvites();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [checkForNewAdminInvites]);
+
 
   // Snackbar state
   const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
@@ -549,6 +560,20 @@ export default function ClassesScreen() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <IconButton
+              icon="refresh"
+              iconColor="#fff"
+              size={24}
+              onPress={handleRefresh}
+              disabled={refreshing}
+              style={{ margin: 0 }}
+            />
+          ),
+        }}
+      />
       {/* Class dropdown with menu */}
       <View style={styles.headerRow}>
         <View style={styles.dropdownContainer}>
