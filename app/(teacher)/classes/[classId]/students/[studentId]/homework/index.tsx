@@ -265,7 +265,7 @@ export default function HomeworkListScreen() {
               leadingIcon="pencil"
             />
             <Menu.Item
-                title="Add Evaluation"
+                title={item.evaluation ? 'Edit Evaluation' : 'Add Evaluation'}
                 onPress={() => openEvaluationModal(item)}
                 leadingIcon="star"
               />
