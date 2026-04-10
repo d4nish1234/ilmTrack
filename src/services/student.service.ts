@@ -12,6 +12,7 @@ import {
   serverTimestamp,
   writeBatch,
   arrayUnion,
+  arrayRemove,
 } from 'firebase/firestore';
 import { Student, CreateStudentData, UpdateStudentData, Parent, User } from '../types';
 import { incrementStudentCount, decrementStudentCount, getClass } from './class.service';
@@ -188,6 +189,46 @@ export function subscribeToStudent(
       onError(error);
     }
   );
+}
+
+/**
+ * After parents change on a student, backfill parentUserIds onto all existing
+ * homework and attendance docs so removed parents lose access and newly-added
+ * parents gain access to historical records.
+ */
+export async function backfillParentUserIds(
+  studentId: string,
+  teacherId: string,
+  addedParentUserIds: string[],
+  removedParentUserIds: string[]
+): Promise<void> {
+  if (addedParentUserIds.length === 0 && removedParentUserIds.length === 0) return;
+
+  const [homeworkSnap, attendanceSnap] = await Promise.all([
+    getDocs(query(collection(firestore, 'homework'), where('studentId', '==', studentId), where('teacherId', '==', teacherId))),
+    getDocs(query(collection(firestore, 'attendance'), where('studentId', '==', studentId), where('teacherId', '==', teacherId))),
+  ]);
+
+  const allDocs = [...homeworkSnap.docs, ...attendanceSnap.docs];
+  if (allDocs.length === 0) return;
+
+  // arrayRemove and arrayUnion can't be used on the same field in one write,
+  // so do two batch passes when both are needed.
+  const batchUpdate = async (updateFn: (ref: typeof allDocs[0]['ref']) => Record<string, unknown>) => {
+    const chunkSize = 500;
+    for (let i = 0; i < allDocs.length; i += chunkSize) {
+      const batch = writeBatch(firestore);
+      allDocs.slice(i, i + chunkSize).forEach((d) => batch.update(d.ref, updateFn(d.ref)));
+      await batch.commit();
+    }
+  };
+
+  if (removedParentUserIds.length > 0) {
+    await batchUpdate(() => ({ parentUserIds: arrayRemove(...removedParentUserIds) }));
+  }
+  if (addedParentUserIds.length > 0) {
+    await batchUpdate(() => ({ parentUserIds: arrayUnion(...addedParentUserIds) }));
+  }
 }
 
 export async function updateStudent(

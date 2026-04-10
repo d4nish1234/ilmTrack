@@ -14,7 +14,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../../src/contexts/AuthContext';
-import { getStudent, updateStudent } from '../../../../../../src/services/student.service';
+import { getStudent, updateStudent, backfillParentUserIds, getParentUserIds } from '../../../../../../src/services/student.service';
 import { Button, Input, LoadingSpinner, AppSnackbar } from '../../../../../../src/components/common';
 import { firestore } from '../../../../../../src/config/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -131,6 +131,14 @@ export default function EditParentsScreen() {
 
       // Update the student document
       await updateStudent(studentId, { parents: updatedParents });
+
+      // Backfill parentUserIds on all existing homework/attendance docs so
+      // removed parents lose access and newly-accepted parents gain access.
+      const oldParentUserIds = getParentUserIds(student.parents);
+      const newParentUserIds = getParentUserIds(updatedParents);
+      const addedParentUserIds = newParentUserIds.filter((id) => !oldParentUserIds.includes(id));
+      const removedParentUserIds = oldParentUserIds.filter((id) => !newParentUserIds.includes(id));
+      await backfillParentUserIds(studentId, student.teacherId, addedParentUserIds, removedParentUserIds);
 
       // Create invites for new parents (triggers sendParentInviteEmail Cloud Function)
       const invitesRef = collection(firestore, 'invites');
