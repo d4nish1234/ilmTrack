@@ -138,7 +138,7 @@ export default function EditParentsScreen() {
       const newParentUserIds = getParentUserIds(updatedParents);
       const addedParentUserIds = newParentUserIds.filter((id) => !oldParentUserIds.includes(id));
       const removedParentUserIds = oldParentUserIds.filter((id) => !newParentUserIds.includes(id));
-      await backfillParentUserIds(studentId, student.teacherId, addedParentUserIds, removedParentUserIds);
+      await backfillParentUserIds(studentId, addedParentUserIds, removedParentUserIds);
 
       // Create invites for new parents (triggers sendParentInviteEmail Cloud Function)
       const invitesRef = collection(firestore, 'invites');

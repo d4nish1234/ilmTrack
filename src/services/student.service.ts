@@ -10,9 +10,7 @@ import {
   where,
   onSnapshot,
   serverTimestamp,
-  writeBatch,
   arrayUnion,
-  arrayRemove,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { Student, CreateStudentData, UpdateStudentData, Parent, User } from '../types';
@@ -199,37 +197,19 @@ export function subscribeToStudent(
  */
 export async function backfillParentUserIds(
   studentId: string,
-  teacherId: string,
   addedParentUserIds: string[],
   removedParentUserIds: string[]
 ): Promise<void> {
   if (addedParentUserIds.length === 0 && removedParentUserIds.length === 0) return;
 
-  const [homeworkSnap, attendanceSnap] = await Promise.all([
-    getDocs(query(collection(firestore, 'homework'), where('studentId', '==', studentId), where('teacherId', '==', teacherId))),
-    getDocs(query(collection(firestore, 'attendance'), where('studentId', '==', studentId), where('teacherId', '==', teacherId))),
-  ]);
+  // Cloud Function handles the backfill using Admin SDK
+  // (no teacherId filter — catches records from all teachers)
+  const backfill = httpsCallable<
+    { studentId: string; addedParentUserIds: string[]; removedParentUserIds: string[] },
+    { updated: number }
+  >(functions, 'backfillParentUserIdsOnStudent');
 
-  const allDocs = [...homeworkSnap.docs, ...attendanceSnap.docs];
-  if (allDocs.length === 0) return;
-
-  // arrayRemove and arrayUnion can't be used on the same field in one write,
-  // so do two batch passes when both are needed.
-  const batchUpdate = async (updateFn: (ref: typeof allDocs[0]['ref']) => Record<string, unknown>) => {
-    const chunkSize = 500;
-    for (let i = 0; i < allDocs.length; i += chunkSize) {
-      const batch = writeBatch(firestore);
-      allDocs.slice(i, i + chunkSize).forEach((d) => batch.update(d.ref, updateFn(d.ref)));
-      await batch.commit();
-    }
-  };
-
-  if (removedParentUserIds.length > 0) {
-    await batchUpdate(() => ({ parentUserIds: arrayRemove(...removedParentUserIds) }));
-  }
-  if (addedParentUserIds.length > 0) {
-    await batchUpdate(() => ({ parentUserIds: arrayUnion(...addedParentUserIds) }));
-  }
+  await backfill({ studentId, addedParentUserIds, removedParentUserIds });
 }
 
 export async function updateStudent(

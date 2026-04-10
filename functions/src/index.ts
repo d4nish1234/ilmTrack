@@ -556,6 +556,77 @@ export const onTeacherRemoved = onDocumentUpdated(
 );
 
 /**
+ * HTTPS callable: backfill parentUserIds on all homework + attendance docs
+ * for a student. Uses Admin SDK so no teacherId filter is needed — catches
+ * records created by any teacher (owner or co-teacher).
+ */
+export const backfillParentUserIdsOnStudent = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Must be signed in');
+  }
+
+  const studentId = request.data?.studentId as string | undefined;
+  const addedParentUserIds = request.data?.addedParentUserIds as string[] | undefined;
+  const removedParentUserIds = request.data?.removedParentUserIds as string[] | undefined;
+
+  if (!studentId) {
+    throw new HttpsError('invalid-argument', 'studentId is required');
+  }
+
+  const added = addedParentUserIds || [];
+  const removed = removedParentUserIds || [];
+  if (added.length === 0 && removed.length === 0) {
+    return { updated: 0 };
+  }
+
+  // Verify the student exists and caller has access
+  const studentDoc = await db.collection('students').doc(studentId).get();
+  if (!studentDoc.exists) {
+    throw new HttpsError('not-found', 'Student not found');
+  }
+
+  const studentData = studentDoc.data()!;
+  const callerUid = request.auth.uid;
+  const isOwner = studentData.teacherId === callerUid;
+  const isAdmin = (studentData.invitedTeacherIds || []).includes(callerUid);
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError('permission-denied', 'Not authorized for this student');
+  }
+
+  // Query ALL homework + attendance for this student (no teacherId filter)
+  const [homeworkSnap, attendanceSnap] = await Promise.all([
+    db.collection('homework').where('studentId', '==', studentId).get(),
+    db.collection('attendance').where('studentId', '==', studentId).get(),
+  ]);
+
+  const allDocs = [...homeworkSnap.docs, ...attendanceSnap.docs];
+  if (allDocs.length === 0) return { updated: 0 };
+
+  // arrayRemove and arrayUnion can't be in the same update on the same field,
+  // so do two batch passes when both are needed.
+  if (removed.length > 0) {
+    for (let i = 0; i < allDocs.length; i += 500) {
+      const batch = db.batch();
+      allDocs.slice(i, i + 500).forEach((d) =>
+        batch.update(d.ref, { parentUserIds: FieldValue.arrayRemove(...removed) })
+      );
+      await batch.commit();
+    }
+  }
+  if (added.length > 0) {
+    for (let i = 0; i < allDocs.length; i += 500) {
+      const batch = db.batch();
+      allDocs.slice(i, i + 500).forEach((d) =>
+        batch.update(d.ref, { parentUserIds: FieldValue.arrayUnion(...added) })
+      );
+      await batch.commit();
+    }
+  }
+
+  return { updated: allDocs.length };
+});
+
+/**
  * HTTPS callable: delete a student and all their homework + attendance docs.
  * Uses Admin SDK so security rules are bypassed — the caller just needs to be
  * the class owner or an invited teacher.
