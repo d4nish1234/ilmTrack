@@ -248,9 +248,15 @@ export default function EditParentsScreen() {
             </View>
 
             {fields.map((field, index) => {
-              const originalParent = student.parents.find(
-                (p) => p.email.toLowerCase() === field.email?.toLowerCase()
-              );
+              // When there's only one parent, always track by index so the status chip
+              // continues to reflect the original parent even as the email is being edited
+              const isSoleParentField =
+                student.parents.length === 1 && fields.length === 1 && index === 0;
+              const originalParent = isSoleParentField
+                ? student.parents[0]
+                : student.parents.find(
+                    (p) => p.email.toLowerCase() === field.email?.toLowerCase()
+                  );
               const isExisting = !!originalParent;
 
               return (
@@ -312,9 +318,14 @@ export default function EditParentsScreen() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoComplete="email"
-                    disabled={isExisting}
+                    disabled={isExisting && !isSoleParentField}
                   />
 
+                  {isSoleParentField && (
+                    <Text variant="bodySmall" style={styles.editEmailNote}>
+                      Changing the email will unlink the current parent and send a new invite
+                    </Text>
+                  )}
                   {!isExisting && (
                     <Text variant="bodySmall" style={styles.newParentNote}>
                       An invitation will be sent to this email
@@ -411,6 +422,11 @@ const styles = StyleSheet.create({
   },
   newParentNote: {
     color: '#1a73e8',
+    fontStyle: 'italic',
+    marginTop: -4,
+  },
+  editEmailNote: {
+    color: '#f57c00',
     fontStyle: 'italic',
     marginTop: -4,
   },
