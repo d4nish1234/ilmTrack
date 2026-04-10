@@ -43,7 +43,7 @@ export default function ParentHomeScreen() {
     setSystemNotificationsDisabled(status !== 'granted');
   }, []);
 
-  // Delay banner display by 30 seconds so first-time users can grant permission
+  // Delay banner display by 15 seconds so first-time users can grant permission
   useEffect(() => {
     checkNotificationPermission();
     const timer = setTimeout(() => setBannerReady(true), 15000);
