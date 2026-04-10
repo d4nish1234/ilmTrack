@@ -622,6 +622,112 @@ export const deleteStudentData = onCall(async (request) => {
 });
 
 /**
+ * HTTPS callable: delete a class and all its students, homework, attendance,
+ * and parent/invite links. Uses Admin SDK so security rules are bypassed.
+ * Only the class owner can call this.
+ */
+export const deleteClassData = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Must be signed in');
+  }
+
+  const callerUid = request.auth.uid;
+  const classId = request.data?.classId as string | undefined;
+
+  if (!classId) {
+    throw new HttpsError('invalid-argument', 'classId is required');
+  }
+
+  // Verify the caller is the class owner
+  const classDoc = await db.collection('classes').doc(classId).get();
+  if (!classDoc.exists) {
+    throw new HttpsError('not-found', 'Class not found');
+  }
+  if (classDoc.data()!.teacherId !== callerUid) {
+    throw new HttpsError('permission-denied', 'Only the class owner can delete the class');
+  }
+
+  // 1. Unlink all parents from every student in the class
+  const studentsSnapshot = await db.collection('students')
+    .where('classId', '==', classId)
+    .get();
+
+  for (const studentDoc of studentsSnapshot.docs) {
+    const parents = (studentDoc.data().parents || []) as Parent[];
+    for (const parent of parents) {
+      try {
+        const userId = parent.userId;
+        if (userId) {
+          await db.collection('users').doc(userId).update({
+            studentIds: FieldValue.arrayRemove(studentDoc.id),
+          });
+        }
+        // Delete invite docs for this parent+student
+        if (parent.email) {
+          const inviteSnap = await db.collection('invites')
+            .where('email', '==', parent.email.toLowerCase())
+            .where('studentId', '==', studentDoc.id)
+            .get();
+          for (const inv of inviteSnap.docs) {
+            await inv.ref.delete();
+          }
+        }
+      } catch (err) {
+        console.error(`Failed to unlink parent ${parent.email} from student ${studentDoc.id}:`, err);
+      }
+    }
+  }
+
+  // 2. Collect all docs to delete (no teacherId filter — gets ALL teachers' records)
+  const homeworkSnapshot = await db.collection('homework')
+    .where('classId', '==', classId)
+    .get();
+
+  const attendanceSnapshot = await db.collection('attendance')
+    .where('classId', '==', classId)
+    .get();
+
+  const allRefs = [
+    ...homeworkSnapshot.docs.map((d) => d.ref),
+    ...attendanceSnapshot.docs.map((d) => d.ref),
+    ...studentsSnapshot.docs.map((d) => d.ref),
+    classDoc.ref,
+  ];
+
+  // Firestore batches limited to 500 ops — chunk accordingly
+  for (let i = 0; i < allRefs.length; i += 500) {
+    const batch = db.batch();
+    allRefs.slice(i, i + 500).forEach((ref) => batch.delete(ref));
+    await batch.commit();
+  }
+
+  // 3. Remove classId from owner's classIds
+  await db.collection('users').doc(callerUid).update({
+    classIds: FieldValue.arrayRemove(classId),
+  });
+
+  // 4. Remove classId from all co-teachers' adminClassIds
+  const admins = (classDoc.data()!.admins || []) as { userId?: string }[];
+  for (const admin of admins) {
+    if (admin.userId) {
+      try {
+        await db.collection('users').doc(admin.userId).update({
+          adminClassIds: FieldValue.arrayRemove(classId),
+        });
+      } catch (err) {
+        console.error(`Failed to remove classId from admin ${admin.userId}:`, err);
+      }
+    }
+  }
+
+  return {
+    deletedStudents: studentsSnapshot.size,
+    deletedHomework: homeworkSnapshot.size,
+    deletedAttendance: attendanceSnapshot.size,
+  };
+});
+
+/**
  * HTTPS callable: accept all pending parent invites for the calling user's email.
  * Called directly from the client so linking is synchronous and doesn't depend
  * on the Firestore trigger firing.

@@ -215,7 +215,7 @@ export default function EditClassScreen() {
             if (!classId || !user) return;
             setDeleting(true);
             try {
-              await deleteClass(classId, user.uid);
+              await deleteClass(classId);
               Alert.alert('Class Deleted', 'The class and all its records have been deleted.', [
                 { text: 'OK', onPress: () => router.replace('/(teacher)/classes') },
               ]);

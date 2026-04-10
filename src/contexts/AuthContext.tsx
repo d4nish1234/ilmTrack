@@ -438,7 +438,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const ownedClassIds = user.classIds || [];
     for (const classId of ownedClassIds) {
       try {
-        await deleteClass(classId, firebaseUser.uid);
+        await deleteClass(classId);
       } catch (err) {
         console.error(`Failed to delete owned class ${classId}:`, err);
       }

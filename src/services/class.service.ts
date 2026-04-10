@@ -1,4 +1,4 @@
-import { firestore } from '../config/firebase';
+import { firestore, functions } from '../config/firebase';
 import {
   collection,
   doc,
@@ -17,8 +17,8 @@ import {
   writeBatch,
   Timestamp,
 } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { Class, CreateClassData, UpdateClassData, Admin } from '../types';
-import { unlinkAllParentsFromStudent } from '../utils/parentLinkCleanup';
 
 const classesRef = collection(firestore, 'classes');
 
@@ -103,62 +103,16 @@ export async function updateClass(
 }
 
 export async function deleteClass(
-  classId: string,
-  teacherId: string
+  classId: string
 ): Promise<void> {
-  // Remove class ID from teacher's classIds array
-  const userRef = doc(firestore, 'users', teacherId);
-  await updateDoc(userRef, {
-    classIds: arrayRemove(classId),
-  });
+  // Cloud Function handles deleting all students, homework, attendance,
+  // parent links, and the class doc using Admin SDK (bypasses security rules)
+  const deleteClassData = httpsCallable<
+    { classId: string },
+    { deletedStudents: number; deletedHomework: number; deletedAttendance: number }
+  >(functions, 'deleteClassData');
 
-  // Unlink all parents from every student in the class (best-effort)
-  const studentsRef = collection(firestore, 'students');
-  const studentsQuery = query(
-    studentsRef,
-    where('classId', '==', classId),
-    where('teacherId', '==', teacherId)
-  );
-  const studentsSnapshot = await getDocs(studentsQuery);
-
-  for (const studentDoc of studentsSnapshot.docs) {
-    try {
-      await unlinkAllParentsFromStudent(studentDoc.id);
-    } catch (err) {
-      console.error(`Failed to unlink parents for student ${studentDoc.id}:`, err);
-    }
-  }
-
-  // Collect all docs to delete: homework, attendance, students, and the class
-  const docsToDelete: import('firebase/firestore').DocumentReference[] = [];
-
-  const homeworkRef = collection(firestore, 'homework');
-  const homeworkQuery = query(
-    homeworkRef,
-    where('classId', '==', classId),
-    where('teacherId', '==', teacherId)
-  );
-  const homeworkSnapshot = await getDocs(homeworkQuery);
-  homeworkSnapshot.docs.forEach((d) => docsToDelete.push(d.ref));
-
-  const attendanceRef = collection(firestore, 'attendance');
-  const attendanceQuery = query(
-    attendanceRef,
-    where('classId', '==', classId),
-    where('teacherId', '==', teacherId)
-  );
-  const attendanceSnapshot = await getDocs(attendanceQuery);
-  attendanceSnapshot.docs.forEach((d) => docsToDelete.push(d.ref));
-
-  studentsSnapshot.docs.forEach((d) => docsToDelete.push(d.ref));
-  docsToDelete.push(doc(firestore, 'classes', classId));
-
-  // Firestore batches limited to 500 ops — chunk accordingly
-  for (let i = 0; i < docsToDelete.length; i += 500) {
-    const batch = writeBatch(firestore);
-    docsToDelete.slice(i, i + 500).forEach((ref) => batch.delete(ref));
-    await batch.commit();
-  }
+  await deleteClassData({ classId });
 }
 
 export async function incrementStudentCount(classId: string): Promise<void> {
