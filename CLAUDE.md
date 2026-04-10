@@ -9,8 +9,8 @@ Expo React Native app for Islamic school teachers to manage classes, students, h
 - **Email**: Resend
 
 ## Roles
-- **Teacher** (class owner): Creates classes, adds students, assigns homework, marks attendance, invites parents
-- **Invited Teacher**: Another teacher given shared access to a class via admin invite. Tracked via `invitedTeacherIds[]` on docs and `adminClassIds[]` on user profile
+- **Teacher** (class owner): Creates classes, adds students, assigns homework, marks attendance, invites parents, invites co-teachers. Only the class owner can invite co-teachers — invited teachers cannot invite others.
+- **Invited Teacher**: Another teacher given shared access to a class via admin invite. Can manage students, homework, and attendance but cannot invite other co-teachers or delete the class. Tracked via `invitedTeacherIds[]` on docs and `adminClassIds[]` on user profile
 - **Parent**: Views linked children's homework/attendance. Linked via invite email. Tracked via `parentUserIds[]` on docs and `studentIds[]` on user profile
 
 ## Firestore Security Rules Pattern
