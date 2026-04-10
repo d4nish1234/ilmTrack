@@ -26,6 +26,7 @@ export interface Homework {
   dueDate?: Timestamp;
   status: HomeworkStatus;
   evaluation?: HomeworkEvaluation;
+  evaluationNotes?: string;
   completedAt?: Timestamp;
   notes?: string;
   createdAt: Timestamp;
@@ -45,5 +46,6 @@ export interface UpdateHomeworkData {
   dueDate?: Date;
   status?: HomeworkStatus;
   evaluation?: HomeworkEvaluation;
+  evaluationNotes?: string;
   notes?: string;
 }

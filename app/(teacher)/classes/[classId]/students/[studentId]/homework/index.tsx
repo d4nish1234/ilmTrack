@@ -191,7 +191,7 @@ export default function HomeworkListScreen() {
   const openEvaluationModal = (item: Homework) => {
     closeMenu();
     setSelectedRating(item.evaluation);
-    setEvaluationComment(item.notes || '');
+    setEvaluationComment(item.evaluationNotes || '');
     setEvaluationModalId(item.id);
   };
 
@@ -199,12 +199,12 @@ export default function HomeworkListScreen() {
     if (!evaluationModalId || !selectedRating) return;
     try {
       const comment = evaluationComment.trim();
-      await updateHomework(evaluationModalId, { evaluation: selectedRating, notes: comment });
+      await updateHomework(evaluationModalId, { evaluation: selectedRating, evaluationNotes: comment });
       // Update local state
       setHomework((prev) =>
         prev.map((h) =>
           h.id === evaluationModalId
-            ? { ...h, evaluation: selectedRating, notes: comment || undefined }
+            ? { ...h, evaluation: selectedRating, evaluationNotes: comment || undefined }
             : h
         )
       );
@@ -309,16 +309,21 @@ export default function HomeworkListScreen() {
           )}
         </View>
 
-        {item.evaluation && (
-          <View style={styles.evaluationContainer}>
-            <StarRating rating={item.evaluation} readonly />
-          </View>
-        )}
-
         {item.notes && (
           <Text variant="bodySmall" style={styles.notes}>
             Note: {item.notes}
           </Text>
+        )}
+
+        {item.evaluation && (
+          <View style={styles.evaluationContainer}>
+            <StarRating rating={item.evaluation} readonly />
+            {item.evaluationNotes && (
+              <Text variant="bodySmall" style={styles.evaluationNotes}>
+                {item.evaluationNotes}
+              </Text>
+            )}
+          </View>
         )}
       </Card.Content>
     </Card>
@@ -470,8 +475,11 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#eee',
-    flexDirection: 'row',
-    alignItems: 'center',
+  },
+  evaluationNotes: {
+    marginTop: 6,
+    color: '#666',
+    fontStyle: 'italic',
   },
   notes: {
     marginTop: 8,

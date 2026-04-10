@@ -111,6 +111,10 @@ export async function updateHomework(
     updateData.notes = deleteField();
   }
 
+  if ('evaluationNotes' in data && data.evaluationNotes === '') {
+    updateData.evaluationNotes = deleteField();
+  }
+
   if (data.status === 'completed') {
     updateData.completedAt = serverTimestamp();
   }

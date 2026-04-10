@@ -277,12 +277,21 @@ export default function ParentHomeworkScreen() {
           </Text>
         )}
 
-        {item.evaluation && <EvaluationDisplay evaluation={item.evaluation} />}
-
         {item.notes && (
           <Text variant="bodySmall" style={styles.notes}>
             Note: {item.notes}
           </Text>
+        )}
+
+        {item.evaluation && (
+          <>
+            <EvaluationDisplay evaluation={item.evaluation} />
+            {item.evaluationNotes && (
+              <Text variant="bodySmall" style={styles.evaluationNotes}>
+                {item.evaluationNotes}
+              </Text>
+            )}
+          </>
         )}
       </Card.Content>
     </Card>
@@ -417,6 +426,11 @@ const styles = StyleSheet.create({
   },
   notes: {
     marginTop: 8,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  evaluationNotes: {
+    marginTop: 6,
     color: '#666',
     fontStyle: 'italic',
   },
