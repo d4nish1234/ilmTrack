@@ -59,6 +59,7 @@
 ### 3.3 Delete Student
 - Delete a student — removed from class list
 - Confirm homework and attendance records for that student are also cleaned up
+- Delete student as owner teacher and co-teacher — linked parent no longer sees that student's homework or attendance.
 
 ### 3.4 Search Students
 - Search by first/last name — correct students returned
@@ -67,7 +68,7 @@
 ### 3.5 Test homework
 - Create a homework and attendance with main teacher and ensure co-teacher can evaluate that homework and view attendance
 - Create a homework and attendance with co teacher and ensure the main teacher can evaluate that homework and view attendance
-
+- Edit homework (title, due date, notes, status). Changes reflected immediately in teacher and parent views
 ---
 
 ## 4. Teacher — Homework
@@ -114,6 +115,9 @@
 ### 6.1 Invite Parent
 - Add parent email to a student — invite email sent
 - Parent's invite status shows "pending" until they sign in
+
+### 6.2 Update Parent Email
+- re-link one parent to another and existing homework and attendance visible to new parent. Parent should sees all historical records after being linked.
 
 ### 6.2 Remove Parent
 - Remove a parent from a student — they lose access to that student's data
