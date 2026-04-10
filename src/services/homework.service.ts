@@ -6,6 +6,7 @@ import {
   getDocs,
   updateDoc,
   deleteDoc,
+  deleteField,
   query,
   where,
   onSnapshot,
@@ -104,6 +105,10 @@ export async function updateHomework(
 
   if (data.dueDate) {
     updateData.dueDate = Timestamp.fromDate(data.dueDate);
+  }
+
+  if ('notes' in data && data.notes === '') {
+    updateData.notes = deleteField();
   }
 
   if (data.status === 'completed') {

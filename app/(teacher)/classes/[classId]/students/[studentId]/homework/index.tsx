@@ -199,18 +199,12 @@ export default function HomeworkListScreen() {
     if (!evaluationModalId || !selectedRating) return;
     try {
       const comment = evaluationComment.trim();
-      const updateData: { evaluation: HomeworkEvaluation; notes?: string } = {
-        evaluation: selectedRating,
-      };
-      if (comment) {
-        updateData.notes = comment;
-      }
-      await updateHomework(evaluationModalId, updateData);
+      await updateHomework(evaluationModalId, { evaluation: selectedRating, notes: comment });
       // Update local state
       setHomework((prev) =>
         prev.map((h) =>
           h.id === evaluationModalId
-            ? { ...h, evaluation: selectedRating, notes: comment || h.notes }
+            ? { ...h, evaluation: selectedRating, notes: comment || undefined }
             : h
         )
       );
