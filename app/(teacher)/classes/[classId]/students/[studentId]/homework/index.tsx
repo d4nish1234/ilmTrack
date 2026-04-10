@@ -171,6 +171,13 @@ export default function HomeworkListScreen() {
     }
   };
 
+  const handleEdit = (item: Homework) => {
+    closeMenu();
+    router.push(
+      `/(teacher)/classes/${classId}/students/${studentId}/homework/edit?homeworkId=${item.id}`
+    );
+  };
+
   const handleDelete = async (id: string) => {
     closeMenu();
     try {
@@ -253,6 +260,16 @@ export default function HomeworkListScreen() {
             }
           >
             <Menu.Item
+              title="Edit Homework"
+              onPress={() => handleEdit(item)}
+              leadingIcon="pencil"
+            />
+            <Menu.Item
+                title="Add Evaluation"
+                onPress={() => openEvaluationModal(item)}
+                leadingIcon="star"
+              />
+            <Menu.Item
               title="Mark Completed"
               onPress={() => handleStatusChange(item.id, 'completed')}
               leadingIcon="check"
@@ -266,11 +283,6 @@ export default function HomeworkListScreen() {
               title="Mark Late"
               onPress={() => handleStatusChange(item.id, 'late')}
               leadingIcon="clock-alert"
-            />
-            <Menu.Item
-              title="Add Evaluation"
-              onPress={() => openEvaluationModal(item)}
-              leadingIcon="star"
             />
             <Divider />
             <Menu.Item

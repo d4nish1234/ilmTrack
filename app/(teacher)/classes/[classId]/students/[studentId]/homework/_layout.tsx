@@ -37,6 +37,13 @@ export default function HomeworkLayout() {
           presentation: 'modal',
         }}
       />
+      <Stack.Screen
+        name="edit"
+        options={{
+          title: 'Edit Homework',
+          presentation: 'modal',
+        }}
+      />
     </Stack>
   );
 }
