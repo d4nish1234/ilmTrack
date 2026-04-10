@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, ScrollView, RefreshControl, Linking, Platform } from 'react-native';
+import { StyleSheet, View, ScrollView, RefreshControl, Linking, Platform, AppState } from 'react-native';
 import { Text, Card, Chip, IconButton } from 'react-native-paper';
 import { router } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
@@ -32,18 +32,33 @@ export default function ParentHomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [systemNotificationsDisabled, setSystemNotificationsDisabled] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [bannerReady, setBannerReady] = useState(false);
 
   // App-level notification preference
   const appNotificationsDisabled = user?.notificationsEnabled !== true;
 
   // Check system notification permission status
-  useEffect(() => {
-    const checkNotificationPermission = async () => {
-      const { status } = await Notifications.getPermissionsAsync();
-      setSystemNotificationsDisabled(status !== 'granted');
-    };
-    checkNotificationPermission();
+  const checkNotificationPermission = useCallback(async () => {
+    const { status } = await Notifications.getPermissionsAsync();
+    setSystemNotificationsDisabled(status !== 'granted');
   }, []);
+
+  // Delay banner display by 30 seconds so first-time users can grant permission
+  useEffect(() => {
+    checkNotificationPermission();
+    const timer = setTimeout(() => setBannerReady(true), 15000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Re-check permission when app returns to foreground (after user grants in system settings)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        checkNotificationPermission();
+      }
+    });
+    return () => subscription.remove();
+  }, [checkNotificationPermission]);
 
   const openSystemSettings = () => {
     if (Platform.OS === 'ios') {
@@ -58,8 +73,8 @@ export default function ParentHomeScreen() {
   };
 
   // Determine which banner to show (system takes priority)
-  const showSystemBanner = systemNotificationsDisabled && !bannerDismissed;
-  const showAppBanner = !systemNotificationsDisabled && appNotificationsDisabled && !bannerDismissed;
+  const showSystemBanner = bannerReady && systemNotificationsDisabled && !bannerDismissed;
+  const showAppBanner = bannerReady && !systemNotificationsDisabled && appNotificationsDisabled && !bannerDismissed;
 
   const fetchData = useCallback(async () => {
     if (!user?.studentIds?.length) {
