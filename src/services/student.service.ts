@@ -1,4 +1,4 @@
-import { firestore } from '../config/firebase';
+import { firestore, functions } from '../config/firebase';
 import {
   collection,
   doc,
@@ -14,6 +14,7 @@ import {
   arrayUnion,
   arrayRemove,
 } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { Student, CreateStudentData, UpdateStudentData, Parent, User } from '../types';
 import { incrementStudentCount, decrementStudentCount, getClass } from './class.service';
 import { unlinkAllParentsFromStudent } from '../utils/parentLinkCleanup';
@@ -252,44 +253,19 @@ export async function updateStudent(
 
 export async function deleteStudent(
   studentId: string,
-  classId: string,
-  teacherId: string
+  classId: string
 ): Promise<void> {
   // Remove studentId from all linked parents' user documents
   await unlinkAllParentsFromStudent(studentId);
 
-  // Delete all homework for this student (must include teacherId for rules)
-  const homeworkRef = collection(firestore, 'homework');
-  const homeworkQuery = query(
-    homeworkRef,
-    where('studentId', '==', studentId),
-    where('teacherId', '==', teacherId)
-  );
-  const homeworkSnapshot = await getDocs(homeworkQuery);
+  // Cloud Function handles deleting homework, attendance, and the student doc
+  // using Admin SDK (bypasses security rules — no teacherId filter needed)
+  const deleteStudentData = httpsCallable<
+    { studentId: string; classId: string },
+    { deletedHomework: number; deletedAttendance: number }
+  >(functions, 'deleteStudentData');
 
-  // Delete all attendance for this student (must include teacherId for rules)
-  const attendanceRef = collection(firestore, 'attendance');
-  const attendanceQuery = query(
-    attendanceRef,
-    where('studentId', '==', studentId),
-    where('teacherId', '==', teacherId)
-  );
-  const attendanceSnapshot = await getDocs(attendanceQuery);
-
-  const batch = writeBatch(firestore);
-
-  homeworkSnapshot.docs.forEach((docSnap) => {
-    batch.delete(docSnap.ref);
-  });
-
-  attendanceSnapshot.docs.forEach((docSnap) => {
-    batch.delete(docSnap.ref);
-  });
-
-  const studentDocRef = doc(firestore, 'students', studentId);
-  batch.delete(studentDocRef);
-
-  await batch.commit();
+  await deleteStudentData({ studentId, classId });
 
   // Decrement student count
   await decrementStudentCount(classId);

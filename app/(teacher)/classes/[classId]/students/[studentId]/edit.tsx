@@ -14,7 +14,6 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getStudent, updateStudent, deleteStudent } from '../../../../../../src/services/student.service';
-import { useAuth } from '../../../../../../src/contexts/AuthContext';
 import { Button, Input, LoadingSpinner, AppSnackbar } from '../../../../../../src/components/common';
 import { Student } from '../../../../../../src/types';
 
@@ -30,7 +29,6 @@ export default function EditStudentScreen() {
     classId: string;
     studentId: string;
   }>();
-  const { user } = useAuth();
   const [student, setStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -102,7 +100,7 @@ export default function EditStudentScreen() {
             if (!studentId || !classId) return;
             setDeleting(true);
             try {
-              await deleteStudent(studentId, classId, user!.uid);
+              await deleteStudent(studentId, classId);
               // Dismiss all stacked screens (student detail, etc.) to avoid
               // stale listeners on the deleted doc, then go to class detail
               router.dismissAll();

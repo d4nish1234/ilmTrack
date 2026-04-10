@@ -556,6 +556,72 @@ export const onTeacherRemoved = onDocumentUpdated(
 );
 
 /**
+ * HTTPS callable: delete a student and all their homework + attendance docs.
+ * Uses Admin SDK so security rules are bypassed — the caller just needs to be
+ * the class owner or an invited teacher.
+ */
+export const deleteStudentData = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Must be signed in');
+  }
+
+  const callerUid = request.auth.uid;
+  const studentId = request.data?.studentId as string | undefined;
+  const classId = request.data?.classId as string | undefined;
+
+  if (!studentId || !classId) {
+    throw new HttpsError('invalid-argument', 'studentId and classId are required');
+  }
+
+  // Verify the caller is the class owner or an accepted admin
+  const classDoc = await db.collection('classes').doc(classId).get();
+  if (!classDoc.exists) {
+    throw new HttpsError('not-found', 'Class not found');
+  }
+
+  const classData = classDoc.data()!;
+  const isOwner = classData.teacherId === callerUid;
+  const isAdmin = (classData.admins || []).some(
+    (a: { userId?: string; inviteStatus: string }) =>
+      a.userId === callerUid && a.inviteStatus === 'accepted'
+  );
+
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError('permission-denied', 'Not authorized to delete this student');
+  }
+
+  // Verify the student belongs to this class
+  const studentDoc = await db.collection('students').doc(studentId).get();
+  if (!studentDoc.exists) {
+    throw new HttpsError('not-found', 'Student not found');
+  }
+  if (studentDoc.data()!.classId !== classId) {
+    throw new HttpsError('invalid-argument', 'Student does not belong to this class');
+  }
+
+  // Delete all homework for this student (no teacherId filter — gets all teachers' records)
+  const homeworkSnapshot = await db.collection('homework')
+    .where('studentId', '==', studentId)
+    .get();
+
+  // Delete all attendance for this student
+  const attendanceSnapshot = await db.collection('attendance')
+    .where('studentId', '==', studentId)
+    .get();
+
+  const batch = db.batch();
+  homeworkSnapshot.docs.forEach((d) => batch.delete(d.ref));
+  attendanceSnapshot.docs.forEach((d) => batch.delete(d.ref));
+  batch.delete(db.collection('students').doc(studentId));
+  await batch.commit();
+
+  return {
+    deletedHomework: homeworkSnapshot.size,
+    deletedAttendance: attendanceSnapshot.size,
+  };
+});
+
+/**
  * HTTPS callable: accept all pending parent invites for the calling user's email.
  * Called directly from the client so linking is synchronous and doesn't depend
  * on the Firestore trigger firing.
