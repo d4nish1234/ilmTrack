@@ -82,7 +82,24 @@
 - Open homework item and set an evaluation (e.g. Excellent, Good, Needs Work)
 - Evaluation label shown on homework card
 
-### 4.3 Homework List
+### 4.3 Quran Mode (Surah/Ayah Title)
+- Open Add Homework for a student — tap `...` menu in header — "Quran Mode" option visible
+- Enable Quran Mode — title field replaced with From (Surah / Ayah) and To (Surah / Ayah) fields
+- Tap a Surah field — picker modal opens with full list of 114 surahs and a search bar
+- Search by surah name, Arabic name, or number — list filters correctly
+- Select a surah — picker closes, surah name shown in the field
+- Tap Ayah field (disabled until surah selected) — grid of ayah numbers shown for that surah
+- Select a "From" surah and ayah — "To" auto-fills to the next ayah (wraps to next surah at end)
+- Adjust "To" surah/ayah manually — change saved
+- Submit homework — title stored as readable string (e.g. "Al-Fatihah 1:1 - Al-Fatihah 1:7")
+- Parent sees the homework title as a normal concatenated string
+- Disable Quran Mode via `...` menu — title field reverts to free text, composed title remains editable
+- Quran Mode setting persists per student — re-opening Add Homework for the same student retains the toggle
+- Quick-add homework modal ("+" button on home screen) — same `...` menu and Quran Mode behavior
+- Edit Homework page — always shows free text title regardless of Quran Mode (no parsing back)
+- Older app versions without Quran Mode — homework title displays as plain text, no errors
+
+### 4.4 Homework List
 - Homework sorted by date (most recent first)
 - Load more pagination works — older records load on scroll/tap
 

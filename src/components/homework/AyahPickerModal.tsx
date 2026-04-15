@@ -1,6 +1,14 @@
 import React, { useMemo } from 'react';
-import { StyleSheet, View, FlatList, TouchableOpacity, Dimensions } from 'react-native';
-import { Text, Modal, Portal } from 'react-native-paper';
+import {
+  StyleSheet,
+  View,
+  FlatList,
+  TouchableOpacity,
+  Dimensions,
+  Modal,
+  TouchableWithoutFeedback,
+} from 'react-native';
+import { Text } from 'react-native-paper';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const NUM_COLUMNS = 5;
@@ -26,40 +34,54 @@ export function AyahPickerModal({
   );
 
   return (
-    <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={onDismiss}
-        contentContainerStyle={styles.modal}
-      >
-        <Text variant="titleLarge" style={styles.title}>Select Ayah</Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>{surahName}</Text>
-        <FlatList
-          data={ayahs}
-          keyExtractor={(item) => String(item)}
-          numColumns={NUM_COLUMNS}
-          style={styles.list}
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.ayahButton}
-              onPress={() => onSelect(item)}
-            >
-              <Text variant="bodyLarge" style={styles.ayahText}>{item}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      </Modal>
-    </Portal>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onDismiss}
+    >
+      <TouchableWithoutFeedback onPress={onDismiss}>
+        <View style={styles.backdrop}>
+          <TouchableWithoutFeedback>
+            <View style={styles.modalContent}>
+              <Text variant="titleLarge" style={styles.title}>Select Ayah</Text>
+              <Text variant="bodyMedium" style={styles.subtitle}>{surahName}</Text>
+              <FlatList
+                data={ayahs}
+                keyExtractor={(item) => String(item)}
+                numColumns={NUM_COLUMNS}
+                style={styles.list}
+                contentContainerStyle={styles.listContent}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.ayahButton}
+                    onPress={() => onSelect(item)}
+                  >
+                    <Text variant="bodyLarge" style={styles.ayahText}>{item}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  modal: {
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
     backgroundColor: '#fff',
     marginHorizontal: 16,
     borderRadius: 12,
     maxHeight: SCREEN_HEIGHT * 0.6,
+    width: '90%',
     overflow: 'hidden',
   },
   title: {

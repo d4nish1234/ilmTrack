@@ -9,6 +9,8 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   ScrollView,
+  Modal as RNModal,
+  Dimensions,
 } from 'react-native';
 import {
   Text,
@@ -75,8 +77,8 @@ export default function ClassesScreen() {
   // Quran mode state for homework modal
   const [hwQuranMode, setHwQuranMode] = useState(false);
   const [hwMenuVisible, setHwMenuVisible] = useState(false);
-  const [hwMenuKey, setHwMenuKey] = useState(0);
-  const lastHwMenuActionRef = useRef(0);
+  const [hwMenuPosition, setHwMenuPosition] = useState({ top: 0, right: 0 });
+  const hwMenuAnchorRef = useRef<View>(null);
   const [surahAyah, setSurahAyah] = useState<SurahAyahSelection>({
     fromSurah: null, fromAyah: null, toSurah: null, toAyah: null,
   });
@@ -262,15 +264,13 @@ export default function ClassesScreen() {
 
   // Swipe left: homework actions
   const openHwMenu = useCallback(() => {
-    const now = Date.now();
-    if (now - lastHwMenuActionRef.current < 300) return;
-    lastHwMenuActionRef.current = now;
-    setHwMenuKey((k) => k + 1);
-    setHwMenuVisible(true);
+    hwMenuAnchorRef.current?.measureInWindow((x, y, width, height) => {
+      setHwMenuPosition({ top: y + height, right: Dimensions.get('window').width - x - width });
+      setHwMenuVisible(true);
+    });
   }, []);
 
   const closeHwMenu = useCallback(() => {
-    lastHwMenuActionRef.current = Date.now();
     setHwMenuVisible(false);
   }, []);
 
@@ -753,24 +753,13 @@ export default function ClassesScreen() {
                     </Text>
                   )}
                 </View>
-                <Menu
-                  key={hwMenuKey}
-                  visible={hwMenuVisible}
-                  onDismiss={closeHwMenu}
-                  anchor={
-                    <IconButton
-                      icon="dots-vertical"
-                      size={24}
-                      onPress={openHwMenu}
-                    />
-                  }
-                >
-                  <Menu.Item
-                    title="Quran Mode"
-                    leadingIcon={hwQuranMode ? 'check' : undefined}
-                    onPress={toggleHwQuranMode}
+                <View ref={hwMenuAnchorRef}>
+                  <IconButton
+                    icon="dots-vertical"
+                    size={24}
+                    onPress={openHwMenu}
                   />
-                </Menu>
+                </View>
               </View>
 
               {hwQuranMode ? (
@@ -822,6 +811,31 @@ export default function ClassesScreen() {
           </TouchableWithoutFeedback>
         </Modal>
       </Portal>
+
+      {/* Quran Mode menu for homework modal */}
+      <RNModal
+        visible={hwMenuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeHwMenu}
+      >
+        <TouchableWithoutFeedback onPress={closeHwMenu}>
+          <View style={styles.hwMenuBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.hwMenuContent, { position: 'absolute', top: hwMenuPosition.top, right: hwMenuPosition.right }]}>
+                <TouchableOpacity style={styles.hwMenuItem} onPress={toggleHwQuranMode}>
+                  {hwQuranMode && (
+                    <IconButton icon="check" size={20} style={styles.hwMenuIcon} />
+                  )}
+                  <Text variant="bodyLarge" style={[styles.hwMenuText, !hwQuranMode && styles.hwMenuTextNoIcon]}>
+                    Quran Mode
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </RNModal>
 
       {/* Evaluate Homework Modal */}
       <Portal>
@@ -1208,5 +1222,36 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     marginTop: 16,
+  },
+  hwMenuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  hwMenuContent: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingVertical: 4,
+    minWidth: 180,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  hwMenuItem: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  hwMenuIcon: {
+    margin: 0,
+    marginRight: 4,
+  },
+  hwMenuText: {
+    fontSize: 16,
+  },
+  hwMenuTextNoIcon: {
+    paddingLeft: 8,
   },
 });

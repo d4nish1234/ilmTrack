@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { StyleSheet, View, KeyboardAvoidingView, Platform, ScrollView, Modal as RNModal, TouchableOpacity, TouchableWithoutFeedback, Dimensions } from 'react-native';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { IconButton, Menu } from 'react-native-paper';
+import { IconButton, Text } from 'react-native-paper';
 import { useAuth } from '../../../../../../../src/contexts/AuthContext';
 import { createHomework } from '../../../../../../../src/services/homework.service';
 import { getStudent, getInvitedTeacherIds, updateStudentSurahAyahMode } from '../../../../../../../src/services/student.service';
@@ -35,7 +35,8 @@ export default function AddHomeworkScreen() {
 
   // Menu state
   const [menuVisible, setMenuVisible] = useState(false);
-  const [menuKey, setMenuKey] = useState(0);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+  const menuAnchorRef = useRef<View>(null);
   const lastMenuActionRef = useRef(0);
 
   // Quran Mode state
@@ -71,8 +72,10 @@ export default function AddHomeworkScreen() {
     const now = Date.now();
     if (now - lastMenuActionRef.current < MENU_DEBOUNCE_MS) return;
     lastMenuActionRef.current = now;
-    setMenuKey((k) => k + 1);
-    setMenuVisible(true);
+    menuAnchorRef.current?.measureInWindow((x, y, width, height) => {
+      setMenuPosition({ top: y + height, right: Dimensions.get('window').width - x - width });
+      setMenuVisible(true);
+    });
   }, []);
 
   const closeMenu = useCallback(() => {
@@ -137,28 +140,42 @@ export default function AddHomeworkScreen() {
       <Stack.Screen
         options={{
           headerRight: () => (
-            <Menu
-              key={menuKey}
-              visible={menuVisible}
-              onDismiss={closeMenu}
-              anchor={
-                <IconButton
-                  icon="dots-vertical"
-                  iconColor="#fff"
-                  size={24}
-                  onPress={openMenu}
-                />
-              }
-            >
-              <Menu.Item
-                title="Quran Mode"
-                leadingIcon={quranMode ? 'check' : undefined}
-                onPress={toggleQuranMode}
+            <View ref={menuAnchorRef}>
+              <IconButton
+                icon="dots-vertical"
+                iconColor="#fff"
+                size={24}
+                onPress={openMenu}
+                style={styles.headerButton}
               />
-            </Menu>
+            </View>
           ),
         }}
       />
+
+      <RNModal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeMenu}
+      >
+        <TouchableWithoutFeedback onPress={closeMenu}>
+          <View style={styles.menuBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.menuContent, { position: 'absolute', top: menuPosition.top, right: menuPosition.right }]}>
+                <TouchableOpacity style={styles.menuItem} onPress={toggleQuranMode}>
+                  {quranMode && (
+                    <IconButton icon="check" size={20} style={styles.menuIcon} />
+                  )}
+                  <Text variant="bodyLarge" style={[styles.menuText, !quranMode && styles.menuTextNoIcon]}>
+                    Quran Mode
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </RNModal>
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -231,5 +248,39 @@ const styles = StyleSheet.create({
   },
   actions: {
     marginTop: 16,
+  },
+  headerButton: {
+    margin: 0,
+  },
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  menuContent: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingVertical: 4,
+    minWidth: 180,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  menuItem: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  menuIcon: {
+    margin: 0,
+    marginRight: 4,
+  },
+  menuText: {
+    fontSize: 16,
+  },
+  menuTextNoIcon: {
+    paddingLeft: 8,
   },
 });

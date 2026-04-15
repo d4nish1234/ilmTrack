@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   field: {
     flex: 3,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#79747E',
     borderRadius: 4,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -215,17 +215,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   fieldDisabled: {
-    opacity: 0.5,
+    borderColor: '#ccc',
+    backgroundColor: '#fafafa',
   },
   fieldLabel: {
-    color: '#666',
+    color: '#49454F',
+    fontSize: 11,
     marginBottom: 2,
   },
   fieldValue: {
     fontWeight: '500',
+    color: '#1C1B1F',
   },
   placeholder: {
-    color: '#999',
+    color: '#79747E',
     fontWeight: '400',
   },
 });

@@ -1,6 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { StyleSheet, View, FlatList, TouchableOpacity, Dimensions } from 'react-native';
-import { Text, Modal, Portal, Searchbar } from 'react-native-paper';
+import {
+  StyleSheet,
+  View,
+  FlatList,
+  TouchableOpacity,
+  Dimensions,
+  Modal,
+  TouchableWithoutFeedback,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { Text, Searchbar } from 'react-native-paper';
 import { QURAN_SURAHS, Surah } from '../../data/quranSurahs';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -51,44 +61,61 @@ export function SurahPickerModal({ visible, onDismiss, onSelect }: SurahPickerMo
   );
 
   return (
-    <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={handleDismiss}
-        contentContainerStyle={styles.modal}
-      >
-        <Text variant="titleLarge" style={styles.title}>Select Surah</Text>
-        <Searchbar
-          placeholder="Search by name or number..."
-          value={search}
-          onChangeText={setSearch}
-          style={styles.searchbar}
-          inputStyle={styles.searchInput}
-        />
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => String(item.number)}
-          renderItem={renderItem}
-          style={styles.list}
-          keyboardShouldPersistTaps="handled"
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text variant="bodyMedium" style={styles.emptyText}>No surahs found</Text>
-            </View>
-          }
-        />
-      </Modal>
-    </Portal>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={handleDismiss}
+    >
+      <TouchableWithoutFeedback onPress={handleDismiss}>
+        <View style={styles.backdrop}>
+          <TouchableWithoutFeedback>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              style={styles.modalContent}
+            >
+              <Text variant="titleLarge" style={styles.title}>Select Surah</Text>
+              <Searchbar
+                placeholder="Search by name or number..."
+                value={search}
+                onChangeText={setSearch}
+                style={styles.searchbar}
+                inputStyle={styles.searchInput}
+              />
+              <FlatList
+                data={filtered}
+                keyExtractor={(item) => String(item.number)}
+                renderItem={renderItem}
+                style={styles.list}
+                keyboardShouldPersistTaps="handled"
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
+                ListEmptyComponent={
+                  <View style={styles.empty}>
+                    <Text variant="bodyMedium" style={styles.emptyText}>No surahs found</Text>
+                  </View>
+                }
+              />
+            </KeyboardAvoidingView>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  modal: {
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
     backgroundColor: '#fff',
     marginHorizontal: 16,
     borderRadius: 12,
     maxHeight: SCREEN_HEIGHT * 0.7,
+    width: '90%',
     overflow: 'hidden',
   },
   title: {
