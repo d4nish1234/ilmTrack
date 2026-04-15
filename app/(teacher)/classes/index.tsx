@@ -41,7 +41,8 @@ import {
   getRecentPendingHomeworkAsTeacher,
   updateHomework,
 } from '../../../src/services/homework.service';
-import { getInvitedTeacherIds } from '../../../src/services/student.service';
+import { getInvitedTeacherIds, updateStudentSurahAyahMode } from '../../../src/services/student.service';
+import { SurahAyahInput, SurahAyahSelection } from '../../../src/components/homework/SurahAyahInput';
 import { format } from 'date-fns';
 
 interface TodayAttendance {
@@ -70,6 +71,15 @@ export default function ClassesScreen() {
   const [homeworkTitle, setHomeworkTitle] = useState('');
   const [homeworkDescription, setHomeworkDescription] = useState('');
   const [submittingHomework, setSubmittingHomework] = useState(false);
+
+  // Quran mode state for homework modal
+  const [hwQuranMode, setHwQuranMode] = useState(false);
+  const [hwMenuVisible, setHwMenuVisible] = useState(false);
+  const [hwMenuKey, setHwMenuKey] = useState(0);
+  const lastHwMenuActionRef = useRef(0);
+  const [surahAyah, setSurahAyah] = useState<SurahAyahSelection>({
+    fromSurah: null, fromAyah: null, toSurah: null, toAyah: null,
+  });
 
   // Evaluate modal state
   const [evaluateModalVisible, setEvaluateModalVisible] = useState(false);
@@ -251,10 +261,41 @@ export default function ClassesScreen() {
   };
 
   // Swipe left: homework actions
+  const openHwMenu = useCallback(() => {
+    const now = Date.now();
+    if (now - lastHwMenuActionRef.current < 300) return;
+    lastHwMenuActionRef.current = now;
+    setHwMenuKey((k) => k + 1);
+    setHwMenuVisible(true);
+  }, []);
+
+  const closeHwMenu = useCallback(() => {
+    lastHwMenuActionRef.current = Date.now();
+    setHwMenuVisible(false);
+  }, []);
+
+  const toggleHwQuranMode = async () => {
+    closeHwMenu();
+    const newMode = !hwQuranMode;
+    setHwQuranMode(newMode);
+    if (selectedStudent) {
+      try {
+        await updateStudentSurahAyahMode(selectedStudent.id, newMode);
+      } catch (err) {
+        console.error('Failed to update Quran mode:', err);
+      }
+    }
+    if (newMode) {
+      setSurahAyah({ fromSurah: null, fromAyah: null, toSurah: null, toAyah: null });
+    }
+  };
+
   const handleOpenNewHomework = (student: Student) => {
     setSelectedStudent(student);
     setHomeworkTitle('');
     setHomeworkDescription('');
+    setHwQuranMode(!!student.surahAyahMode);
+    setSurahAyah({ fromSurah: null, fromAyah: null, toSurah: null, toAyah: null });
     setHomeworkModalVisible(true);
     swipeableRefs.current.get(student.id)?.close();
   };
@@ -701,23 +742,53 @@ export default function ClassesScreen() {
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View>
-              <Text variant="titleLarge" style={styles.modalTitle}>
-                Assign Homework
-              </Text>
-              {selectedStudent && (
-                <Text variant="bodyMedium" style={styles.modalSubtitle}>
-                  For: {selectedStudent.firstName} {selectedStudent.lastName}
-                </Text>
-              )}
+              <View style={styles.modalTitleRow}>
+                <View style={styles.modalTitleContent}>
+                  <Text variant="titleLarge" style={styles.modalTitle}>
+                    Assign Homework
+                  </Text>
+                  {selectedStudent && (
+                    <Text variant="bodyMedium" style={styles.modalSubtitle}>
+                      For: {selectedStudent.firstName} {selectedStudent.lastName}
+                    </Text>
+                  )}
+                </View>
+                <Menu
+                  key={hwMenuKey}
+                  visible={hwMenuVisible}
+                  onDismiss={closeHwMenu}
+                  anchor={
+                    <IconButton
+                      icon="dots-vertical"
+                      size={24}
+                      onPress={openHwMenu}
+                    />
+                  }
+                >
+                  <Menu.Item
+                    title="Quran Mode"
+                    leadingIcon={hwQuranMode ? 'check' : undefined}
+                    onPress={toggleHwQuranMode}
+                  />
+                </Menu>
+              </View>
 
-              <TextInput
-                label="Title *"
-                value={homeworkTitle}
-                onChangeText={setHomeworkTitle}
-                mode="outlined"
-                style={styles.input}
-                returnKeyType="done"
-              />
+              {hwQuranMode ? (
+                <SurahAyahInput
+                  value={surahAyah}
+                  onChange={setSurahAyah}
+                  onTitleChange={setHomeworkTitle}
+                />
+              ) : (
+                <TextInput
+                  label="Title *"
+                  value={homeworkTitle}
+                  onChangeText={setHomeworkTitle}
+                  mode="outlined"
+                  style={styles.input}
+                  returnKeyType="done"
+                />
+              )}
 
               <TextInput
                 label="Description (optional)"
@@ -1021,13 +1092,21 @@ const styles = StyleSheet.create({
     elevation: 24,
     zIndex: 1000,
   },
+  modalTitleRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    justifyContent: 'space-between' as const,
+    marginBottom: 8,
+  },
+  modalTitleContent: {
+    flex: 1,
+  },
   modalTitle: {
     fontWeight: '600',
     marginBottom: 4,
   },
   modalSubtitle: {
     color: '#666',
-    marginBottom: 16,
   },
   input: {
     marginBottom: 12,

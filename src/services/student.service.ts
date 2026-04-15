@@ -212,6 +212,17 @@ export async function backfillParentUserIds(
   await backfill({ studentId, addedParentUserIds, removedParentUserIds });
 }
 
+export async function updateStudentSurahAyahMode(
+  studentId: string,
+  enabled: boolean
+): Promise<void> {
+  const docRef = doc(firestore, 'students', studentId);
+  await updateDoc(docRef, {
+    surahAyahMode: enabled,
+    updatedAt: serverTimestamp(),
+  });
+}
+
 export async function updateStudent(
   studentId: string,
   data: UpdateStudentData

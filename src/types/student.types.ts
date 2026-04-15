@@ -20,6 +20,7 @@ export interface Student {
   parents: Parent[];
   parentUserIds?: string[];
   invitedTeacherIds?: string[];
+  surahAyahMode?: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { IconButton, Menu } from 'react-native-paper';
 import { useAuth } from '../../../../../../../src/contexts/AuthContext';
 import { createHomework } from '../../../../../../../src/services/homework.service';
-import { getStudent, getInvitedTeacherIds } from '../../../../../../../src/services/student.service';
+import { getStudent, getInvitedTeacherIds, updateStudentSurahAyahMode } from '../../../../../../../src/services/student.service';
 import { Button, Input, AppSnackbar } from '../../../../../../../src/components/common';
+import { SurahAyahInput, SurahAyahSelection } from '../../../../../../../src/components/homework/SurahAyahInput';
 import { Student } from '../../../../../../../src/types';
 
 const schema = yup.object({
@@ -18,6 +20,8 @@ const schema = yup.object({
 });
 
 type FormData = yup.InferType<typeof schema>;
+
+const MENU_DEBOUNCE_MS = 300;
 
 export default function AddHomeworkScreen() {
   const { classId, studentId } = useLocalSearchParams<{
@@ -29,13 +33,32 @@ export default function AddHomeworkScreen() {
   const [error, setError] = useState<string | null>(null);
   const [student, setStudent] = useState<Student | null>(null);
 
+  // Menu state
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuKey, setMenuKey] = useState(0);
+  const lastMenuActionRef = useRef(0);
+
+  // Quran Mode state
+  const [quranMode, setQuranMode] = useState(false);
+  const [surahAyah, setSurahAyah] = useState<SurahAyahSelection>({
+    fromSurah: null,
+    fromAyah: null,
+    toSurah: null,
+    toAyah: null,
+  });
+
   useEffect(() => {
     if (studentId) {
-      getStudent(studentId).then(setStudent);
+      getStudent(studentId).then((s) => {
+        setStudent(s);
+        if (s?.surahAyahMode) {
+          setQuranMode(true);
+        }
+      });
     }
   }, [studentId]);
 
-  const { control, handleSubmit } = useForm<FormData>({
+  const { control, handleSubmit, setValue } = useForm<FormData>({
     resolver: yupResolver(schema),
     defaultValues: {
       title: '',
@@ -43,6 +66,49 @@ export default function AddHomeworkScreen() {
       notes: '',
     },
   });
+
+  const openMenu = useCallback(() => {
+    const now = Date.now();
+    if (now - lastMenuActionRef.current < MENU_DEBOUNCE_MS) return;
+    lastMenuActionRef.current = now;
+    setMenuKey((k) => k + 1);
+    setMenuVisible(true);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    lastMenuActionRef.current = Date.now();
+    setMenuVisible(false);
+  }, []);
+
+  const toggleQuranMode = async () => {
+    closeMenu();
+    const newMode = !quranMode;
+    setQuranMode(newMode);
+
+    // Persist setting to student doc
+    if (studentId) {
+      try {
+        await updateStudentSurahAyahMode(studentId, newMode);
+      } catch (err) {
+        console.error('Failed to update Quran mode:', err);
+      }
+    }
+
+    // If disabling, the composed title stays in the title field as free text
+    // If enabling, reset surah/ayah selection
+    if (newMode) {
+      setSurahAyah({
+        fromSurah: null,
+        fromAyah: null,
+        toSurah: null,
+        toAyah: null,
+      });
+    }
+  };
+
+  const handleSurahTitleChange = (title: string) => {
+    setValue('title', title);
+  };
 
   const onSubmit = async (data: FormData) => {
     if (!classId || !studentId || !user) return;
@@ -68,6 +134,31 @@ export default function AddHomeworkScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Menu
+              key={menuKey}
+              visible={menuVisible}
+              onDismiss={closeMenu}
+              anchor={
+                <IconButton
+                  icon="dots-vertical"
+                  iconColor="#fff"
+                  size={24}
+                  onPress={openMenu}
+                />
+              }
+            >
+              <Menu.Item
+                title="Quran Mode"
+                leadingIcon={quranMode ? 'check' : undefined}
+                onPress={toggleQuranMode}
+              />
+            </Menu>
+          ),
+        }}
+      />
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -77,12 +168,20 @@ export default function AddHomeworkScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
-          <Input
-            control={control}
-            name="title"
-            label="Title"
-            placeholder="e.g., Chapter 5 Exercises"
-          />
+          {quranMode ? (
+            <SurahAyahInput
+              value={surahAyah}
+              onChange={setSurahAyah}
+              onTitleChange={handleSurahTitleChange}
+            />
+          ) : (
+            <Input
+              control={control}
+              name="title"
+              label="Title"
+              placeholder="e.g., Chapter 5 Exercises"
+            />
+          )}
 
           <Input
             control={control}
