@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, View, ScrollView, useWindowDimensions } from 'react-native';
-import { Text, Card, Chip, IconButton, Menu, Portal } from 'react-native-paper';
+import { StyleSheet, View, ScrollView } from 'react-native';
+import { Text, Card, Chip, IconButton, Menu } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { subscribeToStudent, getUserById } from '../../../../../../src/services/student.service';
 import { subscribeToHomeworkAsTeacher } from '../../../../../../src/services/homework.service';
@@ -23,7 +23,6 @@ export default function StudentDetailScreen() {
     studentId: string;
   }>();
   const { user } = useAuth();
-  const { width: windowWidth } = useWindowDimensions();
   const [student, setStudent] = useState<Student | null>(null);
   const [parentDisplayInfo, setParentDisplayInfo] = useState<ParentDisplayInfo[]>([]);
   const [recentHomework, setRecentHomework] = useState<Homework[]>([]);
@@ -170,37 +169,33 @@ export default function StudentDetailScreen() {
             />
           ),
           headerRight: () => (
-            <IconButton
-              icon="dots-vertical"
-              iconColor="#fff"
-              size={24}
-              onPress={openMenu}
-              style={styles.headerButton}
-            />
+            <Menu
+              key={menuKey}
+              visible={menuVisible}
+              onDismiss={closeMenu}
+              anchor={
+                <IconButton
+                  icon="dots-vertical"
+                  iconColor="#fff"
+                  size={24}
+                  onPress={openMenu}
+                  style={styles.headerButton}
+                />
+              }
+              contentStyle={styles.menuContent}
+            >
+              <Menu.Item
+                onPress={() => {
+                  closeMenu();
+                  router.push(`/(teacher)/classes/${classId}/students/${studentId}/edit`);
+                }}
+                title="Edit Student"
+                leadingIcon="pencil"
+              />
+            </Menu>
           ),
         }}
       />
-
-      {/* Menu rendered with Portal for proper z-index */}
-      <Portal>
-        <Menu
-          key={menuKey}
-          visible={menuVisible}
-          onDismiss={closeMenu}
-          anchor={{ x: windowWidth - 16, y: 56 }}
-          anchorPosition="bottom"
-          contentStyle={styles.menuContent}
-        >
-          <Menu.Item
-            onPress={() => {
-              closeMenu();
-              router.push(`/(teacher)/classes/${classId}/students/${studentId}/edit`);
-            }}
-            title="Edit Student"
-            leadingIcon="pencil"
-          />
-        </Menu>
-      </Portal>
 
       <ScrollView style={styles.container}>
         {/* Quick Actions */}

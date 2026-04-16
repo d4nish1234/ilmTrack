@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
   ScrollView,
   TouchableOpacity,
   Alert,
-  Share,
   Modal,
 } from 'react-native';
 import {
@@ -16,9 +15,12 @@ import {
 } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { useAuth } from '../../../../src/contexts/AuthContext';
 import { getClass } from '../../../../src/services/class.service';
 import { Button } from '../../../../src/components/common';
+import ReportModal, { ReportColumn, ReportRow } from '../../../../src/components/reports/ReportModal';
 import { firestore } from '../../../../src/config/firebase';
 import {
   collection,
@@ -43,9 +45,46 @@ import {
   Student,
   Attendance,
   Homework,
-  EVALUATION_LABELS,
-  HomeworkEvaluation,
 } from '../../../../src/types';
+import {
+  computeStudentSummaries,
+  generateSummaryHtml,
+  buildAttendanceRows,
+  generateAttendanceHtml,
+  buildHomeworkRows,
+  generateHomeworkHtml,
+} from '../../../../src/utils/reportUtils';
+
+const ATTENDANCE_COLUMNS: ReportColumn[] = [
+  { key: 'date', label: 'Date', width: 100, align: 'left' },
+  { key: 'student', label: 'Student', width: 130, align: 'left' },
+  { key: 'status', label: 'Status', width: 80 },
+  { key: 'notes', label: 'Notes', width: 160, align: 'left' },
+];
+
+const HOMEWORK_COLUMNS: ReportColumn[] = [
+  { key: 'date', label: 'Date', width: 100, align: 'left' },
+  { key: 'student', label: 'Student', width: 120, align: 'left' },
+  { key: 'title', label: 'Title', width: 120, align: 'left' },
+  { key: 'status', label: 'Status', width: 85 },
+  { key: 'evaluation', label: 'Evaluation', width: 90 },
+  { key: 'description', label: 'Description', width: 150, align: 'left' },
+  { key: 'notes', label: 'Notes', width: 130, align: 'left' },
+];
+
+const SUMMARY_COLUMNS: ReportColumn[] = [
+  { key: 'studentName', label: 'Student', width: 120, align: 'left' },
+  { key: 'totalStars', label: 'Total Stars', width: 75 },
+  { key: 'averageStars', label: 'Avg Stars', width: 75 },
+  { key: 'totalPresent', label: 'Present', width: 65 },
+  { key: 'totalAbsent', label: 'Absent', width: 65 },
+  { key: 'attendancePercent', label: 'Attend. %', width: 75 },
+  { key: 'totalHomework', label: 'Total HW', width: 70 },
+  { key: 'completedHomework', label: 'Completed', width: 80 },
+  { key: 'lateHomework', label: 'Late', width: 55 },
+  { key: 'incompleteHomework', label: 'Incomplete', width: 85 },
+  { key: 'assignedHomework', label: 'Assigned', width: 75 },
+];
 
 export default function ReportsScreen() {
   const { classId } = useLocalSearchParams<{ classId: string }>();
@@ -57,6 +96,14 @@ export default function ReportsScreen() {
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [exporting, setExporting] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  // Report modal state
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportTitle, setReportTitle] = useState('');
+  const [reportColumns, setReportColumns] = useState<ReportColumn[]>([]);
+  const [reportRows, setReportRows] = useState<ReportRow[]>([]);
+  const htmlGeneratorRef = useRef<(() => string) | null>(null);
 
   useEffect(() => {
     if (classId) {
@@ -67,7 +114,6 @@ export default function ReportsScreen() {
   const handleDateSelect = (date: Date, isStart: boolean) => {
     if (isStart) {
       setStartDate(date);
-      // If start is after end, adjust end
       if (date > endDate) {
         setEndDate(date);
       }
@@ -79,6 +125,7 @@ export default function ReportsScreen() {
   };
 
   const isOwner = classData?.teacherId === user?.uid;
+  const dateRangeLabel = `${format(startDate, 'MMM d, yyyy')} - ${format(endDate, 'MMM d, yyyy')}`;
 
   const fetchStudents = async (): Promise<Student[]> => {
     const studentsRef = collection(firestore, 'students');
@@ -92,16 +139,13 @@ export default function ReportsScreen() {
     })) as Student[];
   };
 
-  const fetchAttendance = async (
-    studentIds: string[]
-  ): Promise<Attendance[]> => {
+  const fetchAttendance = async (studentIds: string[]): Promise<Attendance[]> => {
     if (studentIds.length === 0) return [];
 
     const start = startOfDay(startDate).getTime();
     const end = endOfDay(endDate).getTime();
     const studentIdSet = new Set(studentIds);
 
-    // Query with security filter, filter by studentIds and date client-side
     const attendanceRef = collection(firestore, 'attendance');
     const q = query(attendanceRef, where('classId', '==', classId), where('invitedTeacherIds', 'array-contains', user?.uid));
 
@@ -122,7 +166,6 @@ export default function ReportsScreen() {
     const end = endOfDay(endDate).getTime();
     const studentIdSet = new Set(studentIds);
 
-    // Query with security filter, filter by studentIds and date client-side
     const homeworkRef = collection(firestore, 'homework');
     const q = isOwner
       ? query(homeworkRef, where('classId', '==', classId), where('teacherId', '==', user?.uid))
@@ -138,108 +181,124 @@ export default function ReportsScreen() {
       });
   };
 
-  const exportAttendance = async () => {
+  const openReportModal = (
+    title: string,
+    columns: ReportColumn[],
+    rows: ReportRow[],
+    htmlGenerator: () => string
+  ) => {
+    setReportTitle(title);
+    setReportColumns(columns);
+    setReportRows(rows);
+    htmlGeneratorRef.current = htmlGenerator;
+    setShowReportModal(true);
+  };
+
+  const handleExportPdf = async () => {
+    if (!htmlGeneratorRef.current) return;
+    setPdfLoading(true);
+    try {
+      const html = htmlGeneratorRef.current();
+      const { uri } = await Print.printToFileAsync({
+        html,
+        width: 842,
+        height: 595,
+      });
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `${reportTitle}`,
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        await Print.printAsync({ html });
+      }
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      Alert.alert('Error', 'Failed to export PDF');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const handleAttendanceReport = async () => {
     setExporting(true);
     try {
       const students = await fetchStudents();
       const attendance = await fetchAttendance(students.map((s) => s.id));
-
-      // Create student lookup
       const studentMap = new Map(
         students.map((s) => [s.id, `${s.firstName} ${s.lastName}`])
       );
+      const rows = buildAttendanceRows(attendance, studentMap);
+      const className = classData?.name || 'Class';
 
-      // Sort attendance by date
-      attendance.sort((a, b) => {
-        const aDate = a.date?.toDate().getTime() || 0;
-        const bDate = b.date?.toDate().getTime() || 0;
-        return aDate - bDate;
-      });
-
-      // Generate CSV
-      const headers = ['Date', 'Student', 'Status', 'Notes'];
-      const rows = attendance.map((a) => [
-        a.date ? format(a.date.toDate(), 'yyyy-MM-dd') : '',
-        studentMap.get(a.studentId) || 'Unknown',
-        a.status,
-        a.notes || '',
-      ]);
-
-      const csv = [
-        headers.join(','),
-        ...rows.map((row) =>
-          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-        ),
-      ].join('\n');
-
-      // Share the CSV
-      await Share.share({
-        message: csv,
-        title: `${classData?.name || 'Class'} Attendance Report`,
-      });
+      openReportModal(
+        `${className} - Attendance Report`,
+        ATTENDANCE_COLUMNS,
+        rows,
+        () => generateAttendanceHtml(rows, className, startDate, endDate)
+      );
     } catch (error) {
-      console.error('Error exporting attendance:', error);
-      Alert.alert('Error', 'Failed to export attendance data');
+      console.error('Error generating attendance report:', error);
+      Alert.alert('Error', 'Failed to generate attendance report');
     } finally {
       setExporting(false);
     }
   };
 
-  const exportHomework = async () => {
+  const handleHomeworkReport = async () => {
     setExporting(true);
     try {
       const students = await fetchStudents();
       const homework = await fetchHomework(students.map((s) => s.id));
-
-      // Create student lookup
       const studentMap = new Map(
         students.map((s) => [s.id, `${s.firstName} ${s.lastName}`])
       );
+      const rows = buildHomeworkRows(homework, studentMap);
+      const className = classData?.name || 'Class';
 
-      // Sort homework by date
-      homework.sort((a, b) => {
-        const aDate = a.createdAt?.toDate().getTime() || 0;
-        const bDate = b.createdAt?.toDate().getTime() || 0;
-        return aDate - bDate;
-      });
-
-      // Generate CSV
-      const headers = [
-        'Date',
-        'Student',
-        'Title',
-        'Status',
-        'Evaluation',
-        'Description',
-        'Notes',
-      ];
-      const rows = homework.map((h) => [
-        h.createdAt ? format(h.createdAt.toDate(), 'yyyy-MM-dd') : '',
-        studentMap.get(h.studentId) || 'Unknown',
-        h.title,
-        h.status,
-        h.evaluation
-          ? EVALUATION_LABELS[h.evaluation as HomeworkEvaluation]
-          : '',
-        h.description || '',
-        h.notes || '',
-      ]);
-
-      const csv = [
-        headers.join(','),
-        ...rows.map((row) =>
-          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-        ),
-      ].join('\n');
-
-      // Share the CSV
-      await Share.share({
-        message: csv,
-        title: `${classData?.name || 'Class'} Homework Report`,
-      });
+      openReportModal(
+        `${className} - Homework Report`,
+        HOMEWORK_COLUMNS,
+        rows,
+        () => generateHomeworkHtml(rows, className, startDate, endDate)
+      );
     } catch (error) {
-      console.error('Error exporting homework:', error);
-      Alert.alert('Error', 'Failed to export homework data');
+      console.error('Error generating homework report:', error);
+      Alert.alert('Error', 'Failed to generate homework report');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleSummaryReport = async () => {
+    setExporting(true);
+    try {
+      const students = await fetchStudents();
+      const studentIds = students.map((s) => s.id);
+      const [attendance, homework] = await Promise.all([
+        fetchAttendance(studentIds),
+        fetchHomework(studentIds),
+      ]);
+      const summaries = computeStudentSummaries(students, attendance, homework);
+      const className = classData?.name || 'Class';
+
+      // Add % suffix to attendancePercent for display
+      const rows = summaries.map((s) => ({
+        ...s,
+        attendancePercent: `${s.attendancePercent}%`,
+      }));
+
+      openReportModal(
+        `${className} - Class Summary`,
+        SUMMARY_COLUMNS,
+        rows,
+        () => generateSummaryHtml(summaries, className, startDate, endDate)
+      );
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      Alert.alert('Error', 'Failed to generate class summary');
     } finally {
       setExporting(false);
     }
@@ -386,7 +445,7 @@ export default function ReportsScreen() {
           <View style={styles.exportButtons}>
             <TouchableOpacity
               style={styles.exportCard}
-              onPress={exportAttendance}
+              onPress={handleAttendanceReport}
               disabled={exporting}
             >
               <IconButton icon="calendar-check" size={32} />
@@ -400,7 +459,7 @@ export default function ReportsScreen() {
 
             <TouchableOpacity
               style={styles.exportCard}
-              onPress={exportHomework}
+              onPress={handleHomeworkReport}
               disabled={exporting}
             >
               <IconButton icon="book-open-variant" size={32} />
@@ -409,6 +468,20 @@ export default function ReportsScreen() {
               </Text>
               <Text variant="bodySmall" style={styles.exportDescription}>
                 Export all homework records with evaluations
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.exportCard}
+              onPress={handleSummaryReport}
+              disabled={exporting}
+            >
+              <IconButton icon="clipboard-text-outline" size={32} />
+              <Text variant="titleSmall" style={styles.exportTitle}>
+                Class Summary
+              </Text>
+              <Text variant="bodySmall" style={styles.exportDescription}>
+                Per-student stats: stars, attendance, homework
               </Text>
             </TouchableOpacity>
           </View>
@@ -471,6 +544,18 @@ export default function ReportsScreen() {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      {/* Report Modal (used for all three reports) */}
+      <ReportModal
+        visible={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        onExportPdf={handleExportPdf}
+        title={reportTitle}
+        dateRange={dateRangeLabel}
+        columns={reportColumns}
+        rows={reportRows}
+        pdfLoading={pdfLoading}
+      />
     </>
   );
 }
