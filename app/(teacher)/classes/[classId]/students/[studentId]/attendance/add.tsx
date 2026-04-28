@@ -7,12 +7,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Modal,
 } from 'react-native';
 import {
   Text,
   SegmentedButtons,
-  Portal,
-  Modal,
   IconButton,
 } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -320,21 +319,30 @@ export default function AddAttendanceScreen() {
       </KeyboardAvoidingView>
 
       {/* Date Picker Modal */}
-      <Portal>
-        <Modal
-          visible={showDatePicker}
-          onDismiss={() => setShowDatePicker(false)}
-          contentContainerStyle={styles.modalContainer}
+      <Modal
+        visible={showDatePicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDatePicker(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowDatePicker(false)}
         >
-          <Text variant="titleLarge" style={styles.modalTitle}>
-            Select Date
-          </Text>
-          {renderCalendar()}
-          <Button mode="outlined" onPress={() => setShowDatePicker(false)}>
-            Cancel
-          </Button>
-        </Modal>
-      </Portal>
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            <View style={styles.modalContainer}>
+              <Text variant="titleLarge" style={styles.modalTitle}>
+                Select Date
+              </Text>
+              {renderCalendar()}
+              <Button mode="outlined" onPress={() => setShowDatePicker(false)}>
+                Cancel
+              </Button>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       <AppSnackbar message={error} onDismiss={() => setError(null)} />
     </SafeAreaView>
@@ -401,13 +409,18 @@ const styles = StyleSheet.create({
   actions: {
     marginTop: 16,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   modalContainer: {
     backgroundColor: '#fff',
     margin: 20,
     padding: 20,
     borderRadius: 12,
-    elevation: 24,
-    zIndex: 1000,
+    width: '90%',
   },
   modalTitle: {
     fontWeight: '600',

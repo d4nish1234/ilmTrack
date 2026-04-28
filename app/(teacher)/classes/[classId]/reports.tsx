@@ -103,7 +103,7 @@ export default function ReportsScreen() {
   const [reportTitle, setReportTitle] = useState('');
   const [reportColumns, setReportColumns] = useState<ReportColumn[]>([]);
   const [reportRows, setReportRows] = useState<ReportRow[]>([]);
-  const htmlGeneratorRef = useRef<(() => string) | null>(null);
+  const htmlGeneratorRef = useRef<((filteredRows: ReportRow[]) => string) | null>(null);
 
   useEffect(() => {
     if (classId) {
@@ -185,7 +185,7 @@ export default function ReportsScreen() {
     title: string,
     columns: ReportColumn[],
     rows: ReportRow[],
-    htmlGenerator: () => string
+    htmlGenerator: (filteredRows: ReportRow[]) => string
   ) => {
     setReportTitle(title);
     setReportColumns(columns);
@@ -194,21 +194,19 @@ export default function ReportsScreen() {
     setShowReportModal(true);
   };
 
-  const handleExportPdf = async () => {
+  const handleExportPdf = async (filteredRows: ReportRow[]) => {
     if (!htmlGeneratorRef.current) return;
     setPdfLoading(true);
     try {
-      const html = htmlGeneratorRef.current();
-      const { uri } = await Print.printToFileAsync({
-        html,
-        width: 842,
-        height: 595,
-      });
+      const html = htmlGeneratorRef.current(filteredRows);
+      const { uri } = await Print.printToFileAsync({ html, width: 842, height: 595 });
+      // Reset loading before sharing so iOS Print→Cancel doesn't leave the button stuck
+      setPdfLoading(false);
       const isAvailable = await Sharing.isAvailableAsync();
       if (isAvailable) {
         await Sharing.shareAsync(uri, {
           mimeType: 'application/pdf',
-          dialogTitle: `${reportTitle}`,
+          dialogTitle: reportTitle,
           UTI: 'com.adobe.pdf',
         });
       } else {
@@ -217,7 +215,6 @@ export default function ReportsScreen() {
     } catch (error) {
       console.error('Error exporting PDF:', error);
       Alert.alert('Error', 'Failed to export PDF');
-    } finally {
       setPdfLoading(false);
     }
   };
@@ -227,9 +224,7 @@ export default function ReportsScreen() {
     try {
       const students = await fetchStudents();
       const attendance = await fetchAttendance(students.map((s) => s.id));
-      const studentMap = new Map(
-        students.map((s) => [s.id, `${s.firstName} ${s.lastName}`])
-      );
+      const studentMap = new Map(students.map((s) => [s.id, `${s.firstName} ${s.lastName}`]));
       const rows = buildAttendanceRows(attendance, studentMap);
       const className = classData?.name || 'Class';
 
@@ -237,7 +232,7 @@ export default function ReportsScreen() {
         `${className} - Attendance Report`,
         ATTENDANCE_COLUMNS,
         rows,
-        () => generateAttendanceHtml(rows, className, startDate, endDate)
+        (filtered) => generateAttendanceHtml(filtered, className, startDate, endDate)
       );
     } catch (error) {
       console.error('Error generating attendance report:', error);
@@ -252,9 +247,7 @@ export default function ReportsScreen() {
     try {
       const students = await fetchStudents();
       const homework = await fetchHomework(students.map((s) => s.id));
-      const studentMap = new Map(
-        students.map((s) => [s.id, `${s.firstName} ${s.lastName}`])
-      );
+      const studentMap = new Map(students.map((s) => [s.id, `${s.firstName} ${s.lastName}`]));
       const rows = buildHomeworkRows(homework, studentMap);
       const className = classData?.name || 'Class';
 
@@ -262,7 +255,7 @@ export default function ReportsScreen() {
         `${className} - Homework Report`,
         HOMEWORK_COLUMNS,
         rows,
-        () => generateHomeworkHtml(rows, className, startDate, endDate)
+        (filtered) => generateHomeworkHtml(filtered, className, startDate, endDate)
       );
     } catch (error) {
       console.error('Error generating homework report:', error);
@@ -284,17 +277,23 @@ export default function ReportsScreen() {
       const summaries = computeStudentSummaries(students, attendance, homework);
       const className = classData?.name || 'Class';
 
-      // Add % suffix to attendancePercent for display
-      const rows = summaries.map((s) => ({
-        ...s,
-        attendancePercent: `${s.attendancePercent}%`,
-      }));
+      // Add % suffix to attendancePercent for display only
+      const rows = summaries.map((s) => ({ ...s, attendancePercent: `${s.attendancePercent}%` }));
 
       openReportModal(
         `${className} - Class Summary`,
         SUMMARY_COLUMNS,
         rows,
-        () => generateSummaryHtml(summaries, className, startDate, endDate)
+        // Filter by matching studentName from the raw summaries (which have numeric attendancePercent)
+        (filtered) => {
+          const names = new Set(filtered.map((r) => r.studentName));
+          return generateSummaryHtml(
+            summaries.filter((s) => names.has(s.studentName)),
+            className,
+            startDate,
+            endDate
+          );
+        }
       );
     } catch (error) {
       console.error('Error generating summary:', error);

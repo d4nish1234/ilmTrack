@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { StyleSheet, View, FlatList } from 'react-native';
 import { Text, Card, Chip, FAB, Menu, IconButton, Divider, Button } from 'react-native-paper';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { getAttendancePaginatedAsTeacher, updateAttendance, deleteAttendance } from '../../../../../../../src/services/attendance.service';
 import { useAuth } from '../../../../../../../src/contexts/AuthContext';
 import { LoadingSpinner } from '../../../../../../../src/components/common';
@@ -77,10 +77,12 @@ export default function AttendanceListScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentId, lastDoc]);
 
-  useEffect(() => {
-    fetchAttendance(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [studentId]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchAttendance(false);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [studentId])
+  );
 
   const handleLoadMore = () => {
     if (!loadingMore && hasMore) {
