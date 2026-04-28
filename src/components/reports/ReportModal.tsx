@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
   ScrollView,
   Modal,
+  TouchableOpacity,
 } from 'react-native';
-import { Text, IconButton, ActivityIndicator } from 'react-native-paper';
+import { Text, IconButton } from 'react-native-paper';
 import { Button } from '../common';
 
 export interface ReportColumn {
@@ -21,12 +22,16 @@ export type ReportRow = any;
 interface ReportModalProps {
   visible: boolean;
   onClose: () => void;
-  onExportPdf: () => void;
+  onExportPdf: (filteredRows: ReportRow[]) => void;
   title: string;
   dateRange: string;
   columns: ReportColumn[];
   rows: ReportRow[];
   pdfLoading: boolean;
+}
+
+function getStudentName(row: ReportRow): string {
+  return row.student ?? row.studentName ?? '';
 }
 
 export default function ReportModal({
@@ -39,6 +44,23 @@ export default function ReportModal({
   rows,
   pdfLoading,
 }: ReportModalProps) {
+  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
+
+  // Reset filter when a new report is opened
+  useEffect(() => {
+    setSelectedStudent(null);
+  }, [rows]);
+
+  const studentNames: string[] = Array.from(
+    new Set(rows.map(getStudentName).filter(Boolean))
+  ).sort() as string[];
+
+  const showFilter = studentNames.length > 1;
+
+  const displayedRows = selectedStudent
+    ? rows.filter((r) => getStudentName(r) === selectedStudent)
+    : rows;
+
   return (
     <Modal
       visible={visible}
@@ -59,8 +81,44 @@ export default function ReportModal({
           <IconButton icon="close" size={24} onPress={onClose} />
         </View>
 
+        {/* Student filter */}
+        {showFilter && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterScroll}
+            contentContainerStyle={styles.filterContent}
+          >
+            <TouchableOpacity
+              style={[styles.chip, selectedStudent === null && styles.chipActive]}
+              onPress={() => setSelectedStudent(null)}
+            >
+              <Text
+                variant="labelSmall"
+                style={selectedStudent === null ? styles.chipTextActive : styles.chipText}
+              >
+                All Students
+              </Text>
+            </TouchableOpacity>
+            {studentNames.map((name) => (
+              <TouchableOpacity
+                key={name}
+                style={[styles.chip, selectedStudent === name && styles.chipActive]}
+                onPress={() => setSelectedStudent(name)}
+              >
+                <Text
+                  variant="labelSmall"
+                  style={selectedStudent === name ? styles.chipTextActive : styles.chipText}
+                >
+                  {name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+
         {/* Table */}
-        {rows.length === 0 ? (
+        {displayedRows.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text variant="bodyMedium" style={styles.emptyText}>
               No data found for the selected date range.
@@ -82,7 +140,7 @@ export default function ReportModal({
                 </View>
 
                 {/* Data rows */}
-                {rows.map((row, index) => (
+                {displayedRows.map((row, index) => (
                   <View
                     key={index}
                     style={[styles.row, index % 2 === 0 && styles.evenRow]}
@@ -119,17 +177,15 @@ export default function ReportModal({
           </Button>
           <Button
             mode="contained"
-            onPress={onExportPdf}
-            disabled={pdfLoading || rows.length === 0}
+            onPress={() => onExportPdf(displayedRows)}
+            disabled={pdfLoading || displayedRows.length === 0}
+            loading={pdfLoading}
             style={styles.bottomButton}
             icon={pdfLoading ? undefined : 'file-pdf-box'}
           >
             {pdfLoading ? 'Generating...' : 'Export PDF'}
           </Button>
         </View>
-        {pdfLoading && (
-          <ActivityIndicator size="small" style={styles.pdfLoading} />
-        )}
       </View>
     </Modal>
   );
@@ -159,6 +215,35 @@ const styles = StyleSheet.create({
   subtitle: {
     color: '#666',
     marginTop: 2,
+  },
+  filterScroll: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    flexGrow: 0,
+  },
+  filterContent: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+    flexDirection: 'row',
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#c0c0c0',
+    backgroundColor: '#fff',
+  },
+  chipActive: {
+    backgroundColor: '#1a73e8',
+    borderColor: '#1a73e8',
+  },
+  chipText: {
+    color: '#444',
+  },
+  chipTextActive: {
+    color: '#fff',
   },
   emptyContainer: {
     flex: 1,
@@ -213,10 +298,5 @@ const styles = StyleSheet.create({
   },
   bottomButton: {
     flex: 1,
-  },
-  pdfLoading: {
-    position: 'absolute',
-    bottom: 80,
-    alignSelf: 'center',
   },
 });
