@@ -21,6 +21,9 @@
     },
     "preview": {
       "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
         "EXPO_PUBLIC_FIREBASE_API_KEY": "@EXPO_PUBLIC_FIREBASE_API_KEY",
         "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "@EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN",

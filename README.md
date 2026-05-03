@@ -321,6 +321,9 @@ eas submit --platform ios
 # Development build (for testing on device)
 eas build --profile development --platform android
 
+# Preview build (sideloadable .apk for internal testing)
+eas build -p android --profile preview
+
 # Production build (for Play Store)
 eas build --profile production --platform android
 
