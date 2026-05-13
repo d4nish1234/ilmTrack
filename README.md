@@ -1,6 +1,6 @@
 # IlmTrack
 
-A mobile app for teachers and parents to manage students, homework, and attendance.
+A mobile app for Quran teachers to manage their classes — track students, assign homework (with optional Surah/Ayah tracking), record attendance, and keep parents in the loop. Built for Islamic schools, weekend madrasas, and private Quran tutors.
 
 ## Features
 
@@ -8,8 +8,11 @@ A mobile app for teachers and parents to manage students, homework, and attendan
 - Sign up/sign in with email
 - Create and manage classes
 - Add students with parent contact info (up to 2 parents)
+- Optionally track homework by Surah and Ayah ranges
 - Record attendance (present, absent, late, excused)
-- Assign homework and track completion
+- Assign homework and track completion + star evaluations
+- Generate per-class summary, attendance, and homework reports (in-app + PDF export)
+- Invite co-teachers to share access to a class
 - Search students quickly from the dashboard
 
 **Parents can:**
@@ -156,12 +159,13 @@ ilmTrack/
 
 ### Collections
 
-- **users** - Teacher and parent profiles
-- **classes** - Teacher's classes
-- **students** - Students with parent info
-- **homework** - Homework assignments
+- **users** - Teacher and parent profiles (role, linked classes/students)
+- **classes** - Classes with owner + invited co-teachers
+- **students** - Students with parent info and access arrays
+- **homework** - Homework assignments (with optional Surah/Ayah and star evaluations)
 - **attendance** - Attendance records
 - **invites** - Parent invitation tracking
+- **adminInvites** - Co-teacher invitation tracking
 
 ## Setting Up Push Notifications
 
