@@ -78,7 +78,6 @@ const SUMMARY_COLUMNS: ReportColumn[] = [
   { key: 'averageStars', label: 'Avg Stars', width: 75 },
   { key: 'totalPresent', label: 'Present', width: 65 },
   { key: 'totalAbsent', label: 'Absent', width: 65 },
-  { key: 'attendancePercent', label: 'Attend. %', width: 75 },
   { key: 'totalHomework', label: 'Total HW', width: 70 },
   { key: 'completedHomework', label: 'Completed', width: 80 },
   { key: 'lateHomework', label: 'Late', width: 55 },
@@ -277,14 +276,10 @@ export default function ReportsScreen() {
       const summaries = computeStudentSummaries(students, attendance, homework);
       const className = classData?.name || 'Class';
 
-      // Add % suffix to attendancePercent for display only
-      const rows = summaries.map((s) => ({ ...s, attendancePercent: `${s.attendancePercent}%` }));
-
       openReportModal(
         `${className} - Class Summary`,
         SUMMARY_COLUMNS,
-        rows,
-        // Filter by matching studentName from the raw summaries (which have numeric attendancePercent)
+        summaries,
         (filtered) => {
           const names = new Set(filtered.map((r) => r.studentName));
           return generateSummaryHtml(

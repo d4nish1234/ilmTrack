@@ -7,7 +7,6 @@ export interface StudentSummary {
   averageStars: number;
   totalPresent: number;
   totalAbsent: number;
-  attendancePercent: number;
   totalHomework: number;
   completedHomework: number;
   lateHomework: number;
@@ -42,11 +41,6 @@ export function computeStudentSummaries(
 
     const totalPresent = studentAttendance.filter((a) => a.status === 'present').length;
     const totalAbsent = studentAttendance.filter((a) => a.status === 'absent').length;
-    const totalAttendanceRecords = studentAttendance.length;
-    const attendancePercent =
-      totalAttendanceRecords > 0
-        ? Math.round((totalPresent / totalAttendanceRecords) * 100)
-        : 0;
 
     const evaluatedHomework = studentHomework.filter((h) => h.evaluation);
     const totalStars = evaluatedHomework.reduce((sum, h) => sum + (h.evaluation || 0), 0);
@@ -61,7 +55,6 @@ export function computeStudentSummaries(
       averageStars,
       totalPresent,
       totalAbsent,
-      attendancePercent,
       totalHomework: studentHomework.length,
       completedHomework: studentHomework.filter((h) => h.status === 'completed').length,
       lateHomework: studentHomework.filter((h) => h.status === 'late').length,
@@ -117,7 +110,6 @@ export function generateSummaryHtml(
       <td>${s.averageStars}</td>
       <td>${s.totalPresent}</td>
       <td>${s.totalAbsent}</td>
-      <td>${s.attendancePercent}%</td>
       <td>${s.totalHomework}</td>
       <td>${s.completedHomework}</td>
       <td>${s.lateHomework}</td>
@@ -150,9 +142,6 @@ export function generateSummaryHtml(
     }
   );
 
-  const totalAttendance = totals.totalPresent + totals.totalAbsent;
-  const overallAttendancePercent =
-    totalAttendance > 0 ? Math.round((totals.totalPresent / totalAttendance) * 100) : 0;
   const overallAvgStars =
     summaries.length > 0
       ? Math.round((summaries.reduce((sum, s) => sum + s.averageStars, 0) / summaries.length) * 10) / 10
@@ -167,7 +156,6 @@ export function generateSummaryHtml(
         <th>Avg Stars</th>
         <th>Present</th>
         <th>Absent</th>
-        <th>Attend. %</th>
         <th>Total HW</th>
         <th>Completed</th>
         <th>Late</th>
@@ -183,7 +171,6 @@ export function generateSummaryHtml(
         <td>${overallAvgStars}</td>
         <td>${totals.totalPresent}</td>
         <td>${totals.totalAbsent}</td>
-        <td>${overallAttendancePercent}%</td>
         <td>${totals.totalHomework}</td>
         <td>${totals.completedHomework}</td>
         <td>${totals.lateHomework}</td>

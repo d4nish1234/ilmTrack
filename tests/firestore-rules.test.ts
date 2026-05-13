@@ -963,4 +963,128 @@ describe('List queries with where clauses', () => {
     const q = query(collection(db, 'attendance'), where('parentUserIds', 'array-contains', PARENT_UID));
     await assertSucceeds(getDocs(q));
   });
+
+  // The static-satisfaction guarantee from CLAUDE.md: list queries MUST carry
+  // a where clause matching the rules. An unconstrained list must fail.
+  it('teacher CANNOT list students without a where clause', async () => {
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertFails(getDocs(query(collection(db, 'students'))));
+  });
+
+  it('teacher CANNOT list homework without a where clause', async () => {
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertFails(getDocs(query(collection(db, 'homework'))));
+  });
+
+  it('teacher CANNOT list attendance without a where clause', async () => {
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertFails(getDocs(query(collection(db, 'attendance'))));
+  });
+
+  it('parent CANNOT list students with where teacherId == otherUid', async () => {
+    const db = testEnv.authenticatedContext(PARENT_UID).firestore();
+    const q = query(collection(db, 'students'), where('teacherId', '==', TEACHER_UID));
+    await assertFails(getDocs(q));
+  });
+
+  it('parent CANNOT list students filtered by another parent\'s userId', async () => {
+    const db = testEnv.authenticatedContext(PARENT_UID).firestore();
+    const q = query(
+      collection(db, 'students'),
+      where('parentUserIds', 'array-contains', OTHER_PARENT_UID)
+    );
+    await assertFails(getDocs(q));
+  });
+});
+
+// ─── Access revocation when arrays change ─────────────────────────────
+
+describe('Parent access revocation', () => {
+  it('removing parent from parentUserIds revokes student read access immediately', async () => {
+    // Teacher removes the parent from the access array
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), 'students', STUDENT_ID), {
+        parentUserIds: [],
+        parents: [], // also drop from parents so isLinkedParent fallback doesn't help
+      });
+      // Also wipe studentIds on the parent user doc so the fallback fails too
+      await updateDoc(doc(context.firestore(), 'users', PARENT_UID), {
+        studentIds: [],
+      });
+    });
+
+    const db = testEnv.authenticatedContext(PARENT_UID).firestore();
+    await assertFails(getDoc(doc(db, 'students', STUDENT_ID)));
+  });
+
+  it('removing parent from parentUserIds on homework revokes read access', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), 'homework', 'hw1'), {
+        parentUserIds: [],
+      });
+      // isLinkedParent fallback uses user.studentIds → studentId. Clear that too.
+      await updateDoc(doc(context.firestore(), 'users', PARENT_UID), {
+        studentIds: [],
+      });
+    });
+
+    const db = testEnv.authenticatedContext(PARENT_UID).firestore();
+    await assertFails(getDoc(doc(db, 'homework', 'hw1')));
+  });
+});
+
+// ─── Known rules trade-offs (documenting current behaviour) ───────────
+// These are the wide-open writes on `users`, `invites`, and `adminInvites`
+// that CLAUDE.md describes — needed for Cloud-Function-driven flows.
+// They are enforced at the app layer, not the rules layer. We assert
+// the *current* permissive behaviour so a future tightening of the rules
+// (or accidental loosening) gets flagged here.
+
+describe('Known rules trade-offs', () => {
+  it('any authenticated user CAN update another user\'s role (documented gap)', async () => {
+    // This is the user-update wildcard rule. A malicious authenticated user
+    // could promote themselves or others. Cloud Functions are the actual
+    // gatekeeper for role transitions.
+    const db = testEnv.authenticatedContext(OTHER_PARENT_UID).firestore();
+    await assertSucceeds(updateDoc(doc(db, 'users', PARENT_UID), { role: 'teacher' }));
+  });
+
+  it('any authenticated user CAN write to another user\'s studentIds/adminClassIds (documented gap)', async () => {
+    const db = testEnv.authenticatedContext(OTHER_PARENT_UID).firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'users', PARENT_UID), {
+        studentIds: ['injected-student'],
+        adminClassIds: ['injected-class'],
+      })
+    );
+  });
+
+  it('any authenticated user CAN flip an invite to "accepted" (documented gap)', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'invites', 'i1'), {
+        email: 'someone@parent.com',
+        studentId: STUDENT_ID,
+        teacherId: TEACHER_UID,
+        status: 'pending',
+      });
+    });
+    // A different user who is NOT the invited email flips the invite.
+    // The downstream Cloud Function (`onInviteAccepted`) MUST verify the
+    // caller's email before granting access — rules alone don't protect this.
+    const db = testEnv.authenticatedContext(OTHER_PARENT_UID).firestore();
+    await assertSucceeds(updateDoc(doc(db, 'invites', 'i1'), { status: 'accepted' }));
+  });
+
+  it('any authenticated user CAN create adminInvites (documented gap)', async () => {
+    // CLAUDE.md says only the class owner should invite co-teachers, but
+    // rules permit any authenticated user. Enforced at UI layer only.
+    const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+    await assertSucceeds(
+      addDoc(collection(db, 'adminInvites'), {
+        email: 'rogue@test.com',
+        classId: CLASS_ID,
+        status: 'pending',
+      })
+    );
+  });
 });
