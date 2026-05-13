@@ -1,0 +1,177 @@
+[debug] [2026-05-13T13:13:13.195Z] ----------------------------------------------------------------------
+[debug] [2026-05-13T13:13:13.197Z] Command:       /Users/danishmahboob/.nvm/versions/node/v24.13.0/bin/node /Users/danishmahboob/.nvm/versions/node/v24.13.0/bin/firebase emulators:start --only auth,firestore,functions
+[debug] [2026-05-13T13:13:13.197Z] CLI Version:   15.14.0
+[debug] [2026-05-13T13:13:13.197Z] Platform:      darwin
+[debug] [2026-05-13T13:13:13.197Z] Node Version:  v24.13.0
+[debug] [2026-05-13T13:13:13.197Z] Time:          Wed May 13 2026 09:13:13 GMT-0400 (Eastern Daylight Time)
+[debug] [2026-05-13T13:13:13.197Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-05-13T13:13:13.561Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-13T13:13:13.561Z] > authorizing via signed-in user (danishsumroo@gmail.com)
+[debug] [2026-05-13T13:13:13.594Z] openjdk version "21.0.10" 2026-01-20
+
+[debug] [2026-05-13T13:13:13.595Z] OpenJDK Runtime Environment Homebrew (build 21.0.10)
+OpenJDK 64-Bit Server VM Homebrew (build 21.0.10, mixed mode, sharing)
+
+[debug] [2026-05-13T13:13:13.596Z] Parsed Java major version: 21
+[info] i  emulators: Starting emulators: auth, functions, firestore {"metadata":{"emulator":{"name":"hub"},"message":"Starting emulators: auth, functions, firestore"}}
+[debug] [2026-05-13T13:13:13.921Z] [logging] Logging Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-05-13T13:13:13.921Z] assigned listening specs for emulators {"user":{"auth":[{"address":"0.0.0.0","family":"IPv4","port":9099}],"firestore":[{"address":"0.0.0.0","family":"IPv4","port":8080}],"firestore.websocket":[{"address":"0.0.0.0","family":"IPv4","port":9150}],"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"ui":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}]},"metadata":{"message":"assigned listening specs for emulators"}}
+[debug] [2026-05-13T13:13:13.923Z] Write emulator hub locator at /var/folders/3p/x3vmyxdd2nzfpq_rbbn47xj40000gp/T/hub-ilmtrack-f6c8c.json
+[debug] [2026-05-13T13:13:14.103Z] [eventarc] Eventarc Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-05-13T13:13:14.103Z] [tasks] Cloud Tasks Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-05-13T13:13:14.103Z] late-assigned ports for functions and eventarc emulators {"user":{"auth":[{"address":"0.0.0.0","family":"IPv4","port":9099}],"firestore":[{"address":"0.0.0.0","family":"IPv4","port":8080}],"firestore.websocket":[{"address":"0.0.0.0","family":"IPv4","port":9150}],"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"ui":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"functions":[{"address":"0.0.0.0","family":"IPv4","port":5001}],"eventarc":[{"address":"127.0.0.1","family":"IPv4","port":9299}],"tasks":[{"address":"127.0.0.1","family":"IPv4","port":9499}]},"metadata":{"message":"late-assigned ports for functions and eventarc emulators"}}
+[warn] ⚠  functions: The following emulators are not running, calls to these services from the Functions emulator will affect production: apphosting, database, hosting, pubsub, storage, dataconnect {"metadata":{"emulator":{"name":"functions"},"message":"The following emulators are not running, calls to these services from the Functions emulator will affect production: \u001b[1mapphosting, database, hosting, pubsub, storage, dataconnect\u001b[22m"}}
+[debug] [2026-05-13T13:13:14.108Z] defaultcredentials: writing to file /Users/danishmahboob/.config/firebase/danishsumroo_gmail_com_application_default_credentials.json
+[debug] [2026-05-13T13:13:14.109Z] Setting GAC to /Users/danishmahboob/.config/firebase/danishsumroo_gmail_com_application_default_credentials.json {"metadata":{"emulator":{"name":"functions"},"message":"Setting GAC to /Users/danishmahboob/.config/firebase/danishsumroo_gmail_com_application_default_credentials.json"}}
+[debug] [2026-05-13T13:13:14.109Z] Checked if tokens are valid: true, expires at: 1778680791369
+[debug] [2026-05-13T13:13:14.110Z] Checked if tokens are valid: true, expires at: 1778680791369
+[debug] [2026-05-13T13:13:14.110Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/ilmtrack-f6c8c/adminSdkConfig [none]
+[debug] [2026-05-13T13:13:14.639Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/ilmtrack-f6c8c/adminSdkConfig 200
+[debug] [2026-05-13T13:13:14.640Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/ilmtrack-f6c8c/adminSdkConfig {"projectId":"ilmtrack-f6c8c","storageBucket":"ilmtrack-f6c8c.firebasestorage.app"}
+[debug] [2026-05-13T13:13:14.661Z] Ignoring unsupported arg: auto_download {"metadata":{"emulator":{"name":"firestore"},"message":"Ignoring unsupported arg: auto_download"}}
+[debug] [2026-05-13T13:13:14.661Z] Starting Firestore Emulator with command {"binary":"java","args":["-Dgoogle.cloud_firestore.debug_log_level=FINE","-Duser.language=en","-jar","/Users/danishmahboob/.cache/firebase/emulators/cloud-firestore-emulator-v1.20.4.jar","--host","0.0.0.0","--port",8080,"--websocket_port",9150,"--database-edition","standard","--project_id","ilmtrack-f6c8c","--rules","/Users/danishmahboob/Documents/repos/ilmTrack/firestore.rules","--functions_emulator","127.0.0.1:5001"],"optionalArgs":["port","webchannel_port","host","rules","websocket_port","database-edition","functions_emulator","seed_from_export","project_id","single_project_mode"],"joinArgs":false,"shell":false,"port":8080} {"metadata":{"emulator":{"name":"firestore"},"message":"Starting Firestore Emulator with command {\"binary\":\"java\",\"args\":[\"-Dgoogle.cloud_firestore.debug_log_level=FINE\",\"-Duser.language=en\",\"-jar\",\"/Users/danishmahboob/.cache/firebase/emulators/cloud-firestore-emulator-v1.20.4.jar\",\"--host\",\"0.0.0.0\",\"--port\",8080,\"--websocket_port\",9150,\"--database-edition\",\"standard\",\"--project_id\",\"ilmtrack-f6c8c\",\"--rules\",\"/Users/danishmahboob/Documents/repos/ilmTrack/firestore.rules\",\"--functions_emulator\",\"127.0.0.1:5001\"],\"optionalArgs\":[\"port\",\"webchannel_port\",\"host\",\"rules\",\"websocket_port\",\"database-edition\",\"functions_emulator\",\"seed_from_export\",\"project_id\",\"single_project_mode\"],\"joinArgs\":false,\"shell\":false,\"port\":8080}"}}
+[info] i  firestore: Firestore Emulator logging to firestore-debug.log {"metadata":{"emulator":{"name":"firestore"},"message":"Firestore Emulator logging to \u001b[1mfirestore-debug.log\u001b[22m"}}
+[debug] [2026-05-13T13:13:15.139Z] May 13, 2026 9:13:15 A.M. com.google.cloud.datastore.emulator.firestore.websocket.WebSocketServer start
+INFO: Started WebSocket server on ws://0.0.0.0:9150
+ {"metadata":{"emulator":{"name":"firestore"},"message":"May 13, 2026 9:13:15 A.M. com.google.cloud.datastore.emulator.firestore.websocket.WebSocketServer start\nINFO: Started WebSocket server on ws://0.0.0.0:9150\n"}}
+[debug] [2026-05-13T13:13:15.150Z] 
+API endpoint: http:// {"metadata":{"emulator":{"name":"firestore"},"message":"\nAPI endpoint: http://"}}
+[debug] [2026-05-13T13:13:15.151Z] 0.0.0.0:8080
+Database Edition: STANDARD
+Database Mode: CLOUD_FIRESTORE
+
+If you are using a library that supports the FIRESTORE_EMULATOR_HOST environment variable, run:
+
+   export FIRESTORE_EMULATOR_HOST=0.0.0.0:8080
+
+If you are running a Firestore in Datastore Mode project, run:
+
+   export DATASTORE_EMULATOR_HOST=0.0.0.0:8080
+
+Note: Support for Datastore Mode is in preview. If you encounter any bugs please file at https://github.com/firebase/firebase-tools/issues.
+Dev App Server is now running.
+
+ {"metadata":{"emulator":{"name":"firestore"},"message":"0.0.0.0:8080\nDatabase Edition: STANDARD\nDatabase Mode: CLOUD_FIRESTORE\n\nIf you are using a library that supports the FIRESTORE_EMULATOR_HOST environment variable, run:\n\n   export FIRESTORE_EMULATOR_HOST=0.0.0.0:8080\n\nIf you are running a Firestore in Datastore Mode project, run:\n\n   export DATASTORE_EMULATOR_HOST=0.0.0.0:8080\n\nNote: Support for Datastore Mode is in preview. If you encounter any bugs please file at https://github.com/firebase/firebase-tools/issues.\nDev App Server is now running.\n\n"}}
+[info] ✔  firestore: Firestore Emulator was started in standard edition. {"metadata":{"emulator":{"name":"firestore"},"message":"Firestore Emulator was started in standard edition."}}
+[info] ✔  firestore: Firestore Emulator UI websocket is running on 9150. {"metadata":{"emulator":{"name":"firestore"},"message":"Firestore Emulator UI websocket is running on 9150."}}
+[info] i  functions: Watching "/Users/danishmahboob/Documents/repos/ilmTrack/functions" for Cloud Functions... {"metadata":{"emulator":{"name":"functions"},"message":"Watching \"/Users/danishmahboob/Documents/repos/ilmTrack/functions\" for Cloud Functions..."}}
+[debug] [2026-05-13T13:13:17.355Z] Validating nodejs source
+[warn] ⚠  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory. 
+[debug] [2026-05-13T13:13:18.180Z] > [functions] package.json contents: {
+  "name": "ilmtrack-functions",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "22"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "expo-server-sdk": "^3.7.0",
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^7.2.2",
+    "resend": "^6.9.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  },
+  "private": true
+}
+[debug] [2026-05-13T13:13:18.180Z] Building nodejs source
+[debug] [2026-05-13T13:13:18.180Z] Failed to find version of module node: reached end of search path /Users/danishmahboob/Documents/repos/ilmTrack/functions/node_modules
+[warn] ⚠  functions: Your requested "node" version "22" doesn't match your global version "24". Using node@24 from host. 
+[info] i  functions: Loaded environment variables from .env. 
+[debug] [2026-05-13T13:13:18.182Z] Could not find functions.yaml. Must use http discovery
+[debug] [2026-05-13T13:13:18.189Z] Found firebase-functions binary at '/Users/danishmahboob/Documents/repos/ilmTrack/functions/node_modules/.bin/firebase-functions'
+[info] Serving at port 8455
+
+[debug] [2026-05-13T13:13:18.554Z] Got response from /__/functions.yaml {"endpoints":{"notifyParentsOnHomework":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["us-central1"],"labels":{},"eventTrigger":{"eventType":"google.cloud.firestore.document.v1.created","eventFilters":{"database":"(default)","namespace":"(default)"},"eventFilterPathPatterns":{"document":"homework/{homeworkId}"},"retry":false},"entryPoint":"notifyParentsOnHomework"},"sendParentInviteEmail":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["us-central1"],"labels":{},"eventTrigger":{"eventType":"google.cloud.firestore.document.v1.created","eventFilters":{"database":"(default)","namespace":"(default)"},"eventFilterPathPatterns":{"document":"invites/{inviteId}"},"retry":false},"entryPoint":"sendParentInviteEmail"},"sendTeacherInviteEmail":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["us-central1"],"labels":{},"eventTrigger":{"eventType":"google.cloud.firestore.document.v1.created","eventFilters":{"database":"(default)","namespace":"(default)"},"eventFilterPathPatterns":{"document":"adminInvites/{inviteId}"},"retry":false},"entryPoint":"sendTeacherInviteEmail"},"notifyAdminOnTeacherSignup":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["us-central1"],"labels":{},"eventTrigger":{"eventType":"google.cloud.firestore.document.v1.updated","eventFilters":{"database":"(default)","namespace":"(default)"},"eventFilterPathPatterns":{"document":"users/{userId}"},"retry":false},"entryPoint":"notifyAdminOnTeacherSignup"},"onInviteAccepted":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["us-central1"],"labels":{},"eventTrigger":{"eventType":"google.cloud.firestore.document.v1.updated","eventFilters":{"database":"(default)","namespace":"(default)"},"eventFilterPathPatterns":{"document":"invites/{inviteId}"},"retry":false},"entryPoint":"onInviteAccepted"},"onTeacherInviteAccepted":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["us-central1"],"labels":{},"eventTrigger":{"eventType":"google.cloud.firestore.document.v1.updated","eventFilters":{"database":"(default)","namespace":"(default)"},"eventFilterPathPatterns":{"document":"adminInvites/{inviteId}"},"retry":false},"entryPoint":"onTeacherInviteAccepted"},"onTeacherRemoved":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["us-central1"],"labels":{},"eventTrigger":{"eventType":"google.cloud.firestore.document.v1.updated","eventFilters":{"database":"(default)","namespace":"(default)"},"eventFilterPathPatterns":{"document":"classes/{classId}"},"retry":false},"entryPoint":"onTeacherRemoved"},"backfillParentUserIdsOnStudent":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"callableTrigger":{},"entryPoint":"backfillParentUserIdsOnStudent"},"deleteStudentData":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"callableTrigger":{},"entryPoint":"deleteStudentData"},"deleteClassData":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"callableTrigger":{},"entryPoint":"deleteClassData"},"acceptParentInvites":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"callableTrigger":{},"entryPoint":"acceptParentInvites"}},"specVersion":"v1alpha1","requiredAPIs":[],"extensions":{}}
+[info] ✔  functions: Loaded functions definitions from source: notifyParentsOnHomework, sendParentInviteEmail, sendTeacherInviteEmail, notifyAdminOnTeacherSignup, onInviteAccepted, onTeacherInviteAccepted, onTeacherRemoved, backfillParentUserIdsOnStudent, deleteStudentData, deleteClassData, acceptParentInvites. {"metadata":{"emulator":{"name":"functions"},"message":"Loaded functions definitions from source: notifyParentsOnHomework, sendParentInviteEmail, sendTeacherInviteEmail, notifyAdminOnTeacherSignup, onInviteAccepted, onTeacherInviteAccepted, onTeacherRemoved, backfillParentUserIdsOnStudent, deleteStudentData, deleteClassData, acceptParentInvites."}}
+[debug] [2026-05-13T13:13:22.579Z] Found a v2 firestore trigger.
+[debug] [2026-05-13T13:13:22.579Z] addFirestoreTrigger "{\"eventType\":\"google.cloud.firestore.document.v1.created\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"homework/{homeworkId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2026-05-13T13:13:22.580Z] >>> [apiv2][query] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-notifyParentsOnHomework-0 [none]
+[debug] [2026-05-13T13:13:22.580Z] >>> [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-notifyParentsOnHomework-0 "{\"eventType\":\"google.cloud.firestore.document.v1.created\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"homework/{homeworkId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2026-05-13T13:13:22.587Z] May 13, 2026 9:13:22 A.M. io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"May 13, 2026 9:13:22 A.M. io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2026-05-13T13:13:22.691Z] May 13, 2026 9:13:22 A.M. io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"May 13, 2026 9:13:22 A.M. io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected HTTP/2 connection.\n"}}
+[debug] [2026-05-13T13:13:23.026Z] <<< [apiv2][status] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-notifyParentsOnHomework-0 200
+[debug] [2026-05-13T13:13:23.026Z] <<< [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-notifyParentsOnHomework-0 {"eventType":"google.cloud.firestore.document.v1.created","database":"(default)","namespace":"(default)","document":{"value":"homework/{homeworkId}","matchType":"PATH_PATTERN"}}
+[info] ✔  functions[us-central1-notifyParentsOnHomework]: firestore function initialized. {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mfirestore\u001b[22m function initialized."}}
+[debug] [2026-05-13T13:13:23.026Z] Found a v2 firestore trigger.
+[debug] [2026-05-13T13:13:23.026Z] addFirestoreTrigger "{\"eventType\":\"google.cloud.firestore.document.v1.created\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"invites/{inviteId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2026-05-13T13:13:23.026Z] >>> [apiv2][query] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-sendParentInviteEmail-0 [none]
+[debug] [2026-05-13T13:13:23.026Z] >>> [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-sendParentInviteEmail-0 "{\"eventType\":\"google.cloud.firestore.document.v1.created\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"invites/{inviteId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2026-05-13T13:13:23.030Z] <<< [apiv2][status] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-sendParentInviteEmail-0 200
+[debug] [2026-05-13T13:13:23.030Z] <<< [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-sendParentInviteEmail-0 {"eventType":"google.cloud.firestore.document.v1.created","database":"(default)","namespace":"(default)","document":{"value":"invites/{inviteId}","matchType":"PATH_PATTERN"}}
+[info] ✔  functions[us-central1-sendParentInviteEmail]: firestore function initialized. {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mfirestore\u001b[22m function initialized."}}
+[debug] [2026-05-13T13:13:23.030Z] Found a v2 firestore trigger.
+[debug] [2026-05-13T13:13:23.030Z] addFirestoreTrigger "{\"eventType\":\"google.cloud.firestore.document.v1.created\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"adminInvites/{inviteId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2026-05-13T13:13:23.030Z] >>> [apiv2][query] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-sendTeacherInviteEmail-0 [none]
+[debug] [2026-05-13T13:13:23.030Z] >>> [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-sendTeacherInviteEmail-0 "{\"eventType\":\"google.cloud.firestore.document.v1.created\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"adminInvites/{inviteId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2026-05-13T13:13:23.035Z] <<< [apiv2][status] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-sendTeacherInviteEmail-0 200
+[debug] [2026-05-13T13:13:23.035Z] <<< [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-sendTeacherInviteEmail-0 {"eventType":"google.cloud.firestore.document.v1.created","database":"(default)","namespace":"(default)","document":{"value":"adminInvites/{inviteId}","matchType":"PATH_PATTERN"}}
+[info] ✔  functions[us-central1-sendTeacherInviteEmail]: firestore function initialized. {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mfirestore\u001b[22m function initialized."}}
+[debug] [2026-05-13T13:13:23.035Z] Found a v2 firestore trigger.
+[debug] [2026-05-13T13:13:23.035Z] addFirestoreTrigger "{\"eventType\":\"google.cloud.firestore.document.v1.updated\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"users/{userId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2026-05-13T13:13:23.035Z] >>> [apiv2][query] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-notifyAdminOnTeacherSignup-0 [none]
+[debug] [2026-05-13T13:13:23.035Z] >>> [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-notifyAdminOnTeacherSignup-0 "{\"eventType\":\"google.cloud.firestore.document.v1.updated\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"users/{userId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2026-05-13T13:13:23.038Z] <<< [apiv2][status] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-notifyAdminOnTeacherSignup-0 200
+[debug] [2026-05-13T13:13:23.038Z] <<< [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-notifyAdminOnTeacherSignup-0 {"eventType":"google.cloud.firestore.document.v1.updated","database":"(default)","namespace":"(default)","document":{"value":"users/{userId}","matchType":"PATH_PATTERN"}}
+[info] ✔  functions[us-central1-notifyAdminOnTeacherSignup]: firestore function initialized. {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mfirestore\u001b[22m function initialized."}}
+[debug] [2026-05-13T13:13:23.038Z] Found a v2 firestore trigger.
+[debug] [2026-05-13T13:13:23.038Z] addFirestoreTrigger "{\"eventType\":\"google.cloud.firestore.document.v1.updated\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"invites/{inviteId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2026-05-13T13:13:23.038Z] >>> [apiv2][query] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-onInviteAccepted-0 [none]
+[debug] [2026-05-13T13:13:23.038Z] >>> [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-onInviteAccepted-0 "{\"eventType\":\"google.cloud.firestore.document.v1.updated\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"invites/{inviteId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2026-05-13T13:13:23.041Z] <<< [apiv2][status] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-onInviteAccepted-0 200
+[debug] [2026-05-13T13:13:23.041Z] <<< [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-onInviteAccepted-0 {"eventType":"google.cloud.firestore.document.v1.updated","database":"(default)","namespace":"(default)","document":{"value":"invites/{inviteId}","matchType":"PATH_PATTERN"}}
+[info] ✔  functions[us-central1-onInviteAccepted]: firestore function initialized. {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mfirestore\u001b[22m function initialized."}}
+[debug] [2026-05-13T13:13:23.041Z] Found a v2 firestore trigger.
+[debug] [2026-05-13T13:13:23.041Z] addFirestoreTrigger "{\"eventType\":\"google.cloud.firestore.document.v1.updated\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"adminInvites/{inviteId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2026-05-13T13:13:23.041Z] >>> [apiv2][query] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-onTeacherInviteAccepted-0 [none]
+[debug] [2026-05-13T13:13:23.041Z] >>> [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-onTeacherInviteAccepted-0 "{\"eventType\":\"google.cloud.firestore.document.v1.updated\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"adminInvites/{inviteId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2026-05-13T13:13:23.044Z] <<< [apiv2][status] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-onTeacherInviteAccepted-0 200
+[debug] [2026-05-13T13:13:23.044Z] <<< [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-onTeacherInviteAccepted-0 {"eventType":"google.cloud.firestore.document.v1.updated","database":"(default)","namespace":"(default)","document":{"value":"adminInvites/{inviteId}","matchType":"PATH_PATTERN"}}
+[info] ✔  functions[us-central1-onTeacherInviteAccepted]: firestore function initialized. {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mfirestore\u001b[22m function initialized."}}
+[debug] [2026-05-13T13:13:23.044Z] Found a v2 firestore trigger.
+[debug] [2026-05-13T13:13:23.044Z] addFirestoreTrigger "{\"eventType\":\"google.cloud.firestore.document.v1.updated\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"classes/{classId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2026-05-13T13:13:23.044Z] >>> [apiv2][query] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-onTeacherRemoved-0 [none]
+[debug] [2026-05-13T13:13:23.044Z] >>> [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-onTeacherRemoved-0 "{\"eventType\":\"google.cloud.firestore.document.v1.updated\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"classes/{classId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2026-05-13T13:13:23.048Z] <<< [apiv2][status] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-onTeacherRemoved-0 200
+[debug] [2026-05-13T13:13:23.048Z] <<< [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/ilmtrack-f6c8c/eventarcTrigger?eventarcTriggerId=us-central1-onTeacherRemoved-0 {"eventType":"google.cloud.firestore.document.v1.updated","database":"(default)","namespace":"(default)","document":{"value":"classes/{classId}","matchType":"PATH_PATTERN"}}
+[info] ✔  functions[us-central1-onTeacherRemoved]: firestore function initialized. {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mfirestore\u001b[22m function initialized."}}
+[info] ✔  functions[us-central1-backfillParentUserIdsOnStudent]: http function initialized (http://127.0.0.1:5001/ilmtrack-f6c8c/us-central1/backfillParentUserIdsOnStudent). {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mhttp\u001b[22m function initialized (http://127.0.0.1:5001/ilmtrack-f6c8c/us-central1/backfillParentUserIdsOnStudent)."}}
+[info] ✔  functions[us-central1-deleteStudentData]: http function initialized (http://127.0.0.1:5001/ilmtrack-f6c8c/us-central1/deleteStudentData). {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mhttp\u001b[22m function initialized (http://127.0.0.1:5001/ilmtrack-f6c8c/us-central1/deleteStudentData)."}}
+[info] ✔  functions[us-central1-deleteClassData]: http function initialized (http://127.0.0.1:5001/ilmtrack-f6c8c/us-central1/deleteClassData). {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mhttp\u001b[22m function initialized (http://127.0.0.1:5001/ilmtrack-f6c8c/us-central1/deleteClassData)."}}
+[info] ✔  functions[us-central1-acceptParentInvites]: http function initialized (http://127.0.0.1:5001/ilmtrack-f6c8c/us-central1/acceptParentInvites). {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mhttp\u001b[22m function initialized (http://127.0.0.1:5001/ilmtrack-f6c8c/us-central1/acceptParentInvites)."}}
+[debug] [2026-05-13T13:13:23.051Z] Could not find VSCode notification endpoint: FetchError: request to http://localhost:40001/vscode/notify failed, reason: . If you are not running the Firebase Data Connect VSCode extension, this is expected and not an issue.
+[info] 
+┌─────────────────────────────────────────────────────────────┐
+│ ✔  All emulators ready! It is now safe to connect your app. │
+│ i  View Emulator UI at http://127.0.0.1:4000/               │
+└─────────────────────────────────────────────────────────────┘
+
+┌────────────────┬──────────────┬─────────────────────────────────┐
+│ Emulator       │ Host:Port    │ View in Emulator UI             │
+├────────────────┼──────────────┼─────────────────────────────────┤
+│ Authentication │ 0.0.0.0:9099 │ http://127.0.0.1:4000/auth      │
+├────────────────┼──────────────┼─────────────────────────────────┤
+│ Functions      │ 0.0.0.0:5001 │ http://127.0.0.1:4000/functions │
+├────────────────┼──────────────┼─────────────────────────────────┤
+│ Firestore      │ 0.0.0.0:8080 │ http://127.0.0.1:4000/firestore │
+└────────────────┴──────────────┴─────────────────────────────────┘
+  Emulator Hub host: 127.0.0.1 port: 4400
+  Other reserved ports: 4500, 9150
+
+Issues? Report them at https://github.com/firebase/firebase-tools/issues and attach the *-debug.log files.
+ 
+[warn] ⚠  Received a signed JWT. Auth Emulator does not validate JWTs and IS NOT SECURE {"metadata":{"emulator":{"name":"auth"},"message":"Received a signed JWT. Auth Emulator does not validate JWTs and IS NOT SECURE"}}

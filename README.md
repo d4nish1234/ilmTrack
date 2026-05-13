@@ -245,6 +245,59 @@ firebase deploy --only functions
 - Emails silently fail if the API key is missing or Resend returns an error — this prevents email issues from blocking core app functionality.
 - On Resend's free tier you get 100 emails/month. The functions are designed to stay well within this for a small school deployment.
 
+## Testing with Firebase Emulators
+
+You can run the app against local Firebase emulators instead of production — useful for testing without affecting real data.
+
+### 1. Enable emulator mode
+
+In your `.env`, set:
+
+```env
+EXPO_PUBLIC_USE_EMULATOR=true
+# Physical device: set this to your machine's LAN IP (e.g. 192.168.1.5)
+# Simulator: leave as 127.0.0.1
+EXPO_PUBLIC_EMULATOR_HOST=127.0.0.1
+```
+
+### 2. Start emulators and the app
+
+```bash
+# Terminal 1 — start Firebase emulators
+firebase emulators:start --only auth,firestore,functions
+
+# Terminal 2 — start Expo
+npm run start -- --clear
+```
+
+The emulator UI (Firestore browser, Auth users, Function logs) is at `http://127.0.0.1:4000`.
+
+> **Physical device:** find your machine's LAN IP with `ifconfig | grep "inet "` and set it as `EXPO_PUBLIC_EMULATOR_HOST`.
+
+> **Back to production:** set `EXPO_PUBLIC_USE_EMULATOR=false` (or remove it) and restart Metro with `--clear`. Production is never touched when the flag is absent or false.
+
+### Running unit tests (emulator required for rules/cleanup tests)
+
+```bash
+# Terminal 1
+firebase emulators:start --only firestore --project ilmtrack-test
+
+# Terminal 2
+npm test
+```
+
+Or as a one-shot command:
+
+```bash
+firebase emulators:exec --only firestore --project ilmtrack-test "npm test"
+```
+
+Pure-function tests (`reportUtils`, `authErrors`, `studentService`) don't need the emulator and can be run anytime:
+
+```bash
+npx vitest run tests/reportUtils.test.ts tests/authErrors.test.ts tests/studentService.test.ts
+```
+
 ## Available Scripts
 
 ```bash
@@ -259,6 +312,9 @@ npm run ios
 
 # Run on Android emulator
 npm run android
+
+# Run tests (requires Firestore emulator on port 8080)
+npm test
 
 # Deploy Firestore rules
 firebase deploy --only firestore:rules

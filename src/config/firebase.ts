@@ -1,10 +1,9 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getFunctions } from 'firebase/functions';
+import { initializeAuth, getReactNativePersistence, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Firebase configuration from environment variables
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -14,18 +13,24 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Auth with AsyncStorage persistence for React Native
 const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
 
-// Initialize Firestore
 const firestore = getFirestore(app);
-
-// Initialize Functions
 const functions = getFunctions(app);
+
+// Set EXPO_PUBLIC_USE_EMULATOR=true in .env to connect to local Firebase emulators.
+// Run: firebase emulators:start --only auth,firestore,functions
+if (process.env.EXPO_PUBLIC_USE_EMULATOR === 'true') {
+  // Use 10.0.2.2 on Android emulator (maps to host machine localhost),
+  // or your machine's LAN IP when testing on a physical device.
+  const host = process.env.EXPO_PUBLIC_EMULATOR_HOST || '127.0.0.1';
+  connectAuthEmulator(auth, `http://${host}:9099`, { disableWarnings: true });
+  connectFirestoreEmulator(firestore, host, 8080);
+  connectFunctionsEmulator(functions, host, 5001);
+}
 
 export { app, auth, firestore, functions };
