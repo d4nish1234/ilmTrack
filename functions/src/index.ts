@@ -1,4 +1,4 @@
-import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
+import { onDocumentCreated, onDocumentUpdated, onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { initializeApp } from 'firebase-admin/app';
@@ -72,6 +72,44 @@ interface HomeworkData {
 }
 
 // Trigger when homework is created (v2)
+/**
+ * Keeps classes/{id}.adminUserIds in step with teacherId + accepted admins.
+ *
+ * firestore.rules reads this field to decide whether a co-teacher may update a
+ * class. It is denormalized onto the class document on purpose: the rule must
+ * read something the caller cannot write, and the previous approach (reading
+ * adminClassIds off the caller's own user document) was a privilege escalation.
+ *
+ * Deriving it here rather than in the app means no client needs to know the
+ * field exists — already-installed app versions keep writing only `admins` and
+ * continue to work.
+ */
+export const syncClassAdminUserIds = onDocumentWritten(
+  { document: 'classes/{classId}', region: 'us-central1' },
+  async (event) => {
+    const after = event.data?.after;
+    if (!after?.exists) return; // deleted
+
+    const data = after.data()!;
+    const expected = [
+      data.teacherId,
+      ...(data.admins || [])
+        .filter((a: { userId?: string; inviteStatus?: string }) =>
+          a.userId && a.inviteStatus === 'accepted')
+        .map((a: { userId: string }) => a.userId),
+    ].filter(Boolean);
+
+    const unique = [...new Set(expected)].sort();
+    const current = [...((data.adminUserIds as string[]) || [])].sort();
+
+    // Only write when it actually differs, or this trigger re-triggers itself.
+    if (unique.length === current.length && unique.every((id, i) => id === current[i])) return;
+
+    await after.ref.update({ adminUserIds: unique });
+    console.log(`syncClassAdminUserIds: ${event.params.classId} -> [${unique.join(', ')}]`);
+  }
+);
+
 export const notifyParentsOnHomework = onDocumentCreated(
   { document: 'homework/{homeworkId}', region: 'us-central1' },
   async (event) => {
@@ -811,10 +849,24 @@ export const acceptParentInvites = onCall(async (request) => {
   }
 
   const parentUserId = request.auth.uid;
-  const email = (request.data?.email as string | undefined)?.toLowerCase().trim();
 
-  if (!email) {
-    throw new HttpsError('invalid-argument', 'email is required');
+  // The email comes from the verified token, never from request.data. It used
+  // to be taken from the body, which let any signed-in account pass someone
+  // else's address and be linked to all of that parent's children.
+  const email = (request.auth.token.email as string | undefined)?.toLowerCase().trim();
+
+  // Return empty rather than throwing on the two "not eligible yet" cases.
+  // The app calls this during signUp(), immediately after sendEmailVerification
+  // and inside a try/finally with no catch — so throwing here aborts account
+  // creation before setUser() runs. Linking is retried on every auth state
+  // change (AuthContext), so an unverified user simply links nothing now and
+  // everything once they verify.
+  //
+  // The verification requirement still matters: Firebase will create an
+  // unverified account for any address, so without it someone could sign up as
+  // a parent's email and claim their children.
+  if (!email || request.auth.token.email_verified !== true) {
+    return { studentIds: [] };
   }
 
   const invitesSnapshot = await db.collection('invites')

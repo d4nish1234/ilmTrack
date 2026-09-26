@@ -88,6 +88,10 @@ beforeEach(async () => {
       admins: [
         { email: 'invited@test.com', userId: INVITED_TEACHER_UID, inviteStatus: 'accepted' },
       ],
+      // Maintained by the syncClassAdminUserIds Cloud Function: owner +
+      // accepted co-teachers. The rules read this instead of the caller's own
+      // adminClassIds, which is what closed the escalation.
+      adminUserIds: [TEACHER_UID, INVITED_TEACHER_UID],
       studentCount: 1,
     });
 
@@ -590,7 +594,7 @@ describe('Classes collection', () => {
     await assertSucceeds(deleteDoc(doc(db, 'classes', CLASS_ID)));
   });
 
-  it('invited teacher can update the class via isAdminOfClass', async () => {
+  it('invited teacher can still update the class, now via adminUserIds', async () => {
     const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
     await assertSucceeds(
       updateDoc(doc(db, 'classes', CLASS_ID), { name: 'Admin Updated' })
@@ -640,6 +644,27 @@ describe('Classes collection', () => {
 });
 
 // ─── Users ────────────────────────────────────────────────────────────
+
+describe('Config collection (version gate)', () => {
+  it('is readable WITHOUT signing in, so the gate can run before login', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'config', 'app'), { minSupportedVersion: '1.4' });
+    });
+    const db = testEnv.unauthenticatedContext().firestore();
+    await assertSucceeds(getDoc(doc(db, 'config', 'app')));
+  });
+
+  it('cannot be written by a client, so nobody can lift their own block', async () => {
+    const db = testEnv.authenticatedContext(PARENT_UID).firestore();
+    await assertFails(setDoc(doc(db, 'config', 'app'), { minSupportedVersion: '0.0.1' }));
+  });
+
+  it('is not a hole into other collections', async () => {
+    const db = testEnv.unauthenticatedContext().firestore();
+    await assertFails(getDoc(doc(db, 'students', STUDENT_ID)));
+    await assertFails(getDoc(doc(db, 'classes', CLASS_ID)));
+  });
+});
 
 describe('Users collection', () => {
   it('authenticated user can read any user profile', async () => {
@@ -783,139 +808,141 @@ describe('AdminInvites collection', () => {
   });
 });
 
-// ─── Fallback helpers (isLinkedParent / isAdminOfClass) ───────────────
+// ─── The removed fallback helpers must stay removed ───────────────────
+//
+// isLinkedParent() and isAdminOfClass() read studentIds / adminClassIds from
+// the caller's OWN user document, which the caller can write — so any account
+// could grant itself access to any class. They were deleted after an audit
+// found no document relying on them. These tests are the regression lock:
+// they assert the escalation now fails, and that the legitimate field-based
+// paths still work.
 
-describe('Fallback helper: isLinkedParent', () => {
-  // Tests reading docs that are MISSING parentUserIds — fallback reads user profile studentIds
-  it('parent can read student via user profile studentIds fallback', async () => {
-    // Create a student WITHOUT parentUserIds field (simulates old data)
+describe('Escalation via self-written user profile is blocked', () => {
+  it('injecting a studentId into my own profile does NOT grant student access', async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
-      const db = context.firestore();
-      await setDoc(doc(db, 'students', 'oldStudent'), {
-        firstName: 'Old',
-        lastName: 'Student',
-        classId: CLASS_ID,
-        teacherId: TEACHER_UID,
-        parents: [],
-        // No parentUserIds field — triggers isLinkedParent fallback
+      await setDoc(doc(context.firestore(), 'students', 'victimStudent'), {
+        firstName: 'Victim', lastName: 'Student', classId: CLASS_ID,
+        teacherId: TEACHER_UID, parents: [], parentUserIds: [], invitedTeacherIds: [TEACHER_UID],
       });
     });
 
-    const db = testEnv.authenticatedContext(PARENT_UID).firestore();
-    // PARENT_UID has studentIds: ['student1'] in their user profile (from seed)
-    // but 'oldStudent' is NOT in that list, so this should fail
-    await assertFails(getDoc(doc(db, 'students', 'oldStudent')));
+    const db = testEnv.authenticatedContext(OTHER_PARENT_UID).firestore();
+    await assertSucceeds(updateDoc(doc(db, 'users', OTHER_PARENT_UID), {
+      studentIds: ['victimStudent'],
+    }));
+    await assertFails(getDoc(doc(db, 'students', 'victimStudent')));
   });
 
-  it('parent can read homework via user profile studentIds fallback', async () => {
-    // Create homework WITHOUT parentUserIds, referencing a student the parent IS linked to
+  it('injecting a classId into my own profile does NOT grant class-wide access', async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       const db = context.firestore();
-      await setDoc(doc(db, 'homework', 'oldHw'), {
-        studentId: STUDENT_ID,
-        classId: CLASS_ID,
-        teacherId: TEACHER_UID,
-        title: 'Old HW',
-        status: 'assigned',
-        // No parentUserIds — triggers isLinkedParent fallback
+      await setDoc(doc(db, 'homework', 'victimHw'), {
+        studentId: STUDENT_ID, classId: CLASS_ID, teacherId: TEACHER_UID,
+        title: 'Private', status: 'assigned', parentUserIds: [], invitedTeacherIds: [TEACHER_UID],
+      });
+      await setDoc(doc(db, 'attendance', 'victimAtt'), {
+        studentId: STUDENT_ID, classId: CLASS_ID, teacherId: TEACHER_UID,
+        status: 'present', parentUserIds: [], invitedTeacherIds: [TEACHER_UID],
       });
     });
 
-    const db = testEnv.authenticatedContext(PARENT_UID).firestore();
-    // PARENT_UID has studentIds: [STUDENT_ID], so isLinkedParent should succeed
-    await assertSucceeds(getDoc(doc(db, 'homework', 'oldHw')));
+    const db = testEnv.authenticatedContext(OTHER_PARENT_UID).firestore();
+    await assertSucceeds(updateDoc(doc(db, 'users', OTHER_PARENT_UID), {
+      adminClassIds: [CLASS_ID],
+    }));
+
+    await assertFails(getDoc(doc(db, 'homework', 'victimHw')));
+    await assertFails(getDoc(doc(db, 'attendance', 'victimAtt')));
+    await assertFails(deleteDoc(doc(db, 'homework', 'victimHw')));
+    await assertFails(getDoc(doc(db, 'students', STUDENT_ID)));
   });
 
-  it('parent can read attendance via user profile studentIds fallback', async () => {
+  it('injecting a classId does NOT let me write the class doc and make it permanent', async () => {
+    // The deepest part of the old exploit: class update was granted by
+    // isAdminOfClass, so an attacker could add themselves to admins[] and
+    // become a genuine co-teacher everywhere, including in ilmtrack-admin.
+    const db = testEnv.authenticatedContext(OTHER_PARENT_UID).firestore();
+    await assertSucceeds(updateDoc(doc(db, 'users', OTHER_PARENT_UID), {
+      adminClassIds: [CLASS_ID],
+    }));
+    await assertFails(updateDoc(doc(db, 'classes', CLASS_ID), {
+      admins: [{ email: 'otherparent@test.com', userId: OTHER_PARENT_UID, inviteStatus: 'accepted' }],
+    }));
+  });
+
+  it('a document missing invitedTeacherIds is now unreadable, not fallback-readable', async () => {
+    // The behaviour the fallback existed for. Production has no such document
+    // (audited: 0 of 1,417), so this closing off is intentional.
     await testEnv.withSecurityRulesDisabled(async (context) => {
-      const db = context.firestore();
-      await setDoc(doc(db, 'attendance', 'oldAtt'), {
-        studentId: STUDENT_ID,
-        classId: CLASS_ID,
-        teacherId: TEACHER_UID,
-        status: 'present',
-        // No parentUserIds — triggers isLinkedParent fallback
+      await setDoc(doc(context.firestore(), 'students', 'legacyStudent'), {
+        firstName: 'Legacy', lastName: 'Student', classId: CLASS_ID,
+        teacherId: TEACHER_UID, parents: [],
+        // no invitedTeacherIds, no parentUserIds
       });
     });
-
-    const db = testEnv.authenticatedContext(PARENT_UID).firestore();
-    await assertSucceeds(getDoc(doc(db, 'attendance', 'oldAtt')));
+    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+    await assertFails(getDoc(doc(db, 'students', 'legacyStudent')));
   });
 });
 
-describe('Fallback helper: isAdminOfClass', () => {
-  // Tests reading docs that are MISSING invitedTeacherIds — fallback reads user profile adminClassIds
-  it('invited teacher can read student via user profile adminClassIds fallback', async () => {
-    // Create a student WITHOUT invitedTeacherIds field (simulates old data)
-    await testEnv.withSecurityRulesDisabled(async (context) => {
-      const db = context.firestore();
-      await setDoc(doc(db, 'students', 'oldStudent2'), {
-        firstName: 'Old',
-        lastName: 'Student2',
-        classId: CLASS_ID,
-        teacherId: TEACHER_UID,
-        parentUserIds: [],
-        parents: [],
-        // No invitedTeacherIds — triggers isAdminOfClass fallback
-      });
-    });
-
-    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
-    // INVITED_TEACHER_UID has adminClassIds: [CLASS_ID], classId matches
-    await assertSucceeds(getDoc(doc(db, 'students', 'oldStudent2')));
+describe('Legitimate access is unchanged', () => {
+  it('owner still reads their student', async () => {
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertSucceeds(getDoc(doc(db, 'students', STUDENT_ID)));
   });
 
-  it('invited teacher can read homework via user profile adminClassIds fallback', async () => {
-    await testEnv.withSecurityRulesDisabled(async (context) => {
-      const db = context.firestore();
-      await setDoc(doc(db, 'homework', 'oldHw2'), {
-        studentId: STUDENT_ID,
-        classId: CLASS_ID,
-        teacherId: TEACHER_UID,
-        parentUserIds: [],
-        title: 'Old HW',
-        status: 'assigned',
-        // No invitedTeacherIds — triggers isAdminOfClass fallback
-      });
-    });
-
+  it('accepted co-teacher still reads via invitedTeacherIds', async () => {
     const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
-    await assertSucceeds(getDoc(doc(db, 'homework', 'oldHw2')));
+    await assertSucceeds(getDoc(doc(db, 'students', STUDENT_ID)));
   });
 
-  it('invited teacher can read attendance via user profile adminClassIds fallback', async () => {
-    await testEnv.withSecurityRulesDisabled(async (context) => {
-      const db = context.firestore();
-      await setDoc(doc(db, 'attendance', 'oldAtt2'), {
-        studentId: STUDENT_ID,
-        classId: CLASS_ID,
-        teacherId: TEACHER_UID,
-        parentUserIds: [],
-        status: 'present',
-        // No invitedTeacherIds — triggers isAdminOfClass fallback
-      });
-    });
-
-    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
-    await assertSucceeds(getDoc(doc(db, 'attendance', 'oldAtt2')));
+  it('linked parent still reads via parentUserIds', async () => {
+    const db = testEnv.authenticatedContext(PARENT_UID).firestore();
+    await assertSucceeds(getDoc(doc(db, 'students', STUDENT_ID)));
   });
 
-  it('non-admin teacher CANNOT read via adminClassIds fallback', async () => {
+  it('co-teacher can still bump studentCount when adding a student', async () => {
+    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+    await assertSucceeds(updateDoc(doc(db, 'classes', CLASS_ID), { studentCount: 2 }));
+  });
+
+  it('co-teacher CANNOT take ownership of the class', async () => {
+    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+    await assertFails(updateDoc(doc(db, 'classes', CLASS_ID), {
+      teacherId: INVITED_TEACHER_UID,
+    }));
+  });
+
+  it('co-teacher CANNOT add another co-teacher', async () => {
+    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+    await assertFails(updateDoc(doc(db, 'classes', CLASS_ID), {
+      adminUserIds: [TEACHER_UID, INVITED_TEACHER_UID, OTHER_TEACHER_UID],
+    }));
+  });
+
+  it('owner can still add a co-teacher', async () => {
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertSucceeds(updateDoc(doc(db, 'classes', CLASS_ID), {
+      admins: [
+        { email: 'invited@test.com', userId: INVITED_TEACHER_UID, inviteStatus: 'accepted' },
+        { email: 'other@test.com', userId: OTHER_TEACHER_UID, inviteStatus: 'pending' },
+      ],
+    }));
+  });
+
+  it('a class with no adminUserIds yet denies co-teachers rather than erroring', async () => {
+    // Ordering guard: the backfill must precede the rules deploy.
     await testEnv.withSecurityRulesDisabled(async (context) => {
-      const db = context.firestore();
-      await setDoc(doc(db, 'students', 'oldStudent3'), {
-        firstName: 'Old',
-        lastName: 'Student3',
-        classId: CLASS_ID,
-        teacherId: TEACHER_UID,
-        parentUserIds: [],
-        parents: [],
+      await setDoc(doc(context.firestore(), 'classes', 'unbackfilled'), {
+        name: 'Not Backfilled', teacherId: TEACHER_UID, studentCount: 0,
+        admins: [{ email: 'invited@test.com', userId: INVITED_TEACHER_UID, inviteStatus: 'accepted' }],
       });
     });
+    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+    await assertFails(updateDoc(doc(db, 'classes', 'unbackfilled'), { name: 'x' }));
 
-    const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
-    // OTHER_TEACHER_UID has no adminClassIds, so fallback should fail
-    await assertFails(getDoc(doc(db, 'students', 'oldStudent3')));
+    const owner = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertSucceeds(updateDoc(doc(owner, 'classes', 'unbackfilled'), { name: 'x' }));
   });
 });
 
@@ -1049,7 +1076,11 @@ describe('Known rules trade-offs', () => {
     await assertSucceeds(updateDoc(doc(db, 'users', PARENT_UID), { role: 'teacher' }));
   });
 
-  it('any authenticated user CAN write to another user\'s studentIds/adminClassIds (documented gap)', async () => {
+  it('writing another user\'s studentIds/adminClassIds is still allowed, but now grants nothing', async () => {
+    // Still permitted — the users rule stays open until roles move to custom
+    // claims (todo.md #4). It is no longer a privilege escalation, because no
+    // rule reads these arrays any more; they are UI hints. See the
+    // "Escalation via self-written user profile is blocked" suite above.
     const db = testEnv.authenticatedContext(OTHER_PARENT_UID).firestore();
     await assertSucceeds(
       updateDoc(doc(db, 'users', PARENT_UID), {

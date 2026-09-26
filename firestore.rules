@@ -13,16 +13,23 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
-    // Fallback: checks user profile for linked studentIds (for old docs without parentUserIds)
-    function isLinkedParent(studentId) {
-      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      return userData.keys().hasAll(['studentIds']) && userData.studentIds.hasAny([studentId]);
-    }
+    // Two helpers used to live here that read studentIds / adminClassIds from
+    // the *caller's own* user document. Because a user can write that document,
+    // any authenticated account could grant itself read, update and delete on
+    // every student, homework and attendance record in any class. They existed
+    // only as a fallback for legacy documents missing parentUserIds /
+    // invitedTeacherIds; an audit of production found zero such documents, so
+    // they were removed rather than made symmetric.
+    //
+    // The rule worth keeping: never decide access from a document the caller
+    // can write. Every check below reads the document being accessed.
 
-    // Fallback: checks user profile for adminClassIds (for old docs without invitedTeacherIds)
-    function isAdminOfClass(classId) {
-      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      return userData.keys().hasAll(['adminClassIds']) && userData.adminClassIds.hasAny([classId]);
+    // Owner + accepted co-teachers, denormalized onto the class document by
+    // the syncClassAdminUserIds Cloud Function. Read from the class itself, so
+    // it cannot be self-granted.
+    function isClassMember(classData) {
+      return classData.keys().hasAll(['adminUserIds'])
+        && request.auth.uid in classData.adminUserIds;
     }
 
     // Field-based: user's uid is in parentUserIds array on the document
@@ -33,6 +40,17 @@ service cloud.firestore {
     // Field-based: user's uid is in invitedTeacherIds array on the document
     function isInInvitedTeacherIds(data) {
       return data.keys().hasAll(['invitedTeacherIds']) && request.auth.uid in data.invitedTeacherIds;
+    }
+
+    // Remote app config: the minimum supported app version and store links.
+    //
+    // Readable WITHOUT signing in, on purpose — the version gate runs before
+    // authentication so an unsupported build is stopped at the login screen.
+    // It holds no user data. Writes are Admin SDK / console only, so a client
+    // cannot lift its own restriction.
+    match /config/{document} {
+      allow read: if true;
+      allow write: if false;
     }
 
     // Users collection
@@ -48,9 +66,17 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() &&
         request.resource.data.teacherId == request.auth.uid;
+      // A co-teacher may edit the class (name, studentCount, ...) but may not
+      // change who owns it or who administers it. That belongs to the owner,
+      // and it is what stopped the old escalation from becoming permanent.
       allow update: if isAuthenticated() && (
         resource.data.teacherId == request.auth.uid ||
-        isAdminOfClass(classId)
+        (
+          isClassMember(resource.data) &&
+          request.resource.data.teacherId == resource.data.teacherId &&
+          request.resource.data.admins == resource.data.admins &&
+          request.resource.data.adminUserIds == resource.data.adminUserIds
+        )
       );
       allow delete: if isAuthenticated() &&
         resource.data.teacherId == request.auth.uid;
@@ -61,19 +87,15 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         resource.data.teacherId == request.auth.uid ||
         isInParentUserIds(resource.data) ||
-        isInInvitedTeacherIds(resource.data) ||
-        isLinkedParent(studentId) ||
-        isAdminOfClass(resource.data.classId)
+        isInInvitedTeacherIds(resource.data)
       );
       allow create: if isAuthenticated() && (
         request.resource.data.teacherId == request.auth.uid ||
-        isInInvitedTeacherIds(request.resource.data) ||
-        isAdminOfClass(request.resource.data.classId)
+        isInInvitedTeacherIds(request.resource.data)
       );
       allow update, delete: if isAuthenticated() && (
         resource.data.teacherId == request.auth.uid ||
-        isInInvitedTeacherIds(resource.data) ||
-        isAdminOfClass(resource.data.classId)
+        isInInvitedTeacherIds(resource.data)
       );
     }
 
@@ -82,19 +104,15 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         resource.data.teacherId == request.auth.uid ||
         isInParentUserIds(resource.data) ||
-        isInInvitedTeacherIds(resource.data) ||
-        isLinkedParent(resource.data.studentId) ||
-        isAdminOfClass(resource.data.classId)
+        isInInvitedTeacherIds(resource.data)
       );
       allow create: if isAuthenticated() && (
         request.resource.data.teacherId == request.auth.uid ||
-        isInInvitedTeacherIds(request.resource.data) ||
-        isAdminOfClass(request.resource.data.classId)
+        isInInvitedTeacherIds(request.resource.data)
       );
       allow update, delete: if isAuthenticated() && (
         resource.data.teacherId == request.auth.uid ||
-        isInInvitedTeacherIds(resource.data) ||
-        isAdminOfClass(resource.data.classId)
+        isInInvitedTeacherIds(resource.data)
       );
     }
 
@@ -103,19 +121,15 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         resource.data.teacherId == request.auth.uid ||
         isInParentUserIds(resource.data) ||
-        isInInvitedTeacherIds(resource.data) ||
-        isLinkedParent(resource.data.studentId) ||
-        isAdminOfClass(resource.data.classId)
+        isInInvitedTeacherIds(resource.data)
       );
       allow create: if isAuthenticated() && (
         request.resource.data.teacherId == request.auth.uid ||
-        isInInvitedTeacherIds(request.resource.data) ||
-        isAdminOfClass(request.resource.data.classId)
+        isInInvitedTeacherIds(request.resource.data)
       );
       allow update, delete: if isAuthenticated() && (
         resource.data.teacherId == request.auth.uid ||
-        isInInvitedTeacherIds(resource.data) ||
-        isAdminOfClass(resource.data.classId)
+        isInInvitedTeacherIds(resource.data)
       );
     }
 

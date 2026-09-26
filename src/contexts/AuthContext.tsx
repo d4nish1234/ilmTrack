@@ -283,14 +283,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Send email verification
         await sendEmailVerification(fbUser);
 
-        // If parent, immediately check and accept any pending invites
-        if (role === 'parent') {
-          await acceptPendingInvites(fbUser.uid, email);
-        }
-
-        // If teacher, immediately check and accept any pending admin invites
-        if (role === 'teacher') {
-          await acceptPendingAdminInvites(fbUser.uid, email);
+        // Linking invites must never be able to fail account creation. This
+        // block sits in a try/finally with no catch, so anything thrown here
+        // escapes past setUser() below and aborts the signup — which is
+        // exactly what happened when acceptParentInvites started rejecting
+        // unverified callers. Both paths are retried on every auth state
+        // change, so swallowing a failure here only delays linking.
+        try {
+          if (role === 'parent') {
+            await acceptPendingInvites(fbUser.uid, email);
+          }
+          if (role === 'teacher') {
+            await acceptPendingAdminInvites(fbUser.uid, email);
+          }
+        } catch (inviteError) {
+          console.warn('Could not link invites during signup; will retry on next sign-in.', inviteError);
         }
 
         // Set user state directly since we skipped onAuthStateChanged

@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
 import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
 import { LoadingSpinner, KeyboardAccessory } from '../src/components/common';
+import VersionGate from '../src/components/VersionGate';
 import {
   setupNotificationChannel,
   addNotificationListeners,
@@ -121,9 +122,13 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
         <PaperProvider theme={theme}>
-          <AuthProvider>
-            <RootLayoutNav />
-          </AuthProvider>
+          {/* Above AuthProvider on purpose: an unsupported build is stopped
+              before it can sign in or issue a query. */}
+          <VersionGate>
+            <AuthProvider>
+              <RootLayoutNav />
+            </AuthProvider>
+          </VersionGate>
         </PaperProvider>
       </SafeAreaProvider>
       {/* iOS keyboard accessory with "Done" button */}
