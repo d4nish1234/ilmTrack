@@ -2,7 +2,7 @@ module.exports = {
   expo: {
     name: 'ilmTrack',
     slug: 'ilmtrack',
-    version: '1.3',
+    version: '1.4',
     orientation: 'portrait',
     scheme: 'ilmtrack',
     userInterfaceStyle: 'light',
@@ -15,7 +15,6 @@ module.exports = {
       icon: './assets/icon.png',
       supportsTablet: true,
       bundleIdentifier: 'com.danishmahboob.ilmtrack',
-      buildNumber: '5',
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
       },
@@ -26,7 +25,6 @@ module.exports = {
         backgroundColor: '#1a73e8',
       },
       package: 'com.danishmahboob.ilmtrack',
-      versionCode: 3,
       googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json',
     },
     web: {

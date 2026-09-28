@@ -59,7 +59,7 @@ export function resolveStoreUrl(
   platform: 'ios' | 'android' | string,
   config?: { iosStoreUrl?: string; androidStoreUrl?: string } | null
 ): string {
-  const fallbackIos = 'https://apps.apple.com/app/id0000000000';
+  const fallbackIos = 'https://apps.apple.com/us/app/ilmtrack/id6758573901';
   const fallbackAndroid =
     'https://play.google.com/store/apps/details?id=com.danishmahboob.ilmtrack';
 
