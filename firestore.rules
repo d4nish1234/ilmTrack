@@ -32,6 +32,39 @@ service cloud.firestore {
         && request.auth.uid in classData.adminUserIds;
     }
 
+    // The caller's verified email, lowercased, or '' when unverified.
+    // Invites are addressed by email, so this is what proves an invite is
+    // yours. Unverified is deliberately '' rather than the claimed address:
+    // Firebase will mint an account for any address you type, so an
+    // unverified token says nothing about who you are. Same reasoning as the
+    // email_verified check in acceptParentInvites.
+    function verifiedEmail() {
+      return request.auth.token.email_verified == true
+        ? request.auth.token.email.lower()
+        : '';
+    }
+
+    // May the caller act on this student? Reads the student document, never
+    // anything the caller can write. Used to stop forged invites: an invite
+    // naming a child you have no relationship with is how an attacker gets
+    // themselves linked to that child.
+    function canManageStudent(studentId) {
+      return exists(/databases/$(database)/documents/students/$(studentId))
+        && (
+          get(/databases/$(database)/documents/students/$(studentId)).data.teacherId == request.auth.uid
+          || request.auth.uid in get(/databases/$(database)/documents/students/$(studentId)).data.invitedTeacherIds
+        );
+    }
+
+    // May the caller add a co-teacher to this class? Owner or existing member.
+    function canManageClass(classId) {
+      return exists(/databases/$(database)/documents/classes/$(classId))
+        && (
+          get(/databases/$(database)/documents/classes/$(classId)).data.teacherId == request.auth.uid
+          || isClassMember(get(/databases/$(database)/documents/classes/$(classId)).data)
+        );
+    }
+
     // Field-based: user's uid is in parentUserIds array on the document
     function isInParentUserIds(data) {
       return data.keys().hasAll(['parentUserIds']) && request.auth.uid in data.parentUserIds;
@@ -134,18 +167,57 @@ service cloud.firestore {
     }
 
     // Invites collection - for parent invitation tracking
+    // Parent invites. acceptParentInvites() links a caller to every student
+    // named by an invite carrying their verified email, so whoever can write
+    // these documents decides who sees which child.
     match /invites/{inviteId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
+
+      // Create only for a student you already teach. Without this, forging an
+      // invite with your own address and someone else's studentId is enough
+      // to have acceptParentInvites link you to that child.
+      //
+      // Deliberately not also requiring teacherId == request.auth.uid: the
+      // transfer flow in student.service.ts copies the *owner's* id onto the
+      // invite even when a co-teacher performs the transfer, and that check
+      // would silently break it. canManageStudent already proves the caller
+      // has a relationship with the child, which is the thing that matters.
+      allow create: if isAuthenticated()
+        && canManageStudent(request.resource.data.studentId);
+
+      // No client updates these: the app only creates and deletes them, and
+      // acceptParentInvites runs on the Admin SDK, which ignores rules. The
+      // onInviteAccepted trigger has no request.auth and so cannot check a
+      // caller itself — flipping status to 'accepted' was the whole exploit.
+      allow update: if false;
+
+      // Deleting an invite only withdraws access, so it stays open to the
+      // teacher doing parent cleanup, whose student may already be gone.
       allow delete: if isAuthenticated();
     }
 
     // Teacher invites collection - for shared class access tracking
+    // Co-teacher invites. Accepting one grants access to a whole class, via
+    // the onTeacherInviteAccepted trigger — which, being a trigger, has no
+    // caller to verify. The gate has to be here.
     match /adminInvites/{inviteId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
+
+      // Only someone already on the class may invite to it.
+      allow create: if isAuthenticated()
+        && canManageClass(request.resource.data.classId);
+
+      // Accepting your own invite, and only your own. Both halves matter:
+      // the email check stops you accepting an invite addressed to someone
+      // else, and the userId check stops you accepting one on their behalf
+      // and pointing it at yourself. Matches what AuthContext already sends.
+      allow update: if isAuthenticated()
+        && verifiedEmail() != ''
+        && resource.data.email.lower() == verifiedEmail()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.classId == resource.data.classId;
+
       allow delete: if isAuthenticated();
     }
   }

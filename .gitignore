@@ -50,3 +50,6 @@ TEST_CASES.pdf
 
 expo-env.d.ts
 # @end expo-cli
+# Firestore emulator debug output
+firestore-debug.log
+firebase-debug.log
