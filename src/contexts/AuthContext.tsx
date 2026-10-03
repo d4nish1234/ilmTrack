@@ -123,22 +123,32 @@ async function acceptPendingAdminInvites(
     const invite = inviteDoc.data();
     const classId = invite.classId;
 
-    // Skip if user already has this class in adminClassIds
-    if (existingAdminClassIds.includes(classId)) {
-      continue;
-    }
-
-    classIds.push(classId);
-
-    // Update invite status to accepted (if not already)
-    // The Cloud Function (onTeacherInviteAccepted) will handle updating the class doc
-    // (admin inviteStatus, userId) and backfilling invitedTeacherIds on student/homework/attendance docs
-    if (invite.status === 'pending') {
+    // Re-accept whenever the invite does not already name *this* uid, rather
+    // than only when it is still 'pending'.
+    //
+    // Why: delete an account and sign up again with the same address and you
+    // get a new uid, but the invite and the class keep naming the dead one. The
+    // old condition could never fire again (the invite was already 'accepted'),
+    // so the teacher silently saw nothing — for four months, in the case that
+    // found this. Writing userId here fires onTeacherInviteAccepted, which
+    // repairs the class document and the records with Admin privileges.
+    //
+    // This mirrors acceptParentInvites, which reconciles against current state
+    // and is why the parent half of that same bug healed on its own. Cheap to
+    // repeat: the write only happens when the invite is actually stale.
+    if (invite.status !== 'accepted' || invite.userId !== userId) {
       await updateDoc(inviteDoc.ref, {
         status: 'accepted',
         acceptedAt: serverTimestamp(),
         userId,
       });
+    }
+
+    // The user doc is only a lookup hint, so it is kept separately from the
+    // repair above — a stale uid on the class must still be fixed even when
+    // adminClassIds already looks right.
+    if (!existingAdminClassIds.includes(classId)) {
+      classIds.push(classId);
     }
   }
 

@@ -530,28 +530,59 @@ describe('Attendance collection', () => {
 // ─── Invites ───────────────────────────────────────────────────────────
 
 describe('Invites collection', () => {
-  it('authenticated user can create invites', async () => {
+  const invite = (extra = {}) => ({
+    email: 'new@parent.com',
+    studentId: STUDENT_ID,
+    teacherId: TEACHER_UID,
+    status: 'pending',
+    ...extra,
+  });
+
+  it("the student's teacher can create invites", async () => {
     const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
-    await assertSucceeds(
-      addDoc(collection(db, 'invites'), {
-        email: 'new@parent.com',
-        studentId: STUDENT_ID,
-        teacherId: TEACHER_UID,
-        status: 'pending',
-      })
+    await assertSucceeds(addDoc(collection(db, 'invites'), invite()));
+  });
+
+  it('a co-teacher of the student can create invites', async () => {
+    // The transfer flow copies the owner's id onto the invite even when a
+    // co-teacher runs it, so this must pass with teacherId != the caller.
+    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+    await assertSucceeds(addDoc(collection(db, 'invites'), invite()));
+  });
+
+  it('a teacher with no relationship to the student CANNOT create an invite', async () => {
+    // The forge: an invite carrying your own address and someone else's
+    // studentId is all acceptParentInvites needs to link you to that child.
+    const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+    await assertFails(
+      addDoc(collection(db, 'invites'), invite({ email: 'other@test.com', teacherId: OTHER_TEACHER_UID }))
     );
+  });
+
+  it('CANNOT create an invite naming a student that does not exist', async () => {
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertFails(addDoc(collection(db, 'invites'), invite({ studentId: 'no-such-student' })));
+  });
+
+  it('nobody can flip an invite to accepted — not even the student\'s teacher', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'invites', 'inv1'), invite());
+    });
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertFails(updateDoc(doc(db, 'invites', 'inv1'), { status: 'accepted' }));
+  });
+
+  it('the teacher can still delete an invite (withdrawing access)', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'invites', 'inv1'), invite());
+    });
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertSucceeds(deleteDoc(doc(db, 'invites', 'inv1')));
   });
 
   it('unauthenticated user CANNOT create invites', async () => {
     const db = testEnv.unauthenticatedContext().firestore();
-    await assertFails(
-      setDoc(doc(db, 'invites', 'inv1'), {
-        email: 'new@parent.com',
-        studentId: STUDENT_ID,
-        teacherId: TEACHER_UID,
-        status: 'pending',
-      })
-    );
+    await assertFails(setDoc(doc(db, 'invites', 'inv1'), invite()));
   });
 });
 
@@ -735,11 +766,49 @@ describe('Users collection', () => {
 // ─── AdminInvites ─────────────────────────────────────────────────────
 
 describe('AdminInvites collection', () => {
-  it('authenticated user can create admin invites', async () => {
+  async function seedAdminInvite() {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'adminInvites', 'ai1'), {
+        email: 'invited@test.com',
+        classId: CLASS_ID,
+        status: 'pending',
+      });
+    });
+  }
+
+  /** A caller whose token carries a verified email, as the rules require. */
+  const asVerified = (uid: string, email: string) =>
+    testEnv.authenticatedContext(uid, { email, email_verified: true }).firestore();
+
+  it('the class owner can create admin invites', async () => {
     const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
     await assertSucceeds(
       addDoc(collection(db, 'adminInvites'), {
         email: 'coteacher@test.com',
+        classId: CLASS_ID,
+        status: 'pending',
+      })
+    );
+  });
+
+  it('an existing co-teacher can create admin invites', async () => {
+    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+    await assertSucceeds(
+      addDoc(collection(db, 'adminInvites'), {
+        email: 'another@test.com',
+        classId: CLASS_ID,
+        status: 'pending',
+      })
+    );
+  });
+
+  it('someone with no relationship to the class CANNOT create an admin invite', async () => {
+    // The forge: invite yourself to any class, let the app accept it on your
+    // next sign-in, and onTeacherInviteAccepted grants you the whole class.
+    const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+    await assertFails(
+      addDoc(collection(db, 'adminInvites'), {
+        email: 'other@test.com',
         classId: CLASS_ID,
         status: 'pending',
       })
@@ -761,19 +830,72 @@ describe('AdminInvites collection', () => {
     await assertSucceeds(getDoc(doc(db, 'adminInvites', 'ai1')));
   });
 
-  it('authenticated user can update admin invites', async () => {
-    await testEnv.withSecurityRulesDisabled(async (context) => {
-      const db = context.firestore();
-      await setDoc(doc(db, 'adminInvites', 'ai1'), {
+  it('the invited teacher can accept their own invite', async () => {
+    await seedAdminInvite();
+    const db = asVerified(INVITED_TEACHER_UID, 'invited@test.com');
+    await assertSucceeds(
+      updateDoc(doc(db, 'adminInvites', 'ai1'), {
+        status: 'accepted',
+        userId: INVITED_TEACHER_UID,
         email: 'invited@test.com',
         classId: CLASS_ID,
-        status: 'pending',
-      });
-    });
+      })
+    );
+  });
 
-    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
-    await assertSucceeds(
-      updateDoc(doc(db, 'adminInvites', 'ai1'), { status: 'accepted' })
+  it('CANNOT accept an invite addressed to someone else', async () => {
+    await seedAdminInvite();
+    const db = asVerified(OTHER_TEACHER_UID, 'other@test.com');
+    await assertFails(
+      updateDoc(doc(db, 'adminInvites', 'ai1'), {
+        status: 'accepted',
+        userId: OTHER_TEACHER_UID,
+        email: 'invited@test.com',
+        classId: CLASS_ID,
+      })
+    );
+  });
+
+  it('CANNOT accept an invite with an unverified email', async () => {
+    // Firebase will mint an account for any address you type, so an
+    // unverified token proves nothing — same reasoning as acceptParentInvites.
+    await seedAdminInvite();
+    const db = testEnv
+      .authenticatedContext(INVITED_TEACHER_UID, { email: 'invited@test.com', email_verified: false })
+      .firestore();
+    await assertFails(
+      updateDoc(doc(db, 'adminInvites', 'ai1'), {
+        status: 'accepted',
+        userId: INVITED_TEACHER_UID,
+        email: 'invited@test.com',
+        classId: CLASS_ID,
+      })
+    );
+  });
+
+  it('CANNOT accept on the real invitee\'s behalf but point it at yourself', async () => {
+    await seedAdminInvite();
+    const db = asVerified(INVITED_TEACHER_UID, 'invited@test.com');
+    await assertFails(
+      updateDoc(doc(db, 'adminInvites', 'ai1'), {
+        status: 'accepted',
+        userId: OTHER_TEACHER_UID,
+        email: 'invited@test.com',
+        classId: CLASS_ID,
+      })
+    );
+  });
+
+  it('CANNOT repoint an invite at a different class while accepting it', async () => {
+    await seedAdminInvite();
+    const db = asVerified(INVITED_TEACHER_UID, 'invited@test.com');
+    await assertFails(
+      updateDoc(doc(db, 'adminInvites', 'ai1'), {
+        status: 'accepted',
+        userId: INVITED_TEACHER_UID,
+        email: 'invited@test.com',
+        classId: 'some-other-class',
+      })
     );
   });
 
@@ -1090,7 +1212,10 @@ describe('Known rules trade-offs', () => {
     );
   });
 
-  it('any authenticated user CAN flip an invite to "accepted" (documented gap)', async () => {
+  it('CLOSED: flipping someone else\'s invite to "accepted" is now denied', async () => {
+    // Was a documented gap. onInviteAccepted is an onDocumentUpdated trigger
+    // with no request.auth, so it cannot verify a caller even in principle —
+    // the gate had to move here. Invites are now immutable to clients.
     await testEnv.withSecurityRulesDisabled(async (context) => {
       await setDoc(doc(context.firestore(), 'invites', 'i1'), {
         email: 'someone@parent.com',
@@ -1099,18 +1224,13 @@ describe('Known rules trade-offs', () => {
         status: 'pending',
       });
     });
-    // A different user who is NOT the invited email flips the invite.
-    // The downstream Cloud Function (`onInviteAccepted`) MUST verify the
-    // caller's email before granting access — rules alone don't protect this.
     const db = testEnv.authenticatedContext(OTHER_PARENT_UID).firestore();
-    await assertSucceeds(updateDoc(doc(db, 'invites', 'i1'), { status: 'accepted' }));
+    await assertFails(updateDoc(doc(db, 'invites', 'i1'), { status: 'accepted' }));
   });
 
-  it('any authenticated user CAN create adminInvites (documented gap)', async () => {
-    // CLAUDE.md says only the class owner should invite co-teachers, but
-    // rules permit any authenticated user. Enforced at UI layer only.
+  it('CLOSED: creating an adminInvite for a class you are not on is now denied', async () => {
     const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
-    await assertSucceeds(
+    await assertFails(
       addDoc(collection(db, 'adminInvites'), {
         email: 'rogue@test.com',
         classId: CLASS_ID,

@@ -84,6 +84,40 @@ interface HomeworkData {
  * field exists — already-installed app versions keep writing only `admins` and
  * continue to work.
  */
+/** Firestore allows 500 writes per batch; leave headroom. */
+const BATCH_LIMIT = 450;
+
+/**
+ * Apply one update to many documents, in batches.
+ *
+ * These backfills span students + homework + attendance for a whole class and
+ * exceed 500 writes on a busy class. A single batch is all-or-nothing, so it
+ * threw and the log-only catch swallowed it — leaving a removed teacher with
+ * full access, or a new one with none. Chunking trades atomicity for
+ * completeness, which is the right way round here: every write is an
+ * arrayUnion/arrayRemove, so a partial run is fixed by running it again.
+ */
+async function updateInChunks(
+  refs: FirebaseFirestore.DocumentReference[],
+  data: FirebaseFirestore.UpdateData<FirebaseFirestore.DocumentData>
+): Promise<void> {
+  for (let i = 0; i < refs.length; i += BATCH_LIMIT) {
+    const batch = db.batch();
+    for (const ref of refs.slice(i, i + BATCH_LIMIT)) batch.update(ref, data);
+    await batch.commit();
+  }
+}
+
+/** Every student/homework/attendance document belonging to a class. */
+async function classRecordRefs(classId: string): Promise<FirebaseFirestore.DocumentReference[]> {
+  const snaps = await Promise.all(
+    ['students', 'homework', 'attendance'].map((name) =>
+      db.collection(name).where('classId', '==', classId).get()
+    )
+  );
+  return snaps.flatMap((snap) => snap.docs.map((d) => d.ref));
+}
+
 export const syncClassAdminUserIds = onDocumentWritten(
   { document: 'classes/{classId}', region: 'us-central1' },
   async (event) => {
@@ -440,8 +474,17 @@ export const onTeacherInviteAccepted = onDocumentUpdated(
     const after = event.data?.after.data();
     if (!before || !after) return;
 
-    // Only trigger when status changes to 'accepted'
-    if (before.status === 'accepted' || after.status !== 'accepted') return;
+    // Fire when the invite becomes accepted, and also when an already-accepted
+    // invite is re-pointed at a different uid. The second case is how a teacher
+    // who deleted and recreated their account gets repaired: their next sign-in
+    // writes the new uid here (AuthContext.acceptPendingAdminInvites) and the
+    // class document and records are rewritten below. Without it a stale
+    // 'accepted' invite can never fire this trigger again — which is exactly
+    // how one co-teacher stayed invisible for four months.
+    if (after.status !== 'accepted') return;
+    const becameAccepted = before.status !== 'accepted';
+    const repointed = before.userId !== after.userId;
+    if (!becameAccepted && !repointed) return;
 
     const teacherUserId = after.userId as string;
     const classId = after.classId as string;
@@ -472,43 +515,13 @@ export const onTeacherInviteAccepted = onDocumentUpdated(
 
       await classRef.update({ admins: updatedAdmins });
 
-      // 2. Backfill invitedTeacherIds on student docs in this class
-      const studentsSnapshot = await db.collection('students')
-        .where('classId', '==', classId)
-        .get();
-
-      const batch = db.batch();
-      studentsSnapshot.docs.forEach((doc) => {
-        batch.update(doc.ref, {
-          invitedTeacherIds: FieldValue.arrayUnion(teacherUserId),
-        });
+      // 2. Backfill invitedTeacherIds across every record in the class
+      const refs = await classRecordRefs(classId);
+      await updateInChunks(refs, {
+        invitedTeacherIds: FieldValue.arrayUnion(teacherUserId),
       });
 
-      // 3. Backfill invitedTeacherIds on homework docs in this class
-      const homeworkSnapshot = await db.collection('homework')
-        .where('classId', '==', classId)
-        .get();
-
-      homeworkSnapshot.docs.forEach((doc) => {
-        batch.update(doc.ref, {
-          invitedTeacherIds: FieldValue.arrayUnion(teacherUserId),
-        });
-      });
-
-      // 4. Backfill invitedTeacherIds on attendance docs in this class
-      const attendanceSnapshot = await db.collection('attendance')
-        .where('classId', '==', classId)
-        .get();
-
-      attendanceSnapshot.docs.forEach((doc) => {
-        batch.update(doc.ref, {
-          invitedTeacherIds: FieldValue.arrayUnion(teacherUserId),
-        });
-      });
-
-      await batch.commit();
-
-      console.log(`Teacher invite accepted: teacher ${teacherUserId} linked to class ${classId}, backfilled ${studentsSnapshot.size} students, ${homeworkSnapshot.size} homework, ${attendanceSnapshot.size} attendance docs`);
+      console.log(`Teacher invite accepted: teacher ${teacherUserId} linked to class ${classId}, backfilled ${refs.length} records`);
     } catch (error) {
       console.error('Error in onTeacherInviteAccepted:', error);
     }
@@ -551,42 +564,18 @@ export const onTeacherRemoved = onDocumentUpdated(
     if (removedUserIds.length === 0) return;
 
     try {
-      const batch = db.batch();
+      // Queried once, not once per removed teacher: the old loop re-read all
+      // three collections for each uid and accumulated every write into one
+      // batch, which made the 500-write cliff easier to hit, not harder.
+      const refs = await classRecordRefs(classId);
 
       for (const removedUserId of removedUserIds) {
-        // Remove from student docs
-        const studentsSnapshot = await db.collection('students')
-          .where('classId', '==', classId)
-          .get();
-        studentsSnapshot.docs.forEach((doc) => {
-          batch.update(doc.ref, {
-            invitedTeacherIds: FieldValue.arrayRemove(removedUserId),
-          });
-        });
-
-        // Remove from homework docs
-        const homeworkSnapshot = await db.collection('homework')
-          .where('classId', '==', classId)
-          .get();
-        homeworkSnapshot.docs.forEach((doc) => {
-          batch.update(doc.ref, {
-            invitedTeacherIds: FieldValue.arrayRemove(removedUserId),
-          });
-        });
-
-        // Remove from attendance docs
-        const attendanceSnapshot = await db.collection('attendance')
-          .where('classId', '==', classId)
-          .get();
-        attendanceSnapshot.docs.forEach((doc) => {
-          batch.update(doc.ref, {
-            invitedTeacherIds: FieldValue.arrayRemove(removedUserId),
-          });
+        await updateInChunks(refs, {
+          invitedTeacherIds: FieldValue.arrayRemove(removedUserId),
         });
       }
 
-      await batch.commit();
-      console.log(`Removed teachers ${removedUserIds.join(', ')} from class ${classId} docs`);
+      console.log(`Removed teachers ${removedUserIds.join(', ')} from ${refs.length} records in class ${classId}`);
     } catch (error) {
       console.error('Error in onTeacherRemoved:', error);
     }

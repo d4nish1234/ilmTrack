@@ -196,6 +196,31 @@ describe('unlinkParentsFromStudent', () => {
     const p2 = await getDoc(doc(adminDb(), 'users', 'parent-uid-2'));
     expect(p2.data()?.studentIds).toEqual([]);
   });
+
+  it('raises permission failures instead of reporting a clean run', async () => {
+    // The documented defect (#2): a denied write was logged and swallowed, so
+    // the caller believed the parent had been unlinked while their access was
+    // still in place. Other failures stay best-effort — only a permission
+    // error means the caller was wrong and nothing will fix it later.
+    //
+    // Driven by swapping in an unauthenticated client rather than mocking
+    // updateDoc, so this exercises a real Firestore permission-denied.
+    await seed();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const authed = holder.firestore;
+    holder.firestore = testEnv.unauthenticatedContext().firestore();
+    try {
+      const parents: Parent[] = [
+        { firstName: 'A', lastName: 'P', email: 'a@parent.com', userId: 'parent-uid-1', inviteStatus: 'accepted' },
+      ];
+      await expect(unlinkParentsFromStudent('student-1', parents)).rejects.toThrow(
+        /Not allowed to unlink a@parent\.com/
+      );
+    } finally {
+      holder.firestore = authed;
+    }
+  });
 });
 
 describe('unlinkAllParentsFromStudent', () => {

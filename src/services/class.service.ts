@@ -1,4 +1,4 @@
-import { firestore, functions } from '../config/firebase';
+import { auth, firestore, functions } from '../config/firebase';
 import {
   collection,
   doc,
@@ -18,6 +18,9 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
+
+/** Firestore allows 500 writes per batch; leave headroom. */
+const BACKFILL_BATCH_LIMIT = 450;
 import { Class, CreateClassData, UpdateClassData, Admin } from '../types';
 
 const classesRef = collection(firestore, 'classes');
@@ -177,42 +180,43 @@ export async function addAdmin(
       adminClassIds: arrayUnion(classId),
     });
 
-    // Backfill invitedTeacherIds on all student/homework/attendance docs in this class
-    // (Cloud Function won't fire since adminInvite is created as 'accepted')
-    const classOwnerId = classDoc.teacherId;
-    const batch = writeBatch(firestore);
+    // Backfill invitedTeacherIds on all student/homework/attendance docs in this
+    // class (the Cloud Function won't fire, since the adminInvite below is
+    // created already 'accepted').
+    //
+    // Filtered on the *caller's* own access, not `teacherId == classOwnerId`.
+    // Homework and attendance store teacherId = whoever created them, so the
+    // old filter silently skipped everything a co-teacher had authored and the
+    // new co-teacher could never see it (243 records across 3 classes before
+    // this was repaired). Every record in a class already carries the caller in
+    // invitedTeacherIds — getInvitedTeacherIds() seeds it with the owner plus
+    // accepted co-teachers — so this is both complete and still a query the
+    // security rules can prove safe.
+    const callerUid = auth.currentUser?.uid;
+    if (!callerUid) throw new Error('Must be signed in to add a co-teacher');
 
-    const studentsQuery = query(
-      collection(firestore, 'students'),
-      where('classId', '==', classId),
-      where('teacherId', '==', classOwnerId)
-    );
-    const studentsSnap = await getDocs(studentsQuery);
-    studentsSnap.docs.forEach((d) => {
-      batch.update(d.ref, { invitedTeacherIds: arrayUnion(teacherUserId) });
-    });
+    const refsToBackfill = [];
+    for (const collectionName of ['students', 'homework', 'attendance']) {
+      const snap = await getDocs(
+        query(
+          collection(firestore, collectionName),
+          where('classId', '==', classId),
+          where('invitedTeacherIds', 'array-contains', callerUid)
+        )
+      );
+      refsToBackfill.push(...snap.docs.map((d) => d.ref));
+    }
 
-    const homeworkQuery = query(
-      collection(firestore, 'homework'),
-      where('classId', '==', classId),
-      where('teacherId', '==', classOwnerId)
-    );
-    const homeworkSnap = await getDocs(homeworkQuery);
-    homeworkSnap.docs.forEach((d) => {
-      batch.update(d.ref, { invitedTeacherIds: arrayUnion(teacherUserId) });
-    });
-
-    const attendanceQuery = query(
-      collection(firestore, 'attendance'),
-      where('classId', '==', classId),
-      where('teacherId', '==', classOwnerId)
-    );
-    const attendanceSnap = await getDocs(attendanceQuery);
-    attendanceSnap.docs.forEach((d) => {
-      batch.update(d.ref, { invitedTeacherIds: arrayUnion(teacherUserId) });
-    });
-
-    await batch.commit();
+    // Chunked: Firestore allows 500 writes per batch and a busy class exceeds
+    // that across three collections. A single batch threw and left the new
+    // co-teacher with no access at all.
+    for (let i = 0; i < refsToBackfill.length; i += BACKFILL_BATCH_LIMIT) {
+      const batch = writeBatch(firestore);
+      for (const ref of refsToBackfill.slice(i, i + BACKFILL_BATCH_LIMIT)) {
+        batch.update(ref, { invitedTeacherIds: arrayUnion(teacherUserId) });
+      }
+      await batch.commit();
+    }
   } else {
     // User doesn't exist - create pending invite
     newAdmin = {
