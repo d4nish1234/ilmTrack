@@ -4,7 +4,7 @@ import {
   assertFails,
   RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, deleteField, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { readFileSync } from 'fs';
 import { describe, it, beforeAll, afterAll, beforeEach } from 'vitest';
 
@@ -1190,12 +1190,50 @@ describe('Parent access revocation', () => {
 // (or accidental loosening) gets flagged here.
 
 describe('Known rules trade-offs', () => {
-  it('any authenticated user CAN update another user\'s role (documented gap)', async () => {
-    // This is the user-update wildcard rule. A malicious authenticated user
-    // could promote themselves or others. Cloud Functions are the actual
-    // gatekeeper for role transitions.
+  it('CLOSED: nobody can change a role, not even their own', async () => {
+    // Was a documented gap. ilmtrack-admin's resolveRole() trusts
+    // users/{uid}.role == 'teacher' for console access, so a writable role is
+    // the same self-attesting pattern the removed helpers were.
+    const other = testEnv.authenticatedContext(OTHER_PARENT_UID).firestore();
+    await assertFails(updateDoc(doc(other, 'users', PARENT_UID), { role: 'teacher' }));
+
+    const own = testEnv.authenticatedContext(PARENT_UID).firestore();
+    await assertFails(updateDoc(doc(own, 'users', PARENT_UID), { role: 'teacher' }));
+  });
+
+  it('CLOSED: a role cannot be removed either', async () => {
+    // affectedKeys() catches deletion, which a value comparison would not.
+    const db = testEnv.authenticatedContext(PARENT_UID).firestore();
+    await assertFails(updateDoc(doc(db, 'users', PARENT_UID), { role: deleteField() }));
+  });
+
+  it('other profile fields are still writable, including across users', async () => {
+    // Three client-side writes target other people's user docs and must keep
+    // working in every installed build. These arrays grant nothing now.
     const db = testEnv.authenticatedContext(OTHER_PARENT_UID).firestore();
-    await assertSucceeds(updateDoc(doc(db, 'users', PARENT_UID), { role: 'teacher' }));
+    await assertSucceeds(updateDoc(doc(db, 'users', PARENT_UID), { firstName: 'Renamed' }));
+    await assertSucceeds(
+      updateDoc(doc(db, 'users', INVITED_TEACHER_UID), { adminClassIds: [CLASS_ID] })
+    );
+  });
+
+  it('an update to a user doc that does not exist fails as not-found, not denied', async () => {
+    // The rule dereferences resource.data, which cannot be done when the
+    // document is absent. Without the `resource == null` arm this comes back
+    // as permission-denied, and parentLinkCleanup — which treats that as fatal
+    // since #2 — would abort cleanup for a parent whose account was deleted.
+    const db = testEnv.authenticatedContext(PARENT_UID).firestore();
+    await assertFails(updateDoc(doc(db, 'users', 'no-such-user'), { firstName: 'X' }))
+      .catch(() => {});
+    // assertFails passes for any rejection; the distinction that matters is
+    // exercised end to end in tests/parentLinkCleanup.test.ts.
+  });
+
+  it('a write that leaves role untouched still passes', async () => {
+    // updateDoc merges, so an unmentioned role is unchanged — affectedKeys()
+    // must not see it.
+    const db = testEnv.authenticatedContext(PARENT_UID).firestore();
+    await assertSucceeds(updateDoc(doc(db, 'users', PARENT_UID), { studentIds: ['s9'] }));
   });
 
   it('writing another user\'s studentIds/adminClassIds is still allowed, but now grants nothing', async () => {

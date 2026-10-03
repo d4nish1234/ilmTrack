@@ -90,7 +90,37 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isOwner(userId);
-      allow update: if isAuthenticated();
+
+      // Still open to any authenticated caller, because three client-side
+      // writes target *other people's* user documents and would break in every
+      // installed build: adminClassIds on an invited co-teacher
+      // (class.service.ts), the same on removal, and studentIds on a parent
+      // (student.service.ts). Those arrays grant nothing any more — no rule
+      // reads them — so they are UI hints and the cross-user writes are
+      // harmless.
+      //
+      // `role` is the exception and is frozen. ilmtrack-admin's resolveRole()
+      // trusts users/{uid}.role == 'teacher' to grant console access, so a
+      // writable role is the same self-attesting pattern that the removed
+      // isAdminOfClass()/isLinkedParent() helpers were. Nothing legitimate
+      // writes it after signup: it is set once by setDoc at account creation,
+      // and updateUserProfile only touches firstName/lastName.
+      //
+      // Tested via affectedKeys() rather than comparing values, so adding or
+      // removing the field is caught too, not just changing it.
+      //
+      // The `resource == null` arm matters: for a document that does not exist
+      // `resource.data` cannot be dereferenced, so without it an update to a
+      // deleted user's doc fails as permission-denied instead of not-found.
+      // parentLinkCleanup hits exactly that when a parent's account has been
+      // deleted, and since #2 now treats permission-denied as fatal it would
+      // abort the whole cleanup. Allowing the rule through here changes
+      // nothing: Firestore still rejects the write as not-found.
+      allow update: if isAuthenticated() && (
+        resource == null
+        || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
+      );
+
       allow delete: if isAuthenticated() && isOwner(userId);
     }
 
