@@ -2,7 +2,7 @@ module.exports = {
   expo: {
     name: 'ilmTrack',
     slug: 'ilmtrack',
-    version: '1.4',
+    version: '1.5',
     orientation: 'portrait',
     scheme: 'ilmtrack',
     userInterfaceStyle: 'light',
