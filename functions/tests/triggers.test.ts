@@ -187,3 +187,46 @@ describe('onTeacherRemoved', () => {
     expect(await invitedOn('students', 's0')).toContain(NEW_TEACHER);
   });
 });
+
+describe('backfillEnrollmentOnStudentCreate', () => {
+  /** The event payload a student create produces. */
+  const created = (studentId: string, data: Record<string, unknown>) => ({
+    data: test.firestore.makeDocumentSnapshot(data, `students/${studentId}`),
+    params: { studentId },
+  });
+
+  const enrollment = async (id: string) =>
+    (await db.collection('enrollments').doc(id).get()).data();
+
+  it('enrols a newly created student in their class', async () => {
+    const wrapped = test.wrap(fns.backfillEnrollmentOnStudentCreate);
+    await wrapped(created('new-student', { firstName: 'A', lastName: 'B', classId: CLASS_ID }));
+
+    const e = await enrollment(`new-student_${CLASS_ID}`);
+    expect(e).toMatchObject({ studentId: 'new-student', classId: CLASS_ID, active: true });
+    // Marked so it is clear which rows still arrive through the old path.
+    expect(e!.bridgedAt).toBeDefined();
+  });
+
+  it('skips a student with no class rather than writing a broken row', async () => {
+    const wrapped = test.wrap(fns.backfillEnrollmentOnStudentCreate);
+    await wrapped(created('no-class', { firstName: 'A', lastName: 'B' }));
+
+    expect((await db.collection('enrollments').get()).size).toBe(0);
+  });
+
+  it('does not overwrite an enrolment the migration already wrote', async () => {
+    // The id is derived the same way in both places, so the two cannot
+    // produce competing rows for one student and class.
+    await db.collection('enrollments').doc(`s9_${CLASS_ID}`).set({
+      studentId: 's9', classId: CLASS_ID, active: true, migratedAt: 'from-script',
+    });
+
+    const wrapped = test.wrap(fns.backfillEnrollmentOnStudentCreate);
+    await wrapped(created('s9', { firstName: 'A', lastName: 'B', classId: CLASS_ID }));
+
+    const e = await enrollment(`s9_${CLASS_ID}`);
+    expect(e!.migratedAt).toBe('from-script');
+    expect(e!.bridgedAt).toBeUndefined();
+  });
+});

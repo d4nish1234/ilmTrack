@@ -65,6 +65,25 @@ service cloud.firestore {
         );
     }
 
+    // Derived teacher access: is the caller on this class?
+    //
+    // Reads the class document rather than a copy stamped on each record. For
+    // a class-scoped query Firestore evaluates this once and caches it, so the
+    // whole query costs ONE document read against a limit of ten — which holds
+    // only while queries stay class-scoped. All 15 teacher queries are.
+    //
+    // This runs alongside isInInvitedTeacherIds() during the migration: a
+    // record satisfying either is readable, so installed builds keep working
+    // while new ones stop relying on the array. The array goes in phase 4.
+    function isClassMemberOf(classId) {
+      return classId is string
+        && exists(/databases/$(database)/documents/classes/$(classId))
+        && (
+          get(/databases/$(database)/documents/classes/$(classId)).data.teacherId == request.auth.uid
+          || isClassMember(get(/databases/$(database)/documents/classes/$(classId)).data)
+        );
+    }
+
     // Field-based: user's uid is in parentUserIds array on the document
     function isInParentUserIds(data) {
       return data.keys().hasAll(['parentUserIds']) && request.auth.uid in data.parentUserIds;
@@ -151,6 +170,7 @@ service cloud.firestore {
         resource.data.teacherId == request.auth.uid ||
         isInParentUserIds(resource.data) ||
         isInInvitedTeacherIds(resource.data)
+        || isClassMemberOf(resource.data.classId)
       );
       allow create: if isAuthenticated() && (
         request.resource.data.teacherId == request.auth.uid ||
@@ -168,6 +188,7 @@ service cloud.firestore {
         resource.data.teacherId == request.auth.uid ||
         isInParentUserIds(resource.data) ||
         isInInvitedTeacherIds(resource.data)
+        || isClassMemberOf(resource.data.classId)
       );
       allow create: if isAuthenticated() && (
         request.resource.data.teacherId == request.auth.uid ||
@@ -185,6 +206,7 @@ service cloud.firestore {
         resource.data.teacherId == request.auth.uid ||
         isInParentUserIds(resource.data) ||
         isInInvitedTeacherIds(resource.data)
+        || isClassMemberOf(resource.data.classId)
       );
       allow create: if isAuthenticated() && (
         request.resource.data.teacherId == request.auth.uid ||
@@ -197,6 +219,26 @@ service cloud.firestore {
     }
 
     // Invites collection - for parent invitation tracking
+    // Class membership, replacing students.classId.
+    //
+    // Written only by the Admin SDK — the migration script, the bridge
+    // trigger, and the app's own writes go through Cloud Functions — so
+    // clients never create or change one. That keeps the collection that now
+    // decides who is in a class out of reach of the people it governs.
+    match /enrollments/{enrollmentId} {
+      allow read: if isAuthenticated() && (
+        isClassMemberOf(resource.data.classId)
+        // A parent reads their own children's enrolments, which costs one
+        // document read per child; their queries are scoped to their own.
+        || (
+          exists(/databases/$(database)/documents/students/$(resource.data.studentId))
+          && request.auth.uid in
+             get(/databases/$(database)/documents/students/$(resource.data.studentId)).data.parentUserIds
+        )
+      );
+      allow create, update, delete: if false;
+    }
+
     // Parent invites. acceptParentInvites() links a caller to every student
     // named by an invite carrying their verified email, so whoever can write
     // these documents decides who sees which child.

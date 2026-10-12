@@ -118,6 +118,50 @@ async function classRecordRefs(classId: string): Promise<FirebaseFirestore.Docum
   return snaps.flatMap((snap) => snap.docs.map((d) => d.ref));
 }
 
+/**
+ * Give every new student an enrolment.
+ *
+ * A bridge for the student-identity migration: until every installed build
+ * writes `enrollments` itself, a student created in the app arrives with
+ * `classId` and nothing else, and would be invisible to anything reading the
+ * new shape. The alternative was remembering to re-run the migration script,
+ * which fails silently when forgotten.
+ *
+ * The document id is derived from student and class, exactly as
+ * scripts/migrate-enrollments.ts derives it, so the two cannot produce
+ * competing rows for the same pair.
+ *
+ * Delete this with the rest of the old path in phase 4.
+ */
+export const backfillEnrollmentOnStudentCreate = onDocumentCreated(
+  { document: 'students/{studentId}', region: 'us-central1' },
+  async (event) => {
+    const student = event.data?.data();
+    const studentId = event.params.studentId;
+    const classId = student?.classId as string | undefined;
+
+    // A student with no class has nothing to be enrolled in. The migration
+    // script skips these too rather than writing a broken row.
+    if (!classId) return;
+
+    const ref = db.collection('enrollments').doc(`${studentId}_${classId}`);
+    if ((await ref.get()).exists) return;
+
+    await ref.set({
+      studentId,
+      classId,
+      active: true,
+      joinedAt: student?.createdAt ?? FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+      // Marks the row as written by the bridge rather than by the app, so it
+      // is clear what is still arriving through the old path.
+      bridgedAt: FieldValue.serverTimestamp(),
+    });
+
+    console.log(`enrolled ${studentId} in ${classId}`);
+  }
+);
+
 export const syncClassAdminUserIds = onDocumentWritten(
   { document: 'classes/{classId}', region: 'us-central1' },
   async (event) => {
@@ -707,9 +751,16 @@ export const deleteStudentData = onCall(async (request) => {
     .where('studentId', '==', studentId)
     .get();
 
+  // Enrolments too — class membership lives there now, so leaving them would
+  // keep a deleted student on the roster.
+  const enrollmentSnapshot = await db.collection('enrollments')
+    .where('studentId', '==', studentId)
+    .get();
+
   const batch = db.batch();
   homeworkSnapshot.docs.forEach((d) => batch.delete(d.ref));
   attendanceSnapshot.docs.forEach((d) => batch.delete(d.ref));
+  enrollmentSnapshot.docs.forEach((d) => batch.delete(d.ref));
   batch.delete(db.collection('students').doc(studentId));
   await batch.commit();
 
@@ -785,10 +836,17 @@ export const deleteClassData = onCall(async (request) => {
     .where('classId', '==', classId)
     .get();
 
+  // Enrolments for this class go too — they are the class membership now, and
+  // one left behind would name a class that no longer exists.
+  const enrollmentSnapshot = await db.collection('enrollments')
+    .where('classId', '==', classId)
+    .get();
+
   const allRefs = [
     ...homeworkSnapshot.docs.map((d) => d.ref),
     ...attendanceSnapshot.docs.map((d) => d.ref),
     ...studentsSnapshot.docs.map((d) => d.ref),
+    ...enrollmentSnapshot.docs.map((d) => d.ref),
     classDoc.ref,
   ];
 

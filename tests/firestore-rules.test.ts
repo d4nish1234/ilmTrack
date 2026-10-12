@@ -930,6 +930,101 @@ describe('AdminInvites collection', () => {
   });
 });
 
+// ─── Derived access, phase 2 of the student-identity migration ────────
+//
+// A record is readable if the caller is on its class, read from the class
+// document rather than from an array copied onto the record. Both paths are
+// live at once: installed builds still rely on invitedTeacherIds, which goes
+// in phase 4.
+
+describe('Derived class access', () => {
+  /** A co-teacher who is on the class but on NO record's array. */
+  const DERIVED_ONLY = 'derived-teacher';
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      // On the class, and deliberately absent from every record's array.
+      await setDoc(doc(db, 'classes', CLASS_ID), {
+        name: 'Test Class',
+        teacherId: TEACHER_UID,
+        admins: [
+          { email: 'invited@test.com', userId: INVITED_TEACHER_UID, inviteStatus: 'accepted' },
+          { email: 'derived@test.com', userId: DERIVED_ONLY, inviteStatus: 'accepted' },
+        ],
+        adminUserIds: [TEACHER_UID, INVITED_TEACHER_UID, DERIVED_ONLY],
+        studentCount: 1,
+      });
+      await setDoc(doc(db, 'enrollments', `${STUDENT_ID}_${CLASS_ID}`), {
+        studentId: STUDENT_ID,
+        classId: CLASS_ID,
+        active: true,
+      });
+    });
+  });
+
+  it('a class member reads a student whose array does NOT name them', async () => {
+    const db = testEnv.authenticatedContext(DERIVED_ONLY).firestore();
+    await assertSucceeds(getDoc(doc(db, 'students', STUDENT_ID)));
+  });
+
+  it('a class member reads homework and attendance the same way', async () => {
+    const db = testEnv.authenticatedContext(DERIVED_ONLY).firestore();
+    await assertSucceeds(getDoc(doc(db, 'homework', 'hw1')));
+    await assertSucceeds(getDoc(doc(db, 'attendance', 'att1')));
+  });
+
+  it('someone NOT on the class still cannot read it', async () => {
+    const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+    await assertFails(getDoc(doc(db, 'students', STUDENT_ID)));
+    await assertFails(getDoc(doc(db, 'homework', 'hw1')));
+  });
+
+  it('the old array path still works, so installed builds keep running', async () => {
+    // INVITED_TEACHER_UID is in invitedTeacherIds on every seeded record.
+    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+    await assertSucceeds(getDoc(doc(db, 'students', STUDENT_ID)));
+  });
+
+  it('a class member reads an enrolment', async () => {
+    const db = testEnv.authenticatedContext(DERIVED_ONLY).firestore();
+    await assertSucceeds(getDoc(doc(db, 'enrollments', `${STUDENT_ID}_${CLASS_ID}`)));
+  });
+
+  it('a parent reads their own child\'s enrolment', async () => {
+    const db = testEnv.authenticatedContext(PARENT_UID).firestore();
+    await assertSucceeds(getDoc(doc(db, 'enrollments', `${STUDENT_ID}_${CLASS_ID}`)));
+  });
+
+  it('an unrelated parent CANNOT read an enrolment', async () => {
+    const db = testEnv.authenticatedContext(OTHER_PARENT_UID).firestore();
+    await assertFails(getDoc(doc(db, 'enrollments', `${STUDENT_ID}_${CLASS_ID}`)));
+  });
+
+  it('NOBODY may write an enrolment — not even the class owner', async () => {
+    // The collection that decides who is in a class stays out of reach of the
+    // people it governs. Only the Admin SDK writes it.
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertFails(
+      setDoc(doc(db, 'enrollments', 'forged'), {
+        studentId: STUDENT_ID, classId: CLASS_ID, active: true,
+      })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'enrollments', `${STUDENT_ID}_${CLASS_ID}`), { active: false })
+    );
+    await assertFails(deleteDoc(doc(db, 'enrollments', `${STUDENT_ID}_${CLASS_ID}`)));
+  });
+
+  it('a class-scoped list query works for a derived member', async () => {
+    // The budget that matters: one cached class read for the whole query.
+    const db = testEnv.authenticatedContext(DERIVED_ONLY).firestore();
+    await assertSucceeds(
+      getDocs(query(collection(db, 'students'), where('classId', '==', CLASS_ID)))
+    );
+  });
+});
+
 // ─── The removed fallback helpers must stay removed ───────────────────
 //
 // isLinkedParent() and isAdminOfClass() read studentIds / adminClassIds from
@@ -992,9 +1087,16 @@ describe('Escalation via self-written user profile is blocked', () => {
     }));
   });
 
-  it('a document missing invitedTeacherIds is now unreadable, not fallback-readable', async () => {
-    // The behaviour the fallback existed for. Production has no such document
-    // (audited: 0 of 1,417), so this closing off is intentional.
+  it('a document missing invitedTeacherIds is unreadable by an outsider', async () => {
+    // This used to assert that *nobody* could read such a document, because
+    // the only other way in was the removed fallback, which read the caller's
+    // own adminClassIds and so could be self-granted.
+    //
+    // Phase 2 added a second path that cannot be: isClassMemberOf() reads the
+    // class document. An accepted co-teacher of this class therefore does now
+    // read this record, which is the intended new behaviour. What still must
+    // not happen is someone off the class reading it, which is what this
+    // asserts.
     await testEnv.withSecurityRulesDisabled(async (context) => {
       await setDoc(doc(context.firestore(), 'students', 'legacyStudent'), {
         firstName: 'Legacy', lastName: 'Student', classId: CLASS_ID,
@@ -1002,8 +1104,12 @@ describe('Escalation via self-written user profile is blocked', () => {
         // no invitedTeacherIds, no parentUserIds
       });
     });
-    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
-    await assertFails(getDoc(doc(db, 'students', 'legacyStudent')));
+
+    const outsider = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+    await assertFails(getDoc(doc(outsider, 'students', 'legacyStudent')));
+
+    const member = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+    await assertSucceeds(getDoc(doc(member, 'students', 'legacyStudent')));
   });
 });
 

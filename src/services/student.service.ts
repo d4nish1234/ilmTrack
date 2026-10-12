@@ -16,6 +16,7 @@ import { httpsCallable } from 'firebase/functions';
 import { Student, CreateStudentData, UpdateStudentData, Parent, User } from '../types';
 import { incrementStudentCount, decrementStudentCount, getClass } from './class.service';
 import { unlinkAllParentsFromStudent } from '../utils/parentLinkCleanup';
+import { getStudentsInClass, subscribeToEnrolledStudents } from './enrollment.service';
 
 const studentsRef = collection(firestore, 'students');
 
@@ -96,69 +97,39 @@ export async function createStudent(
   return docRef.id;
 }
 
-export async function getStudents(classId: string, teacherId: string): Promise<Student[]> {
-  const q = query(
-    studentsRef,
-    where('classId', '==', classId),
-    where('teacherId', '==', teacherId)
-  );
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs
-    .map((doc) => ({ id: doc.id, ...doc.data() } as Student))
-    .sort((a, b) => a.lastName.localeCompare(b.lastName));
+/**
+ * The roster for a class.
+ *
+ * Membership now comes from `enrollments`, so a student in two classes is one
+ * document rather than two. `teacherId` is no longer part of the lookup — it
+ * only ever narrowed the query to satisfy the old security rules, and
+ * authorization is now derived from the class itself. Kept in the signature so
+ * every caller stays unchanged; see ../../todo.md step 4.
+ */
+export async function getStudents(classId: string, _teacherId?: string): Promise<Student[]> {
+  return getStudentsInClass(classId);
 }
 
 export function subscribeToStudents(
   classId: string,
-  teacherId: string,
+  _teacherId: string | undefined,
   onUpdate: (students: Student[]) => void,
   onError: (error: Error) => void
 ): () => void {
-  const q = query(
-    studentsRef,
-    where('classId', '==', classId),
-    where('teacherId', '==', teacherId)
-  );
-
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const students = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() } as Student))
-        .sort((a, b) => a.lastName.localeCompare(b.lastName));
-      onUpdate(students);
-    },
-    (error) => {
-      onError(error);
-    }
-  );
+  return subscribeToEnrolledStudents(classId, onUpdate, onError);
 }
 
 export function subscribeToStudentsAsAdmin(
   classId: string,
-  adminUid: string,
+  _adminUid: string | undefined,
   onUpdate: (students: Student[]) => void,
   onError: (error: Error) => void
 ): () => void {
-  const q = query(
-    studentsRef,
-    where('classId', '==', classId),
-    where('invitedTeacherIds', 'array-contains', adminUid)
-  );
-
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const students = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() } as Student))
-        .sort((a, b) => a.lastName.localeCompare(b.lastName));
-      onUpdate(students);
-    },
-    (error) => {
-      onError(error);
-    }
-  );
+  // Identical to subscribeToStudents now. The two existed only because the
+  // old rules needed a different identity filter for an owner than for a
+  // co-teacher; derived access makes that distinction disappear. Kept as a
+  // separate export so callers do not have to change.
+  return subscribeToEnrolledStudents(classId, onUpdate, onError);
 }
 
 export async function getStudent(studentId: string): Promise<Student | null> {
