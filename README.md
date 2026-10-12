@@ -327,6 +327,39 @@ npm run lint
 
 For production builds, you'll need EAS (Expo Application Services):
 
+### Cutting a release
+
+```bash
+# 1. Bump `version` in app.config.js — see below for why this is not optional
+# 2. Build both platforms at once
+eas build -p all --profile production
+
+# 3. Submit
+eas submit -p ios
+eas submit -p android
+```
+
+**Always bump `version` in `app.config.js` first.** Two separate things break
+if you don't:
+
+- Apple closes a version's "pre-release train" once it ships, so re-submitting
+  under a live version fails with `Invalid Pre-Release Train`.
+- `VersionGate` compares this exact string, so two builds sharing a version are
+  indistinguishable to `minSupportedVersion`. Raising the minimum to a version
+  that two different builds claim would let the older one through.
+
+`ios.buildNumber` and `android.versionCode` are deliberately absent:
+`eas.json` sets `appVersionSource: "remote"` with `autoIncrement`, so EAS
+assigns those. `version` is the only one to touch by hand.
+
+Keep both platforms on the same version. Shipping iOS 1.6 while Android is
+still 1.5 means the minimum cannot be raised without locking out every Android
+user — `npm run min-version` in ilmtrack-admin checks Apple only, because
+Google publishes no equivalent endpoint.
+
+The help screens read this value through `Constants.expoConfig.version`, so
+they follow the bump on their own.
+
 ### Initial Setup
 
 ```bash
