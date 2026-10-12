@@ -3,6 +3,7 @@ import { StyleSheet, View, ScrollView, Linking, Alert } from 'react-native';
 import { Text, List, Divider, Card } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
+import Constants from 'expo-constants';
 
 const FAQ_ITEMS = [
   {
@@ -151,7 +152,7 @@ export default function ParentHelpScreen() {
           {/* App Info */}
           <View style={styles.appInfo}>
             <Text variant="bodySmall" style={styles.appVersion}>
-              ilmTrack v1.0.0
+              ilmTrack v{Constants.expoConfig?.version ?? ''}
             </Text>
           </View>
         </ScrollView>
