@@ -7,5 +7,8 @@
 ## storage.ts
 - AsyncStorage helpers for persisting selected class ID across app restarts.
 
+## timekeeping.ts
+- Pure week/shift helpers: `weekStartOf` (Monday), `weekDates`, `shiftWeek`, `scheduleId`, `formatTime`, `formatDuration`, `weekSummary`, `shiftProblem` (end-before-start / overlap), `copyShiftsToWeek`. Tested in `tests/timekeeping.test.ts`.
+
 ## authErrors.ts
 - Maps Firebase Auth error codes to user-friendly messages.

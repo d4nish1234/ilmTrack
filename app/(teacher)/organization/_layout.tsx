@@ -27,6 +27,12 @@ export default function OrganizationLayout() {
           title: 'Timekeeping',
         }}
       />
+      <Stack.Screen
+        name="teacher/[teacherId]"
+        options={{
+          title: 'Shifts',
+        }}
+      />
     </Stack>
   );
 }

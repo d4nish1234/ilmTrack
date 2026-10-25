@@ -119,6 +119,63 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Does the caller administer this organization? Read from the
+    // organization document, which only ilmtrack-admin writes. For a query
+    // scoped to one orgId this costs one cached read.
+    function isOrgAdmin(orgId) {
+      return orgId is string
+        && exists(/databases/$(database)/documents/organizations/$(orgId))
+        && request.auth.uid in
+           get(/databases/$(database)/documents/organizations/$(orgId)).data.memberUserIds;
+    }
+
+    // Timekeeping settings: timekeeping/{orgId}. Locations and the on/off
+    // switch, managed by the organization's admins.
+    match /timekeeping/{orgId} {
+      allow read: if isAuthenticated() && isOrgAdmin(orgId);
+      allow create, update: if isAuthenticated()
+        && isOrgAdmin(orgId)
+        && request.resource.data.orgId == orgId;
+      allow delete: if false;
+    }
+
+    // One teacher's shifts for one week: schedules/{orgId}_{teacherId}_{weekStart}.
+    //
+    // The id is checked against the fields on every write, so a document
+    // cannot claim one organization in its id and another in its data. That
+    // also lets a read of a week that does not exist yet (every transaction
+    // starts with one) be authorized from the id alone. Organization ids are
+    // Firestore auto-ids and uids are alphanumeric, so neither contains '_'.
+    //
+    // Not checked here: that the teacher actually teaches in the organization.
+    // Rules cannot query classes. The Cloud Function that starts a shift
+    // checks it, which is where it matters.
+    match /schedules/{scheduleId} {
+      function idOrg() { return scheduleId.split('_')[0]; }
+      function idTeacher() { return scheduleId.split('_')[1]; }
+
+      function validSchedule(data) {
+        return scheduleId == data.orgId + '_' + data.teacherId + '_' + data.weekStart
+          && data.weekStart.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && data.shifts is list
+          && data.shifts.size() <= 50;
+      }
+
+      allow read: if isAuthenticated() && (
+        resource == null
+          ? (idTeacher() == request.auth.uid || isOrgAdmin(idOrg()))
+          : (resource.data.teacherId == request.auth.uid || isOrgAdmin(resource.data.orgId))
+      );
+      allow create: if isAuthenticated()
+        && isOrgAdmin(request.resource.data.orgId)
+        && validSchedule(request.resource.data);
+      // The id check pins orgId, teacherId and weekStart, so none can change.
+      allow update: if isAuthenticated()
+        && isOrgAdmin(resource.data.orgId)
+        && validSchedule(request.resource.data);
+      allow delete: if isAuthenticated() && isOrgAdmin(resource.data.orgId);
+    }
+
     // Users collection
     match /users/{userId} {
       allow read: if isAuthenticated();

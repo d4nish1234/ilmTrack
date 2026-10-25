@@ -48,6 +48,25 @@ module.exports = {
           sounds: [],
         },
       ],
+      [
+        // Foreground ("while using") only: location is checked when a teacher
+        // starts a shift and when an admin pins a location. No background
+        // location, so no ACCESS_BACKGROUND_LOCATION and no store declaration
+        // for it. The plugin writes all three iOS strings regardless; they are
+        // set to the same honest text so none says more than we do.
+        'expo-location',
+        {
+          locationWhenInUsePermission:
+            'ilmTrack checks that you are at your school when you start a shift.',
+          locationAlwaysPermission:
+            'ilmTrack checks that you are at your school when you start a shift.',
+          locationAlwaysAndWhenInUsePermission:
+            'ilmTrack checks that you are at your school when you start a shift.',
+          isIosBackgroundLocationEnabled: false,
+          isAndroidBackgroundLocationEnabled: false,
+        },
+      ],
+      '@react-native-community/datetimepicker',
     ],
     experiments: {
       typedRoutes: true,

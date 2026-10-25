@@ -61,6 +61,8 @@ not because of any list-query limitation. See `todo.md` #1.
 | `invites` | `email`, `studentId`, `teacherId`, `status` | Any authenticated user |
 | `adminInvites` | `email`, `classId`, `status` | Any authenticated user |
 | `organizations` | `name`, `members[]`, `memberUserIds[]` | Read: its admins (`memberUserIds`). Write: ilmtrack-admin only |
+| `timekeeping` | doc id = `orgId`; `enabled`, `timezone`, `locations[]` | Org admins (`isOrgAdmin`) |
+| `schedules` | doc id = `{orgId}_{teacherId}_{weekStart}`; `shifts[]` | Write: org admins. Read: org admins + that teacher |
 
 ## Organizations
 
@@ -72,6 +74,23 @@ relationships:
   `orgId` points at it. Grants no read of the org document. Derived by
   `orgTeacherIds()` in `organization.service.ts`, never from `adminClassIds` or
   `invitedTeacherIds`.
+
+## Timekeeping
+
+Org admins turn it on per organization, add locations, and set each
+teacher's shifts week by week (Organization tab → Timekeeping).
+- Shift dates/times are wall-clock strings (`'2026-10-12'`, `'16:00'`) in the
+  org's timezone, never Timestamps, so copying a week across a DST change
+  keeps 4 PM at 4 PM.
+- A teacher's whole week is one `schedules` doc, so "copy to next week" is a
+  single absolute write. Edits run in a transaction over the whole array.
+- The schedule doc id is checked against its fields in the rules; that is
+  also what authorizes reading a week that does not exist yet.
+- Rules can't check that a scheduled teacher teaches in the org — the Cloud
+  Function that starts a shift must.
+- Location is foreground-only (`expo-location` plugin in `app.config.js`, no
+  background permission). Keep it that way unless the store listings are
+  updated too.
 
 ## Project Structure
 ```
