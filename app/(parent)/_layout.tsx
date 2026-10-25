@@ -23,8 +23,10 @@ export default function ParentLayout() {
         name="index"
         options={{
           title: 'Home',
+          // Cast: @expo/vector-icons' types predate React Native 0.88's ColorValue;
+          // tab colours are always strings here.
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home" size={size} color={color} />
+            <MaterialCommunityIcons name="home" size={size} color={color as string} />
           ),
         }}
       />
@@ -33,7 +35,7 @@ export default function ParentLayout() {
         options={{
           title: 'Homework',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="book-open" size={size} color={color} />
+            <MaterialCommunityIcons name="book-open" size={size} color={color as string} />
           ),
         }}
       />
@@ -45,7 +47,7 @@ export default function ParentLayout() {
             <MaterialCommunityIcons
               name="clipboard-check"
               size={size}
-              color={color}
+              color={color as string}
             />
           ),
         }}
@@ -55,7 +57,7 @@ export default function ParentLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cog" size={size} color={color} />
+            <MaterialCommunityIcons name="cog" size={size} color={color as string} />
           ),
         }}
       />

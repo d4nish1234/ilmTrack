@@ -32,11 +32,13 @@ export default function TeacherLayout() {
           name="classes"
           options={{
             title: 'Classes',
+            // Cast: @expo/vector-icons' types predate React Native 0.88's ColorValue;
+            // tab colours are always strings here.
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
                 name="google-classroom"
                 size={size}
-                color={color}
+                color={color as string}
               />
             ),
             headerShown: false,
@@ -54,7 +56,7 @@ export default function TeacherLayout() {
             // Only for people who administer an organization.
             href: organizations.length > 0 ? undefined : null,
             tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="office-building" size={size} color={color} />
+              <MaterialCommunityIcons name="office-building" size={size} color={color as string} />
             ),
             headerShown: false,
           }}
@@ -64,7 +66,7 @@ export default function TeacherLayout() {
           options={{
             title: 'Settings',
             tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="cog" size={size} color={color} />
+              <MaterialCommunityIcons name="cog" size={size} color={color as string} />
             ),
           }}
         />

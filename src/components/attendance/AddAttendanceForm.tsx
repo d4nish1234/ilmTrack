@@ -14,20 +14,19 @@ import {
   SegmentedButtons,
   IconButton,
 } from 'react-native-paper';
-import { router, useLocalSearchParams } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../../../../../../../src/contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   createAttendance,
   getStudentAttendanceForDate,
   updateAttendance,
-} from '../../../../../../../src/services/attendance.service';
-import { getStudent, getInvitedTeacherIds } from '../../../../../../../src/services/student.service';
-import { Button, Input, AppSnackbar } from '../../../../../../../src/components/common';
-import { AttendanceStatus, Student } from '../../../../../../../src/types';
+} from '../../services/attendance.service';
+import { getStudent, getInvitedTeacherIds } from '../../services/student.service';
+import { Button, Input, AppSnackbar } from '../common';
+import { AttendanceStatus, Student } from '../../types';
 import {
   format,
   addDays,
@@ -47,11 +46,18 @@ const schema = yup.object({
 
 type FormData = yup.InferType<typeof schema>;
 
-export default function AddAttendanceScreen() {
-  const { classId, studentId } = useLocalSearchParams<{
-    classId: string;
-    studentId: string;
-  }>();
+interface AddAttendanceFormProps {
+  classId: string | undefined;
+  studentId: string | undefined;
+  /** Called after attendance is saved, and on Cancel. */
+  onDone: () => void;
+}
+
+/**
+ * The Add Attendance form: date, status, notes. Rendered by the
+ * classes/add-attendance route, which every "add attendance" action opens.
+ */
+export function AddAttendanceForm({ classId, studentId, onDone }: AddAttendanceFormProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +109,7 @@ export default function AddAttendanceScreen() {
                     status,
                     notes: data.notes || undefined,
                   });
-                  router.back();
+                  onDone();
                 } catch (err) {
                   console.error('Error updating attendance:', err);
                   setError('Failed to update attendance. Please try again.');
@@ -122,7 +128,7 @@ export default function AddAttendanceScreen() {
         status,
         notes: data.notes,
       }, student?.parentUserIds || [], freshTeacherIds);
-      router.back();
+      onDone();
     } catch (err) {
       console.error('Error creating attendance:', err);
       setError('Failed to add attendance. Please try again.');
@@ -311,7 +317,7 @@ export default function AddAttendanceScreen() {
               Add Attendance
             </Button>
 
-            <Button mode="outlined" onPress={() => router.back()}>
+            <Button mode="outlined" onPress={onDone}>
               Cancel
             </Button>
           </View>

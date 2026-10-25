@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, ScrollView, RefreshControl, Linking, Platform, AppState } from 'react-native';
 import { Text, Card, Chip, IconButton } from 'react-native-paper';
-import { router } from 'expo-router';
-import { useNavigation } from '@react-navigation/native';
+import { router, useNavigation } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { LoadingSpinner } from '../../src/components/common';

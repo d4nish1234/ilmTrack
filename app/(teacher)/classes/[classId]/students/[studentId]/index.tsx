@@ -204,9 +204,10 @@ export default function StudentDetailScreen() {
             mode="contained"
             icon="clipboard-check"
             onPress={() =>
-              router.push(
-                `/(teacher)/classes/${classId}/students/${studentId}/attendance/add`
-              )
+              router.push({
+                pathname: '/(teacher)/classes/add-attendance',
+                params: { classId, studentId },
+              })
             }
             style={styles.actionButton}
           >
@@ -216,9 +217,10 @@ export default function StudentDetailScreen() {
             mode="contained"
             icon="book"
             onPress={() =>
-              router.push(
-                `/(teacher)/classes/${classId}/students/${studentId}/homework/add`
-              )
+              router.push({
+                pathname: '/(teacher)/classes/add-homework',
+                params: { classId, studentId },
+              })
             }
             style={styles.actionButton}
           >

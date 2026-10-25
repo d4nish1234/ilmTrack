@@ -29,6 +29,27 @@ export default function ClassesLayout() {
         }}
       />
       <Stack.Screen
+        name="add-attendance"
+        options={{
+          title: 'Add Attendance',
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
+        name="evaluate-homework"
+        options={{
+          title: 'Evaluate Homework',
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
+        name="add-homework"
+        options={{
+          title: 'Add Homework',
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
         name="[classId]"
         options={{
           title: 'Class',

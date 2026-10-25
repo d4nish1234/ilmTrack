@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { StyleSheet, View, FlatList, RefreshControl, ScrollView } from 'react-native';
 import { Text, Card, Chip, IconButton, Button } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation } from 'expo-router';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useChildFilter } from '../../src/contexts/ChildFilterContext';
 import { LoadingSpinner } from '../../src/components/common';
@@ -360,7 +360,7 @@ export default function ParentHomeworkScreen() {
             >
               Load More
             </Button>
-          ) : null
+          ) : undefined
         }
       />
     </View>

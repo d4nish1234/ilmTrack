@@ -76,6 +76,8 @@ export async function setupNotificationChannel(): Promise<void> {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('homework', {
       name: 'Homework',
+      // Exported at runtime; eslint-plugin-import can't parse how SDK 58 compiles the enum.
+      // eslint-disable-next-line import/namespace
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#1a73e8',

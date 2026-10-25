@@ -15,6 +15,9 @@ Teacher screens. Bottom tab layout: Classes, Organization (only for org admins),
 ## classes/
 - **index.tsx** — Class list. Uses `subscribeToClasses(teacherId, ...)`.
 - **create.tsx** — Create new class form.
+- **add-attendance.tsx** — The one Add Attendance sheet (`AddAttendanceForm`, params `classId`, `studentId`). Opened by the student screen's Add Attendance button and Attendance History's +. Same reason as add-homework for living here.
+- **evaluate-homework.tsx** — Evaluate Homework sheet (`EvaluateHomeworkForm`, param `studentId`), opened by the Classes swipe "Evaluate": rate up to 3 pending items and mark each Complete / Late / Incomplete.
+- **add-homework.tsx** — The one Add Homework sheet (`AddHomeworkForm`, params `classId`, `studentId`). Opened by the Classes swipe "New", the student screen's Add Homework button and Homework History's +. Kept in the classes stack so it is always presented as a modal sheet; asks before a second assignment on the same day.
 
 ## classes/[classId]/
 - **index.tsx** — Class detail: student list + FAB to add student. Uses `subscribeToStudents(classId, teacherId, ...)`.
@@ -31,8 +34,6 @@ Teacher screens. Bottom tab layout: Classes, Organization (only for org admins),
 
 ## classes/[classId]/students/[studentId]/homework/
 - **index.tsx** — Full homework list with pagination. `getHomeworkPaginated(studentId, teacherId, ...)`.
-- **add.tsx** — Assign homework form. Fetches student to get `parentUserIds` and `invitedTeacherIds`, passes them to `createHomework`.
 
 ## classes/[classId]/students/[studentId]/attendance/
 - **index.tsx** — Full attendance list with pagination. `getAttendancePaginated(studentId, teacherId, ...)`.
-- **add.tsx** — Mark attendance with date picker + status. Fetches student for access arrays, passes to `createAttendance`.

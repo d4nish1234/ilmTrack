@@ -6,7 +6,6 @@ module.exports = {
     orientation: 'portrait',
     scheme: 'ilmtrack',
     userInterfaceStyle: 'light',
-    newArchEnabled: true,
     icon: './assets/icon.png',
     splash: {
       backgroundColor: '#1a73e8',
@@ -67,6 +66,9 @@ module.exports = {
         },
       ],
       '@react-native-community/datetimepicker',
+      'expo-font',
+      'expo-sharing',
+      'expo-status-bar',
     ],
     experiments: {
       typedRoutes: true,

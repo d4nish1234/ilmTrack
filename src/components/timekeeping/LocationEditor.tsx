@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
-import { Modal, Portal, SegmentedButtons, Text, TextInput } from 'react-native-paper';
+import { SegmentedButtons, Text, TextInput } from 'react-native-paper';
 import * as Location from 'expo-location';
-import { Button } from '../common';
+import { Button, KeyboardAwareModal } from '../common';
 import type { TimekeepingLocation } from '../../types';
 import { DEFAULT_RADIUS_M, RADIUS_OPTIONS_M, errorMessage } from '../../utils/timekeeping';
 
@@ -162,109 +162,107 @@ export function LocationEditor({
   };
 
   return (
-    <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={() => !busy && onDismiss()}
-        contentContainerStyle={styles.container}
-      >
-        <ScrollView keyboardShouldPersistTaps="handled">
-          <Text variant="titleLarge" style={styles.title}>
-            {location ? 'Edit location' : 'Add location'}
-          </Text>
+    <KeyboardAwareModal
+      visible={visible}
+      onDismiss={() => !busy && onDismiss()}
+      contentContainerStyle={styles.container}
+    >
+      <ScrollView keyboardShouldPersistTaps="handled">
+        <Text variant="titleLarge" style={styles.title}>
+          {location ? 'Edit location' : 'Add location'}
+        </Text>
 
-          <TextInput
-            label="Name"
-            placeholder="Main campus"
-            value={name}
-            onChangeText={setName}
-            mode="outlined"
-            style={styles.input}
-            autoCapitalize="words"
-          />
+        <TextInput
+          label="Name"
+          placeholder="Main campus"
+          value={name}
+          onChangeText={setName}
+          mode="outlined"
+          style={styles.input}
+          autoCapitalize="words"
+        />
 
-          <Button
-            mode="outlined"
-            icon="crosshairs-gps"
-            onPress={useCurrentLocation}
-            loading={busy === 'locating'}
-            disabled={!!busy}
-          >
-            Use my current location
-          </Button>
+        <Button
+          mode="outlined"
+          icon="crosshairs-gps"
+          onPress={useCurrentLocation}
+          loading={busy === 'locating'}
+          disabled={!!busy}
+        >
+          Use my current location
+        </Button>
 
-          <Text variant="bodySmall" style={styles.or}>
-            or
-          </Text>
+        <Text variant="bodySmall" style={styles.or}>
+          or
+        </Text>
 
-          <TextInput
-            label="Address"
-            value={query}
-            onChangeText={setQuery}
-            mode="outlined"
-            style={styles.input}
-            returnKeyType="search"
-            onSubmitEditing={findAddress}
-            right={
-              <TextInput.Icon
-                icon="magnify"
-                onPress={findAddress}
-                disabled={!!busy || !query.trim()}
-              />
-            }
-          />
+        <TextInput
+          label="Address"
+          value={query}
+          onChangeText={setQuery}
+          mode="outlined"
+          style={styles.input}
+          returnKeyType="search"
+          onSubmitEditing={findAddress}
+          right={
+            <TextInput.Icon
+              icon="magnify"
+              onPress={findAddress}
+              disabled={!!busy || !query.trim()}
+            />
+          }
+        />
 
-          {pin && (
-            <View style={styles.pin}>
-              <Text variant="labelMedium" style={styles.pinLabel}>
-                Pinned at
-              </Text>
-              <Text variant="bodyMedium">
-                {pin.address ?? `${pin.latitude.toFixed(5)}, ${pin.longitude.toFixed(5)}`}
-              </Text>
-            </View>
-          )}
-
-          <Text variant="bodyLarge" style={styles.radiusLabel}>
-            How close teachers must be
-          </Text>
-          <SegmentedButtons
-            value={String(radiusM)}
-            onValueChange={(v) => setRadiusM(Number(v))}
-            buttons={RADIUS_OPTIONS_M.map((m) => ({ value: String(m), label: `${m} m` }))}
-          />
-
-          {error && (
-            <Text variant="bodyMedium" style={styles.error}>
-              {error}
+        {pin && (
+          <View style={styles.pin}>
+            <Text variant="labelMedium" style={styles.pinLabel}>
+              Pinned at
             </Text>
-          )}
-          {needsSettings && (
-            <Button mode="text" onPress={() => Linking.openSettings()}>
-              Open Settings
-            </Button>
-          )}
-
-          <View style={styles.actions}>
-            <Button
-              onPress={save}
-              loading={busy === 'saving'}
-              disabled={!!busy || !pin || !name.trim()}
-            >
-              Save
-            </Button>
-            {location && (
-              <Button mode="outlined" textColor="#d32f2f" onPress={confirmRemove} disabled={!!busy}>
-                Delete location
-              </Button>
-            )}
-            <Button mode="text" onPress={onDismiss} disabled={!!busy}>
-              Cancel
-            </Button>
+            <Text variant="bodyMedium">
+              {pin.address ?? `${pin.latitude.toFixed(5)}, ${pin.longitude.toFixed(5)}`}
+            </Text>
           </View>
-        </ScrollView>
-      </Modal>
-    </Portal>
+        )}
+
+        <Text variant="bodyLarge" style={styles.radiusLabel}>
+          How close teachers must be
+        </Text>
+        <SegmentedButtons
+          value={String(radiusM)}
+          onValueChange={(v) => setRadiusM(Number(v))}
+          buttons={RADIUS_OPTIONS_M.map((m) => ({ value: String(m), label: `${m} m` }))}
+        />
+
+        {error && (
+          <Text variant="bodyMedium" style={styles.error}>
+            {error}
+          </Text>
+        )}
+        {needsSettings && (
+          <Button mode="text" onPress={() => Linking.openSettings()}>
+            Open Settings
+          </Button>
+        )}
+
+        <View style={styles.actions}>
+          <Button
+            onPress={save}
+            loading={busy === 'saving'}
+            disabled={!!busy || !pin || !name.trim()}
+          >
+            Save
+          </Button>
+          {location && (
+            <Button mode="outlined" textColor="#d32f2f" onPress={confirmRemove} disabled={!!busy}>
+              Delete location
+            </Button>
+          )}
+          <Button mode="text" onPress={onDismiss} disabled={!!busy}>
+            Cancel
+          </Button>
+        </View>
+      </ScrollView>
+    </KeyboardAwareModal>
   );
 }
 
