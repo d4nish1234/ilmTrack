@@ -105,6 +105,20 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Organizations. Created and staffed from ilmtrack-admin (Admin SDK), so
+    // no client writes them. Readable only by the people who administer one:
+    // memberUserIds is on the document being read and derived by the console
+    // from `members` in the same write, so it cannot be self-granted.
+    //
+    // Teaching in an organization (owning or co-teaching one of its classes)
+    // deliberately grants nothing here.
+    match /organizations/{orgId} {
+      allow read: if isAuthenticated()
+        && resource.data.keys().hasAll(['memberUserIds'])
+        && request.auth.uid in resource.data.memberUserIds;
+      allow write: if false;
+    }
+
     // Users collection
     match /users/{userId} {
       allow read: if isAuthenticated();

@@ -14,5 +14,8 @@ Key behaviors:
 ## ChildFilterContext.tsx
 Provides child filtering for parent screens — lets parents filter homework/attendance by a specific child when they have multiple.
 
+## OrganizationContext.tsx
+Orgs the teacher administers (live) and which one the Organization tab shows (persisted in AsyncStorage). Mounted in `app/_layout.tsx` inside `AuthProvider`; subscribes only for teachers. The selection affects that tab only — the Classes tab is unchanged.
+
 ## SelectedClassContext.tsx
 Persists the teacher's last-selected class across app restarts (AsyncStorage).

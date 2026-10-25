@@ -1,8 +1,11 @@
 import { Tabs, router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SelectedClassProvider } from '../../src/contexts/SelectedClassContext';
+import { useOrganizations } from '../../src/contexts/OrganizationContext';
 
 export default function TeacherLayout() {
+  const { organizations } = useOrganizations();
+
   return (
     <SelectedClassProvider>
       <Tabs
@@ -42,6 +45,18 @@ export default function TeacherLayout() {
             tabPress: (e) => {
               router.navigate('/(teacher)/classes');
             },
+          }}
+        />
+        <Tabs.Screen
+          name="organization"
+          options={{
+            title: 'Organization',
+            // Only for people who administer an organization.
+            href: organizations.length > 0 ? undefined : null,
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="office-building" size={size} color={color} />
+            ),
+            headerShown: false,
           }}
         />
         <Tabs.Screen

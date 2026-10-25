@@ -39,6 +39,12 @@ Same pattern as homework:
 - `getAttendanceByDate(classId, teacherId, date)` / `getStudentAttendanceForDate(studentId, teacherId, date)`
 - `toggleAttendance(studentId, classId, teacherId, date, status, parentUserIds, invitedTeacherIds)`
 
+## organization.service.ts
+Read-only; organizations are written by ilmtrack-admin.
+- `subscribeToMyOrganizations(uid, ...)` — orgs this user administers, `where('memberUserIds', 'array-contains', uid)`
+- `orgTeacherIds(classes)` — owners + co-teachers of the given classes (pure helper)
+- `getOrgTeachers(orgId)` — classes `where('orgId', '==', orgId)`, then those teachers' user docs
+
 ## notification.service.ts
 - `registerForPushNotifications()` — requests Expo push token
 - `savePushToken(userId, token)` / `removePushToken(userId)` — stores on user doc

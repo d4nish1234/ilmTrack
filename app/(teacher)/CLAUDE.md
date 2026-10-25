@@ -1,6 +1,10 @@
 # app/(teacher)/
 
-Teacher screens. Bottom tab layout: Home, Classes, Settings.
+Teacher screens. Bottom tab layout: Classes, Organization (only for org admins), Settings.
+
+## organization/
+- **index.tsx** — Selected org (switcher when there are several) and its tools list.
+- **timekeeping.tsx** — The org's teachers. Shifts and the on/off switch are being added.
 
 ## Top-level screens
 - **index.tsx** — Home dashboard. Shows class dropdown, today's attendance list (mark present/absent inline), recent homework, quick-assign homework. Uses `subscribeToStudents`, `getStudentAttendanceForDate`, `toggleAttendance`, `createHomework`.

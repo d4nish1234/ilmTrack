@@ -10,6 +10,13 @@ TypeScript interfaces. Exported via `index.ts` barrel file.
 - `Class` — `id`, `name`, `description?`, `teacherId`, `admins: Admin[]`, `studentCount`
 - `Admin` — `email`, `userId?`, `inviteStatus`, `inviteSentAt?`, `acceptedAt?`
 
+## organization.types.ts
+- `Organization` — `id`, `name`, `members: OrgMember[]`, `memberUserIds` (the org's admins, not its teachers)
+- `OrgMember` — `userId`, `email`, `role` (`'owner' | 'admin'`)
+- `OrgTeacher` — a teacher of one of the org's classes, with `classNames`
+
+`Class` also carries `adminUserIds?` and `orgId?`.
+
 ## student.types.ts
 - `Student` — `id`, `firstName`, `lastName`, `classId`, `teacherId`, `parents: Parent[]`, `parentUserIds?: string[]`, `invitedTeacherIds?: string[]`
 - `Parent` — `firstName`, `lastName`, `email`, `userId?`, `inviteStatus` (`'pending' | 'sent' | 'accepted'`)

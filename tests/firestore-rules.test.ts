@@ -4,7 +4,7 @@ import {
   assertFails,
   RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, deleteField, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, deleteField, collection, addDoc, query, where, getDocs, documentId } from 'firebase/firestore';
 import { readFileSync } from 'fs';
 import { describe, it, beforeAll, afterAll, beforeEach } from 'vitest';
 
@@ -694,6 +694,83 @@ describe('Config collection (version gate)', () => {
     const db = testEnv.unauthenticatedContext().firestore();
     await assertFails(getDoc(doc(db, 'students', STUDENT_ID)));
     await assertFails(getDoc(doc(db, 'classes', CLASS_ID)));
+  });
+});
+
+describe('Organizations collection', () => {
+  const ORG_ID = 'org1';
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, 'organizations', ORG_ID), {
+        name: 'Test Org',
+        members: [{ userId: TEACHER_UID, email: 'teacher@test.com', role: 'owner' }],
+        memberUserIds: [TEACHER_UID],
+      });
+      // Teaching in an org is not administering it: this co-teacher's class
+      // is in the org, but they are not a member.
+      await updateDoc(doc(db, 'classes', CLASS_ID), { orgId: ORG_ID });
+    });
+  });
+
+  it('a member can read their organization', async () => {
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertSucceeds(getDoc(doc(db, 'organizations', ORG_ID)));
+  });
+
+  it('a member can list the organizations they administer', async () => {
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertSucceeds(
+      getDocs(query(collection(db, 'organizations'), where('memberUserIds', 'array-contains', TEACHER_UID)))
+    );
+  });
+
+  it('a teacher of one of its classes who is not a member CANNOT read it', async () => {
+    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+    await assertFails(getDoc(doc(db, 'organizations', ORG_ID)));
+  });
+
+  it('an unrelated teacher CANNOT read it', async () => {
+    const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+    await assertFails(getDoc(doc(db, 'organizations', ORG_ID)));
+  });
+
+  it('an unfiltered list query is rejected', async () => {
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertFails(getDocs(collection(db, 'organizations')));
+  });
+
+  it('a member CANNOT write it, so nobody can add themselves as an admin', async () => {
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertFails(updateDoc(doc(db, 'organizations', ORG_ID), { name: 'Renamed' }));
+    await assertFails(
+      updateDoc(doc(db, 'organizations', ORG_ID), { memberUserIds: [TEACHER_UID, OTHER_TEACHER_UID] })
+    );
+  });
+
+  it('nobody can create one', async () => {
+    const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+    await assertFails(
+      setDoc(doc(db, 'organizations', 'org2'), { name: 'Mine', members: [], memberUserIds: [OTHER_TEACHER_UID] })
+    );
+  });
+
+  it('any teacher can still find the classes in an organization', async () => {
+    // getOrgTeachers relies on this: classes are readable by any signed-in user.
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertSucceeds(getDocs(query(collection(db, 'classes'), where('orgId', '==', ORG_ID))));
+  });
+
+  it("an org admin can batch-read the org's teachers' profiles by id", async () => {
+    // getOrgTeachers relies on this too. If the users rule is ever narrowed,
+    // this fails here instead of the Timekeeping teacher list going blank.
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertSucceeds(
+      getDocs(
+        query(collection(db, 'users'), where(documentId(), 'in', [TEACHER_UID, INVITED_TEACHER_UID]))
+      )
+    );
   });
 });
 

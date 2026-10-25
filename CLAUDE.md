@@ -60,6 +60,18 @@ not because of any list-query limitation. See `todo.md` #1.
 | `attendance` | `teacherId`, `classId`, `studentId`, `parentUserIds[]`, `invitedTeacherIds[]` | Owner + parents + invited teachers |
 | `invites` | `email`, `studentId`, `teacherId`, `status` | Any authenticated user |
 | `adminInvites` | `email`, `classId`, `status` | Any authenticated user |
+| `organizations` | `name`, `members[]`, `memberUserIds[]` | Read: its admins (`memberUserIds`). Write: ilmtrack-admin only |
+
+## Organizations
+
+Created and staffed in ilmtrack-admin; the app only reads them. Two separate
+relationships:
+- **Administers** an org: listed in `organizations/{id}.memberUserIds`. Only
+  these teachers see the Organization tab.
+- **Teaches in** an org: owner or co-teacher (`adminUserIds`) of a class whose
+  `orgId` points at it. Grants no read of the org document. Derived by
+  `orgTeacherIds()` in `organization.service.ts`, never from `adminClassIds` or
+  `invitedTeacherIds`.
 
 ## Project Structure
 ```
