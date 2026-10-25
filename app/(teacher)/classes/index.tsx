@@ -442,7 +442,8 @@ export default function ClassesScreen() {
         )}
       </View>
 
-      {/* Hidden unless the teacher has a shift this week. */}
+      {/* Shown for the selected class's organization when it has timekeeping
+          on, or while a shift is open (see timeClockScope). */}
       <TimeClockBar />
 
       {selectedClassId ? (

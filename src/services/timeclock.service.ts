@@ -21,6 +21,15 @@ export async function getMyTimekeeping(orgIds: string[]): Promise<MyTimekeeping>
   return result.data;
 }
 
+/**
+ * The teacher's own shifts for one week (getMyWeek), for their history. Hours
+ * come from their entries (subscribeToMyEntries).
+ */
+export async function getMyWeek(weekStart: string): Promise<MyTimekeeping> {
+  const result = await httpsCallable<{ weekStart: string }, MyTimekeeping>(functions, 'getMyWeek')({ weekStart });
+  return result.data;
+}
+
 export async function startShift(params: {
   orgId: string;
   weekStart: string;

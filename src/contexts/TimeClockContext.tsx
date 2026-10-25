@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { useAuth } from './AuthContext';
 import { useOrganizations } from './OrganizationContext';
 import { useClasses } from '../hooks/useClasses';
+import { useSelectedClass } from './SelectedClassContext';
 import {
   endShift,
   flushPendingEnd,
@@ -17,16 +18,18 @@ import {
   timeclockErrorReason,
 } from '../services/timeclock.service';
 import { getShiftPosition, type PositionProblem } from '../services/shiftLocation.service';
-import { focusOf, shiftViews, timekeepingOrgHints, type Focus } from '../utils/timeclock';
-import type { MyTimekeeping, ShiftView, TimeEntry } from '../types';
+import { focusOf, shiftViews, timeClockScope, timekeepingOrgHints, type Focus } from '../utils/timeclock';
+import type { MyOrgTimekeeping, MyTimekeeping, ShiftView, TimeEntry } from '../types';
 
 export type ActionResult =
   | { ok: true; queued?: boolean }
   | { ok: false; message: string; problem?: PositionProblem; reason?: string };
 
 interface TimeClockContextType {
-  /** This week's shifts across organizations. */
+  /** This week's shifts in the organizations shown (see timeClockScope). */
   shifts: ShiftView[];
+  /** The organizations shown: usually just the selected class's. */
+  orgs: MyOrgTimekeeping[];
   focus: Focus;
   /** Server-corrected now, ticking every second while on shift. */
   now: number;
@@ -59,6 +62,8 @@ export function TimeClockProvider({ children }: { children: ReactNode }) {
   const uid = user?.role === 'teacher' ? user.uid : undefined;
   const { classes } = useClasses();
   const { organizations } = useOrganizations();
+  const { selectedClassId } = useSelectedClass();
+  const selectedOrgId = classes.find((c) => c.id === selectedClassId)?.orgId;
   // A string so the effects below re-run only when the set actually changes —
   // for example when a class is added to an organization, live.
   const hintKey = useMemo(
@@ -120,8 +125,22 @@ export function TimeClockProvider({ children }: { children: ReactNode }) {
     );
   }, [uid, weekKey]);
 
-  const shifts = useMemo(() => (uid ? shiftViews(data, entries, uid) : []), [data, entries, uid]);
-  const hasTimekeeping = (data?.orgs.length ?? 0) > 0;
+  const allShifts = useMemo(() => (uid ? shiftViews(data, entries, uid) : []), [data, entries, uid]);
+  // Re-derived as the clock ticks, so a shift ending in another org hands the
+  // bar back to the selected class's.
+  const hasClasses = classes.length > 0;
+  const { orgs, shifts } = useMemo(() => {
+    const scope = timeClockScope(allShifts, (data?.orgs ?? []).map((o) => o.orgId), now, {
+      selectedOrgId,
+      hasClasses,
+      administeredOrgIds: organizations.map((o) => o.id),
+    });
+    return {
+      orgs: (data?.orgs ?? []).filter((o) => scope.includes(o.orgId)),
+      shifts: allShifts.filter((s) => scope.includes(s.orgId)),
+    };
+  }, [allShifts, data, now, selectedOrgId, hasClasses, organizations]);
+  const hasTimekeeping = orgs.length > 0;
   const focus = useMemo(
     () => focusOf(shifts, now, data?.earlyStartMs ?? DEFAULT_EARLY_START_MS, hasTimekeeping),
     [shifts, now, data?.earlyStartMs, hasTimekeeping]
@@ -167,6 +186,7 @@ export function TimeClockProvider({ children }: { children: ReactNode }) {
 
   const value: TimeClockContextType = {
     shifts,
+    orgs,
     focus,
     now,
     earlyStartMs: data?.earlyStartMs ?? DEFAULT_EARLY_START_MS,

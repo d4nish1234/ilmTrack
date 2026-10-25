@@ -35,6 +35,7 @@ import {
   endShift,
   flushPendingEnd,
   getMyTimekeeping,
+  getMyWeek,
   getPendingEnd,
   isRetryable,
   timeclockErrorMessage,
@@ -56,6 +57,15 @@ describe('getMyTimekeeping', () => {
     fx.respond = () => ({ data: { now: 1, earlyStartMs: 900000, orgs: [] } });
     await getMyTimekeeping(['a', 'b']);
     expect(fx.calls).toEqual([{ name: 'getMyTimekeeping', data: { orgIds: ['a', 'b'] } }]);
+  });
+});
+
+describe('getMyWeek', () => {
+  it('asks for one week and returns its shifts', async () => {
+    fx.respond = () => ({ data: { now: 1, earlyStartMs: 900000, orgs: [{ orgId: 'o1' }] } });
+    const week = await getMyWeek('2026-10-12');
+    expect(fx.calls).toEqual([{ name: 'getMyWeek', data: { weekStart: '2026-10-12' } }]);
+    expect(week.orgs).toHaveLength(1);
   });
 });
 

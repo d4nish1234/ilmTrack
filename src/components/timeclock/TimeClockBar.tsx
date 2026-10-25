@@ -11,8 +11,10 @@ import { useAppTheme } from '../../constants/theme';
  * One slim row on the Classes screen, so the student list keeps its room.
  * Its colour says where the teacher stands — green on shift, amber on break,
  * blue when a shift can be started, grey otherwise — and a tap opens the Time
- * sheet. Shown to anyone in an organization with timekeeping on, even before
- * they're scheduled, so teachers know it exists; hidden for everyone else.
+ * sheet. Shown when the selected class's organization has timekeeping on,
+ * even before the teacher is scheduled, so they know it exists; also while a
+ * shift is open anywhere, and for org admins with no classes. Hidden
+ * otherwise (utils/timeclock.ts timeClockScope).
  */
 export function TimeClockBar() {
   const { focus, now, pendingEndId } = useTimeClock();

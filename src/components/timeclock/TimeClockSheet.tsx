@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Linking, StyleSheet, View } from 'react-native';
+import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { Card, Divider, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -13,9 +13,12 @@ import {
   type PositionProblem,
 } from '../../services/shiftLocation.service';
 import { countingFrom, formatClock, formatWorked, workedMs } from '../../utils/timeclock';
-import { formatTime } from '../../utils/timekeeping';
+import { currentWeekStart, formatTime } from '../../utils/timekeeping';
 import type { ShiftView } from '../../types';
 import { useAppTheme } from '../../constants/theme';
+import { WeekRow } from './WeekRow';
+import { TimeHistory } from './TimeHistory';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface TimeClockSheetProps {
   onDone: () => void;
@@ -31,6 +34,8 @@ const clockTime = (ms: number) => format(ms, 'h:mm a');
 export function TimeClockSheet({ onDone }: TimeClockSheetProps) {
   const clock = useTimeClock();
   const { focus, now, shifts, loading } = clock;
+  const { user } = useAuth();
+  const [showHistory, setShowHistory] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ message: string; problem?: PositionProblem } | null>(null);
   // The shift just ended here, summarised until Done even if another shift
@@ -91,6 +96,26 @@ export function TimeClockSheet({ onDone }: TimeClockSheetProps) {
     ]);
   };
 
+  if (showHistory && user) {
+    return (
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        <ScrollView contentContainerStyle={styles.content}>
+          <TimeHistory
+            teacherId={user.uid}
+            orgIds={clock.orgs.map((o) => o.orgId)}
+            // The organization's week, in its timezone; the phone's if unknown.
+            thisWeek={clock.orgs[0]?.weekStart ?? currentWeekStart(null)}
+            now={now}
+            onBack={() => setShowHistory(false)}
+          />
+          <Button mode="outlined" onPress={onDone} style={styles.closeButton}>
+            Close
+          </Button>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   if (loading && shifts.length === 0) return <LoadingSpinner />;
 
   const justEnded = justEndedId ? shifts.find((s) => s.entryId === justEndedId) : undefined;
@@ -145,6 +170,10 @@ export function TimeClockSheet({ onDone }: TimeClockSheetProps) {
             <WeekRow shift={s} now={now} showOrg={showOrgs} />
           </View>
         ))}
+
+        <Button mode="text" icon="history" onPress={() => setShowHistory(true)} style={styles.historyButton}>
+          Past weeks
+        </Button>
 
         {/* Swipe-to-dismiss is off in this stack (gestureEnabled: false). */}
         <Button mode="outlined" onPress={onDone} style={styles.closeButton}>
@@ -388,53 +417,6 @@ function ShiftSummary({ shift, now, showOrg, onDone }: { shift: ShiftView; now: 
   );
 }
 
-function WeekRow({ shift, now, showOrg }: { shift: ShiftView; now: number; showOrg: boolean }) {
-  const tone = useAppTheme().colors.timeClock;
-  const status = shift.entry?.status;
-  const right =
-    status === 'running'
-      ? 'On shift'
-      : status === 'paused'
-        ? 'On break'
-        : status === 'done'
-          ? formatWorked(workedMs(shift.entry!, shift.startAt, shift.endAt, now))
-          : now >= shift.endAt
-            ? 'Not started'
-            : '';
-  return (
-    <View style={styles.row}>
-      <View style={styles.rowDay}>
-        <Text variant="titleSmall">{format(parseISO(shift.date), 'EEE')}</Text>
-        <Text variant="bodySmall" style={styles.muted}>
-          {format(parseISO(shift.date), 'd')}
-        </Text>
-      </View>
-      <View style={styles.rowMain}>
-        <Text variant="bodyMedium">{shiftTimes(shift)}</Text>
-        <Text variant="bodySmall" style={styles.muted} numberOfLines={1}>
-          {[shift.locationName, showOrg ? shift.orgName : ''].filter(Boolean).join(' · ')}
-        </Text>
-        {shift.entry?.correction && (
-          <Text variant="bodySmall" style={{ color: tone.paused.fg }} numberOfLines={2}>
-            Edited by admin: {shift.entry.correction.reason}
-          </Text>
-        )}
-      </View>
-      <Text
-        variant="bodyMedium"
-        style={[
-          styles.rowRight,
-          status === 'running' && { color: tone.running.fg },
-          status === 'paused' && { color: tone.paused.fg },
-          right === 'Not started' && styles.muted,
-        ]}
-      >
-        {right}
-      </Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -502,26 +484,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   closeButton: {
-    marginTop: 24,
+    marginTop: 8,
   },
+  historyButton: {
+    marginTop: 16,
+  },
+
   weekTitle: {
     fontWeight: '600',
     marginTop: 24,
     marginBottom: 8,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  rowDay: {
-    width: 44,
-  },
-  rowMain: {
-    flex: 1,
-  },
-  rowRight: {
-    marginLeft: 8,
-    fontWeight: '600',
   },
 });

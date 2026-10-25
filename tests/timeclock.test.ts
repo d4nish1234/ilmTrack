@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { barContent, countingFrom, focusOf, formatClock, formatWorked, shiftViews, timekeepingOrgHints, wallTime, workedMs } from '../src/utils/timeclock';
+import { barContent, countingFrom, focusOf, formatClock, formatWorked, shiftViews, timeClockScope, timekeepingOrgHints, wallTime, weekRangeLabel, weekTotals, workedMs } from '../src/utils/timeclock';
 import type { MyTimekeeping, TimeEntry } from '../src/types';
 
 const ts = (ms: number) => ({ toMillis: () => ms });
@@ -237,16 +237,95 @@ describe('barContent (what the Classes bar says)', () => {
     });
   });
 
-  it('is grey otherwise', () => {
-    expect(bar([], at('12:00')).label).toBe('Shift today at 4:00 PM');
-    expect(bar([entry('s1', 'done', [[at('16:00'), at('16:45')]])], at('18:00')).label).toBe('Today · 45m worked');
-    expect(bar([], at('12:00', '2026-10-15')).label).toBe('Next shift Sat 9:00 AM');
+  it('is grey otherwise, starting "Timesheets:", with the plain timer icon', () => {
+    expect(bar([], at('12:00')).label).toBe('Timesheets: Shift today at 4:00 PM');
+    const done = bar([entry('s1', 'done', [[at('16:00'), at('16:45')]])], at('18:00'));
+    expect(done).toMatchObject({ label: 'Timesheets: 45m worked today', icon: 'timer-outline' });
+    expect(bar([], at('12:00', '2026-10-15')).label).toBe('Timesheets: Next shift Sat 9:00 AM');
+    const over = barContent({ kind: 'week-over', workedWeekMs: 45 * 60_000 }, at('13:00', '2026-10-18'), null);
+    expect(over).toMatchObject({ label: 'Timesheets: 45m worked this week', icon: 'timer-outline' });
     for (const now of [at('12:00'), at('18:00')]) expect(bar([], now).tone).toBe('idle');
   });
 
   it('tells a teacher with no shifts that the time clock exists', () => {
     expect(barContent({ kind: 'no-shifts' }, at('12:00'), null)).toEqual({
-      tone: 'idle', icon: 'timer-outline', label: 'Time clock · No shifts this week', action: '',
+      tone: 'idle', icon: 'timer-outline', label: 'Timesheets: No shifts this week', action: '',
     });
+  });
+});
+
+describe('weekRangeLabel', () => {
+  it('shows a week within a month, across months, and in another year', () => {
+    expect(weekRangeLabel('2026-10-12', 2026)).toBe('Oct 12 – 18');
+    expect(weekRangeLabel('2026-09-28', 2026)).toBe('Sep 28 – Oct 4');
+    expect(weekRangeLabel('2026-12-28', 2026)).toBe('Dec 28 – Jan 3, 2027');
+    expect(weekRangeLabel('2025-10-13', 2026)).toBe('Oct 13 – 19, 2025');
+  });
+});
+
+describe('weekTotals (history)', () => {
+  it("totals worked against scheduled, using the server's final count when done", () => {
+    const d = data([
+      { id: 's1', start: '16:00', end: '17:00' },
+      { id: 's2', date: '2026-10-15', start: '09:00', end: '12:00' }, // missed
+    ]);
+    const done = { ...entry('s1', 'done', [[at('16:00'), at('16:50')]]), workedMinutes: 45 } as TimeEntry; // corrected
+    expect(weekTotals(d, views(d, [done]), at('18:00', '2026-10-20'))).toEqual({ workedMinutes: 45, scheduledMinutes: 240 });
+  });
+
+  it('counts hours on a shift removed after it was worked, but not as scheduled', () => {
+    const d = data([]);
+    const done = { ...entry('s1', 'done', [[at('16:00'), at('16:40')]]), workedMinutes: 40 } as TimeEntry;
+    expect(weekTotals(d, views(d, [done]), at('18:00'))).toEqual({ workedMinutes: 40, scheduledMinutes: 0 });
+  });
+
+  it('counts a shift still open up to now, capped at its end', () => {
+    const d = data([{ id: 's1', start: '16:00', end: '17:00' }]);
+    const open = entry('s1', 'running', [[at('16:00'), null]]);
+    expect(weekTotals(d, views(d, [open]), at('16:20')).workedMinutes).toBe(20);
+    expect(weekTotals(d, views(d, [open]), at('19:00')).workedMinutes).toBe(60);
+  });
+});
+
+describe('timeClockScope (which org the time clock follows)', () => {
+  const two = (): MyTimekeeping => {
+    const d = data([{ id: 's1', start: '16:00', end: '17:00' }]);
+    const other = { ...d.orgs[0], orgId: 'org2', orgName: 'Other', shifts: d.orgs[0].shifts.map((s) => ({ ...s, id: 'b1' })) };
+    return { ...d, orgs: [d.orgs[0], other] };
+  };
+  const ctx = (selectedOrgId: string | null, extra: Partial<{ hasClasses: boolean; administeredOrgIds: string[] }> = {}) => ({
+    selectedOrgId, hasClasses: true, administeredOrgIds: [], ...extra,
+  });
+  const ids = ['org1', 'org2'];
+
+  it("follows the selected class's organization", () => {
+    expect(timeClockScope(views(two()), ids, at('12:00'), ctx('org2'))).toEqual(['org2']);
+  });
+
+  it('shows nothing for a class outside any organization, or one without timekeeping', () => {
+    expect(timeClockScope(views(two()), ids, at('12:00'), ctx(null))).toEqual([]);
+    expect(timeClockScope(views(two()), ids, at('12:00'), ctx('org-off'))).toEqual([]);
+  });
+
+  it('keeps an open shift in view whatever class is selected, until it ends', () => {
+    const running = { ...entry('s1', 'running', [[at('16:00'), null]]) };
+    const list = shiftViews(two(), new Map([[running.id, running]]), UID);
+    expect(timeClockScope(list, ids, at('16:30'), ctx(null))).toEqual(['org1']);
+    expect(timeClockScope(list, ids, at('16:30'), ctx('org2'))).toEqual(['org1']);
+    // Past its end it's being closed: back to the selected class's org.
+    expect(timeClockScope(list, ids, at('17:30'), ctx('org2'))).toEqual(['org2']);
+  });
+
+  it('shows an org admin with no classes the organizations they administer', () => {
+    expect(timeClockScope(views(two()), ids, at('12:00'), ctx(null, { hasClasses: false, administeredOrgIds: ['org2'] }))).toEqual(['org2']);
+  });
+});
+
+describe('weekTotals on a daylight-saving day', () => {
+  it("counts scheduled time from the clock times, as the admin's timesheet does", () => {
+    // 01:00–03:00 on the spring-forward day is one real hour; the admin's sheet says 2h.
+    const d = data([{ id: 's1', start: '01:00', end: '03:00' }]);
+    d.orgs[0].shifts[0].endAt = d.orgs[0].shifts[0].startAt + 60 * 60_000;
+    expect(weekTotals(d, views(d), at('12:00')).scheduledMinutes).toBe(120);
   });
 });

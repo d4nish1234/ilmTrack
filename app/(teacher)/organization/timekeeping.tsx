@@ -13,8 +13,7 @@ import {
   subscribeToTimekeeping,
 } from '../../../src/services/timekeeping.service';
 import { shareCsv } from '../../../src/services/export.service';
-import { Button } from '../../../src/components/common';
-import { LoadingSpinner, AppSnackbar } from '../../../src/components/common';
+import { AppSnackbar, Button, LoadingSpinner } from '../../../src/components/common';
 import type { OrgTeacher, TimeEntry, TimekeepingSettings, WeekSchedule } from '../../../src/types';
 import { currentWeekStart } from '../../../src/utils/timekeeping';
 import {

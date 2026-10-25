@@ -355,6 +355,72 @@ export const getMyTimekeeping = onCall({ region: REGION }, async (request) => {
   return { now, earlyStartMs: EARLY_START_MS, orgs };
 });
 
+/**
+ * The caller's own shifts for one week, any week up to next, for their
+ * history: the same shape as getMyTimekeeping, one week. Hours come from
+ * their time entries, which the app reads directly.
+ *
+ * Organizations come from the caller's schedules and entries for that week,
+ * not from current membership: these are their own hours, so they stay
+ * visible after timekeeping is turned off or they leave the organization.
+ * Nothing is revealed beyond what their own schedule showed them then (the
+ * org's name, its timezone, the shifts' location names).
+ */
+export const getMyWeek = onCall({ region: REGION }, async (request) => {
+  const uid = requireUid(request);
+  const weekStart = requireString((request.data ?? {}).weekStart, 'week');
+  if (!DATE_RE.test(weekStart) || mondayOf(weekStart) !== weekStart) {
+    fail('invalid-argument', 'That week is not valid.');
+  }
+  const now = Date.now();
+  const nextMonday = addDays(mondayOf(new Date(now).toISOString().slice(0, 10)), 7);
+  if (weekStart > nextMonday) fail('invalid-argument', "That week hasn't come yet.");
+
+  const [schedules, entries] = await Promise.all([
+    db().collection('schedules').where('teacherId', '==', uid).where('weekStart', '==', weekStart).get(),
+    db().collection('timeEntries').where('teacherId', '==', uid).where('weekStart', '==', weekStart).get(),
+  ]);
+  const orgIds = new Set([
+    ...schedules.docs.map((d) => d.data().orgId as string),
+    ...entries.docs.map((d) => d.data().orgId as string),
+  ]);
+
+  const orgs = [];
+  for (const orgId of orgIds) {
+    const [orgSnap, tkSnap] = await Promise.all([
+      db().collection('organizations').doc(orgId).get(),
+      db().collection('timekeeping').doc(orgId).get(),
+    ]);
+    const tk = tkSnap.data();
+    // The org's timezone, or failing that the one its entries were recorded in.
+    const entryZone = entries.docs.find((d) => d.data().orgId === orgId)?.data().timezone;
+    const timezone = isValidTimeZone(tk?.timezone) ? tk!.timezone : isValidTimeZone(entryZone) ? entryZone : null;
+    if (!timezone) continue;
+    const locations = (Array.isArray(tk?.locations) ? tk!.locations : []) as OrgContext['locations'];
+    const schedule = schedules.docs.find((d) => d.data().orgId === orgId);
+    const shifts = ((schedule?.data().shifts ?? []) as unknown[])
+      .map(parseShift)
+      .filter((s): s is ShiftData => s !== null)
+      .map((s) => ({
+        ...s,
+        locationName: locations.find((l) => l.id === s.locationId)?.name ?? '',
+        startAt: zonedTimeToInstant(s.date, s.start, timezone),
+        endAt: zonedTimeToInstant(s.date, s.end, timezone),
+      }))
+      .sort((a, b) => a.startAt - b.startAt);
+    orgs.push({
+      orgId,
+      orgName: (orgSnap.data()?.name as string | undefined) ?? '',
+      timezone,
+      weekStart,
+      today: dateIn(timezone, now),
+      shifts,
+    });
+  }
+
+  return { now, earlyStartMs: EARLY_START_MS, orgs };
+});
+
 export const startShift = onCall({ region: REGION }, async (request) => {
   const uid = requireUid(request);
   const data = (request.data ?? {}) as Record<string, unknown>;

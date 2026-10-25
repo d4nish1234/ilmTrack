@@ -650,3 +650,70 @@ describe('correctTimeEntry', () => {
     expect((await refusal(correct(ADMIN, { shiftId: 'nope' }))).code).toBe('not-found');
   });
 });
+
+describe('getMyWeek', () => {
+  type Week = { orgs: { orgId: string; orgName: string; timezone: string; weekStart: string; shifts: { id: string; locationName: string; startAt: number }[] }[] };
+  const week = (uid = TEACHER, weekStart = WEEK) => call(fns.getMyWeek, uid, { weekStart }) as Promise<Week>;
+
+  it("returns a past week's shifts, with location names and exact times", async () => {
+    await seed([shift('s1', '16:00', '17:00'), shift('s2', '09:00', '10:00')]);
+    vi.setSystemTime(new Date('2026-10-28T12:00:00.000Z')); // two weeks later
+    const res = await week();
+    expect(res.orgs).toHaveLength(1);
+    expect(res.orgs[0]).toMatchObject({ orgId: ORG, orgName: 'Test School', timezone: 'UTC', weekStart: WEEK });
+    expect(res.orgs[0].shifts.map((s) => s.id)).toEqual(['s2', 's1']);
+    expect(res.orgs[0].shifts[1]).toMatchObject({ locationName: 'Main campus', startAt: at('16:00').getTime() });
+  });
+
+  it('still shows the week after timekeeping is turned off', async () => {
+    await seed();
+    await db.collection('timekeeping').doc(ORG).update({ enabled: false });
+    vi.setSystemTime(new Date('2026-10-28T12:00:00.000Z'));
+    expect((await week()).orgs[0].shifts).toHaveLength(1);
+  });
+
+  it('includes an organization whose shift was deleted after it was worked', async () => {
+    await seed();
+    vi.setSystemTime(at('16:00'));
+    await start();
+    await fns.closeFinishedShifts(at('17:05').getTime());
+    await db.collection('schedules').doc(`${ORG}_${TEACHER}_${WEEK}`).delete();
+    vi.setSystemTime(new Date('2026-10-28T12:00:00.000Z'));
+    const res = await week();
+    expect(res.orgs).toHaveLength(1);
+    expect(res.orgs[0].shifts).toEqual([]); // the hours come from the entry, which the app reads
+  });
+
+  it("falls back to the timezone the hours were recorded in when the org's settings are gone", async () => {
+    await seed();
+    vi.setSystemTime(at('16:00'));
+    await start();
+    await fns.closeFinishedShifts(at('17:05').getTime());
+    await db.collection('timekeeping').doc(ORG).delete();
+    vi.setSystemTime(new Date('2026-10-28T12:00:00.000Z'));
+    const [org] = (await week()).orgs;
+    expect(org.timezone).toBe('UTC');
+    // The schedule's still there: the missed or worked shift keeps its times, without a place name.
+    expect(org.shifts[0]).toMatchObject({ id: 's1', locationName: '', startAt: at('16:00').getTime() });
+  });
+
+  it("returns only the caller's own week", async () => {
+    await seed();
+    vi.setSystemTime(new Date('2026-10-28T12:00:00.000Z'));
+    expect((await week(STRANGER)).orgs).toEqual([]);
+  });
+
+  it('returns nothing for a week with no shifts', async () => {
+    await seed();
+    vi.setSystemTime(new Date('2026-10-28T12:00:00.000Z'));
+    expect((await week(TEACHER, '2026-10-05')).orgs).toEqual([]);
+  });
+
+  it('refuses a date that is not a Monday, and weeks far ahead', async () => {
+    await seed();
+    vi.setSystemTime(at('12:00'));
+    expect((await refusal(week(TEACHER, '2026-10-13'))).code).toBe('invalid-argument');
+    expect((await refusal(week(TEACHER, 'last week'))).code).toBe('invalid-argument');
+    expect((await refusal(week(TEACHER, '2026-11-02'))).code).toBe('invalid-argument');
+  });
+});

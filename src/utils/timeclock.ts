@@ -8,7 +8,7 @@
  */
 import { format, parseISO } from 'date-fns';
 import type { MyTimekeeping, ShiftView, TimeEntry } from '../types';
-import { formatTime } from './timekeeping';
+import { formatTime, shiftMinutes } from './timekeeping';
 
 type Millis = { toMillis(): number };
 
@@ -264,7 +264,39 @@ export function focusOf(
   };
 }
 
+/**
+ * Which organizations the time clock shows: the selected class's, so a
+ * teacher looking at a class outside any organization sees no time clock.
+ * Two exceptions, because shifts belong to the person, not a class:
+ *
+ * - An open shift (on shift or on a break) always shows, whatever class is
+ *   selected, so a running timer is never out of sight.
+ * - Someone with no classes at all (an org admin tracking their own time) has
+ *   nothing to select, so sees the organizations they administer.
+ *
+ * `orgIds` are the organizations with timekeeping on, from getMyTimekeeping.
+ */
+export function timeClockScope(
+  views: ShiftView[],
+  orgIds: string[],
+  now: number,
+  ctx: { selectedOrgId: string | null | undefined; hasClasses: boolean; administeredOrgIds: string[] }
+): string[] {
+  const open = views.find((s) => isOpen(s) && now < s.endAt);
+  if (open) return [open.orgId];
+  if (ctx.selectedOrgId && orgIds.includes(ctx.selectedOrgId)) return [ctx.selectedOrgId];
+  if (!ctx.hasClasses) return orgIds.filter((id) => ctx.administeredOrgIds.includes(id));
+  return [];
+}
+
 export type BarTone = 'running' | 'paused' | 'ready' | 'idle';
+
+/**
+ * Starts the bar's text when nothing is live, so it reads as the way into the
+ * teacher's timesheet. Left off while on shift, on a break or ready to start:
+ * those have an action on the right, and the timer mustn't be cut off.
+ */
+const BAR_PREFIX = 'Timesheets: ';
 
 /**
  * What the Classes bar says for a focus: its colour (a theme key), icon,
@@ -307,24 +339,56 @@ export function barContent(
       action = 'Start';
       break;
     case 'later-today':
-      label = `Shift today at ${formatTime(focus.shift.start)}`;
+      label = `${BAR_PREFIX}Shift today at ${formatTime(focus.shift.start)}`;
       break;
     case 'done-today':
-      icon = 'check-circle-outline';
-      label = `Today · ${formatWorked(focus.workedTodayMs)} worked`;
+      label = `${BAR_PREFIX}${formatWorked(focus.workedTodayMs)} worked today`;
       break;
     case 'upcoming':
-      label = `Next shift ${format(parseISO(focus.shift.date), 'EEE')} ${formatTime(focus.shift.start)}`;
+      label = `${BAR_PREFIX}Next shift ${format(parseISO(focus.shift.date), 'EEE')} ${formatTime(focus.shift.start)}`;
       break;
     case 'week-over':
-      icon = 'check-circle-outline';
-      label = `This week · ${formatWorked(focus.workedWeekMs)} worked`;
+      label = `${BAR_PREFIX}${formatWorked(focus.workedWeekMs)} worked this week`;
       break;
     case 'no-shifts':
-      label = 'Time clock · No shifts this week';
+      label = `${BAR_PREFIX}No shifts this week`;
       break;
   }
 
 
   return { tone, icon, label, action };
+}
+
+// ─── History ─────────────────────────────────────────────────────────────
+
+/** 'Oct 12 – 18', 'Sep 28 – Oct 4'; with the year when it isn't `thisYear`. */
+export function weekRangeLabel(weekStart: string, thisYear: number): string {
+  const first = parseISO(weekStart);
+  const last = new Date(first.getFullYear(), first.getMonth(), first.getDate() + 6);
+  const sameMonth = first.getMonth() === last.getMonth();
+  const range = `${format(first, 'MMM d')} – ${format(last, sameMonth ? 'd' : 'MMM d')}`;
+  return last.getFullYear() === thisYear && first.getFullYear() === thisYear
+    ? range
+    : `${range}, ${format(last, 'yyyy')}`;
+}
+
+/**
+ * A week's totals, in minutes. Scheduled counts the shifts on the schedule
+ * (not ones removed after they were worked); worked counts every entry, using
+ * the server's final count once a shift is done, as the admin's timesheet does.
+ */
+export function weekTotals(
+  data: MyTimekeeping,
+  views: ShiftView[],
+  now: number
+): { workedMinutes: number; scheduledMinutes: number } {
+  // From the clock times, as the admin's timesheet counts them (so a shift
+  // on a daylight-saving day totals the same on both sides).
+  const scheduledMinutes = data.orgs.flatMap((o) => o.shifts).reduce((sum, s) => sum + shiftMinutes(s), 0);
+  const workedMinutes = views.reduce((sum, v) => {
+    if (!v.entry) return sum;
+    if (v.entry.status === 'done' && typeof v.entry.workedMinutes === 'number') return sum + v.entry.workedMinutes;
+    return sum + Math.floor(workedMs(v.entry, v.startAt, v.endAt, now) / 60_000);
+  }, 0);
+  return { workedMinutes, scheduledMinutes };
 }
