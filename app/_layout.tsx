@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { PaperProvider, MD3LightTheme } from 'react-native-paper';
+import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -14,15 +14,8 @@ import {
   addNotificationListeners,
 } from '../src/services/notification.service';
 import { auth } from '../src/config/firebase';
+import { theme } from '../src/constants/theme';
 
-const theme = {
-  ...MD3LightTheme,
-  colors: {
-    ...MD3LightTheme.colors,
-    primary: '#1a73e8',
-    secondary: '#5f6368',
-  },
-};
 
 function RootLayoutNav() {
   const { user, loading, emailVerified, registerPushNotifications } = useAuth();
@@ -123,7 +116,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
-        {/* Reports keyboard height to KeyboardAwareModal and friends. */}
+        {/* Keyboard tracking for KeyboardAwareScrollView in the sheet forms. */}
         <KeyboardProvider>
           <PaperProvider theme={theme}>
             {/* Above AuthProvider on purpose: an unsupported build is stopped

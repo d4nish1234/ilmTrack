@@ -42,9 +42,8 @@ export interface Shift {
   start: string;
   /** 'HH:mm', 24-hour, after start (no overnight shifts) */
   end: string;
+  /** The name is looked up from the settings, so renaming a location updates every shift. */
   locationId: string;
-  /** Copied from the location so teachers can see it without reading settings. */
-  locationName: string;
 }
 
 /**

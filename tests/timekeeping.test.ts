@@ -24,7 +24,6 @@ const mkShift = (overrides: Partial<Shift>): Shift => ({
   start: '16:00',
   end: '17:00',
   locationId: 'loc1',
-  locationName: 'Main campus',
   ...overrides,
 });
 

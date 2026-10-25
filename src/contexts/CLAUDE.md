@@ -19,5 +19,8 @@ Provides child filtering for parent screens — lets parents filter homework/att
 ## OrganizationContext.tsx
 Orgs the teacher administers (live) and which one the Organization tab shows (persisted in AsyncStorage). Mounted in `app/_layout.tsx` inside `AuthProvider`; subscribes only for teachers. The selection affects that tab only — the Classes tab is unchanged.
 
+## TimeClockContext.tsx
+The teacher's time clock, mounted in `app/(teacher)/_layout.tsx` so the Classes bar and the Time sheet share one copy: this week's shifts (refetched on mount, app foreground and after every action), live entries, a server-corrected clock (ticks every second on shift), `focus` (from `utils/timeclock.focusOf`) and the actions. Sends `getMyTimekeeping` the org ids of the teacher's classes and administered orgs as hints, and skips the call entirely when there are none (the time clock can't apply). A class added to an org changes the hints live, which triggers a refetch.
+
 ## SelectedClassContext.tsx
 Persists the teacher's last-selected class across app restarts (AsyncStorage).

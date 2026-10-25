@@ -7,16 +7,12 @@ import { useAuth } from '../../../src/contexts/AuthContext';
 import { useOrganizations } from '../../../src/contexts/OrganizationContext';
 import { getOrgTeachers } from '../../../src/services/organization.service';
 import {
-  deleteLocation,
-  newId,
-  saveLocation,
   setTimekeepingEnabled,
   subscribeToOrgWeek,
   subscribeToTimekeeping,
 } from '../../../src/services/timekeeping.service';
 import { LoadingSpinner, AppSnackbar } from '../../../src/components/common';
-import { LocationEditor } from '../../../src/components/timekeeping/LocationEditor';
-import type { OrgTeacher, TimekeepingLocation, TimekeepingSettings, WeekSchedule } from '../../../src/types';
+import type { OrgTeacher, TimekeepingSettings, WeekSchedule } from '../../../src/types';
 import { currentWeekStart, weekSummary } from '../../../src/utils/timekeeping';
 
 /**
@@ -37,7 +33,6 @@ export default function TimekeepingScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [editing, setEditing] = useState<{ location: TimekeepingLocation | null } | null>(null);
 
   useEffect(() => {
     if (!orgId) return;
@@ -132,14 +127,19 @@ export default function TimekeepingScreen() {
                   descriptionNumberOfLines={2}
                   left={(props) => <List.Icon {...props} icon="map-marker" />}
                   right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                  onPress={() => setEditing({ location: l })}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(teacher)/organization/location',
+                      params: { locationId: l.id },
+                    })
+                  }
                 />
               ))}
               <List.Item
                 title="Add location"
                 titleStyle={styles.addText}
                 left={(props) => <List.Icon {...props} icon="plus" color="#1a73e8" />}
-                onPress={() => setEditing({ location: null })}
+                onPress={() => router.push('/(teacher)/organization/location')}
               />
             </List.Section>
 
@@ -185,16 +185,6 @@ export default function TimekeepingScreen() {
         )}
       </ScrollView>
 
-      {orgId && user && (
-        <LocationEditor
-          visible={editing !== null}
-          location={editing?.location ?? null}
-          newId={newId}
-          onSave={(l) => saveLocation(orgId, l, user.uid)}
-          onDelete={(l) => deleteLocation(orgId, l.id, user.uid)}
-          onDismiss={() => setEditing(null)}
-        />
-      )}
 
       <AppSnackbar message={message} onDismiss={() => setMessage(null)} />
     </SafeAreaView>

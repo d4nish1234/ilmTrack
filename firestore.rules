@@ -176,6 +176,23 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && isOrgAdmin(resource.data.orgId);
     }
 
+    // Hours worked: timeEntries/{orgId}_{teacherId}_{date}_{shiftId}.
+    // Written only by the time-clock Cloud Functions, which set the times
+    // themselves and check the shift, its window and the teacher's location.
+    // A client that could write these could simply award itself hours.
+    match /timeEntries/{entryId} {
+      allow read: if isAuthenticated() && (
+        resource.data.teacherId == request.auth.uid
+        || isOrgAdmin(resource.data.orgId)
+      );
+      allow write: if false;
+    }
+
+    // One open shift per teacher at a time. Internal to the Cloud Functions.
+    match /activeShifts/{teacherId} {
+      allow read, write: if false;
+    }
+
     // Users collection
     match /users/{userId} {
       allow read: if isAuthenticated();

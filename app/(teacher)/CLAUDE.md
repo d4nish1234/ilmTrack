@@ -4,8 +4,9 @@ Teacher screens. Bottom tab layout: Classes, Organization (only for org admins),
 
 ## organization/
 - **index.tsx** — Selected org (switcher when there are several) and its tools list.
-- **timekeeping.tsx** — On/off switch, locations (`LocationEditor`), teachers with this week's summary.
-- **teacher/[teacherId].tsx** — One teacher's week: + per day, tap a shift to edit (`ShiftEditor`), "Copy to next week" (asks before replacing, then moves to the copied week).
+- **timekeeping.tsx** — On/off switch, locations, teachers with this week's summary. Tapping a location opens the **location.tsx** sheet.
+- **shift.tsx** / **location.tsx** — Modal sheets wrapping `ShiftForm` / `LocationForm`. Each loads its own data from params (`teacherId`, `weekStart`, `shiftId` or `date`; `locationId`), so the screens that open them just push a route.
+- **teacher/[teacherId].tsx** — One teacher's week: + per day, tap a shift to edit (both open the **shift.tsx** sheet), "Copy to next week" (asks before replacing, then moves to the copied week).
 
 ## Top-level screens
 - **index.tsx** — Home dashboard. Shows class dropdown, today's attendance list (mark present/absent inline), recent homework, quick-assign homework. Uses `subscribeToStudents`, `getStudentAttendanceForDate`, `toggleAttendance`, `createHomework`.
@@ -15,6 +16,7 @@ Teacher screens. Bottom tab layout: Classes, Organization (only for org admins),
 ## classes/
 - **index.tsx** — Class list. Uses `subscribeToClasses(teacherId, ...)`.
 - **create.tsx** — Create new class form.
+- **time.tsx** — The Time sheet (`TimeClockSheet`): start / break / resume / end, the end summary with a note, and this week's shifts. Opened from `TimeClockBar`, a slim colour-coded row under the class picker on the Classes screen (green on shift, amber on break, blue ready, grey otherwise; colours in `src/constants/theme.ts`). Shown to anyone in an org with timekeeping on, even with no shifts yet, so teachers know it exists.
 - **add-attendance.tsx** — The one Add Attendance sheet (`AddAttendanceForm`, params `classId`, `studentId`). Opened by the student screen's Add Attendance button and Attendance History's +. Same reason as add-homework for living here.
 - **evaluate-homework.tsx** — Evaluate Homework sheet (`EvaluateHomeworkForm`, param `studentId`), opened by the Classes swipe "Evaluate": rate up to 3 pending items and mark each Complete / Late / Incomplete.
 - **add-homework.tsx** — The one Add Homework sheet (`AddHomeworkForm`, params `classId`, `studentId`). Opened by the Classes swipe "New", the student screen's Add Homework button and Homework History's +. Kept in the classes stack so it is always presented as a modal sheet; asks before a second assignment on the same day.

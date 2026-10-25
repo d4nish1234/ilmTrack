@@ -986,3 +986,6 @@ export const acceptParentInvites = onCall(async (request) => {
   return { studentIds: newStudentIds };
 });
 
+
+// Teacher time clock (start / break / end a scheduled shift).
+export * from './timeclock';

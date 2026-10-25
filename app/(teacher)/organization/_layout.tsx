@@ -33,6 +33,21 @@ export default function OrganizationLayout() {
           title: 'Shifts',
         }}
       />
+      {/* Editors open as sheets, like Add Homework and Evaluate. */}
+      <Stack.Screen
+        name="shift"
+        options={{
+          title: 'Shift',
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
+        name="location"
+        options={{
+          title: 'Location',
+          presentation: 'modal',
+        }}
+      />
     </Stack>
   );
 }

@@ -29,6 +29,13 @@ export default function ClassesLayout() {
         }}
       />
       <Stack.Screen
+        name="time"
+        options={{
+          title: 'Time',
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
         name="add-attendance"
         options={{
           title: 'Add Attendance',

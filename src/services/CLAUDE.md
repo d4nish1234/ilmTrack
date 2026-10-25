@@ -54,6 +54,12 @@ Org admins' writes; each is a transaction setting absolute values.
 - `saveShift` / `deleteShift` — re-check overlaps against the stored week
 - `inspectWeek` / `copyWeek(orgId, teacherId, from, to, expected, uid)` — replaces the target week only if it is unchanged since `inspectWeek` (compared in a transaction by `updatedAt`); otherwise throws `WeekChangedError` so the UI asks again
 
+## timeclock.service.ts
+The teacher's time clock. Calls the time-clock Cloud Functions; reads `timeEntries` live (`subscribeToMyEntries`, never writes). `endShift` saves the tap time in AsyncStorage when offline and `flushPendingEnd` sends it later.
+
+## shiftLocation.service.ts
+`getShiftPosition()` — foreground permission, **Precise Location required**, Location Services on, then the best reading within ~6 s. Returns a `PositionProblem` (`denied`/`blocked`/`approximate`/`services-off`/`unavailable`) instead of throwing.
+
 ## notification.service.ts
 - `registerForPushNotifications()` — requests Expo push token
 - `savePushToken(userId, token)` / `removePushToken(userId)` — stores on user doc

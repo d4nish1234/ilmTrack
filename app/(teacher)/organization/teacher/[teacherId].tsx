@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Divider, IconButton, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { format, parseISO } from 'date-fns';
@@ -11,14 +11,10 @@ import {
   copyWeek,
   inspectWeek,
   type WeekSnapshot,
-  deleteShift,
-  newId,
-  saveShift,
   subscribeToTeacherWeek,
   subscribeToTimekeeping,
 } from '../../../../src/services/timekeeping.service';
 import { AppSnackbar, Button, LoadingSpinner } from '../../../../src/components/common';
-import { ShiftEditor } from '../../../../src/components/timekeeping/ShiftEditor';
 import type { Shift, TimekeepingLocation } from '../../../../src/types';
 import {
   formatTime,
@@ -44,7 +40,6 @@ export default function TeacherWeekScreen() {
   // so the first week shown is the organization's current week.
   const [weekStart, setWeekStart] = useState<string | null>(null);
   const thisWeek = currentWeekStart(timezone);
-  const [editing, setEditing] = useState<{ shift: Shift; isNew: boolean } | null>(null);
   const [copying, setCopying] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'error' | 'success' } | null>(null);
 
@@ -81,25 +76,13 @@ export default function TeacherWeekScreen() {
   if (!weekStart) return <LoadingSpinner />;
 
   const locationName = (shift: Shift) =>
-    locations.find((l) => l.id === shift.locationId)?.name ?? shift.locationName;
+    locations.find((l) => l.id === shift.locationId)?.name ?? 'Location removed';
 
-  /** A new shift on this date, prefilled from the last shift this week so repeats are quick. */
-  const startNewShift = (date: string) => {
-    const last = shifts[shifts.length - 1];
-    const location =
-      locations.find((l) => l.id === last?.locationId) ?? locations[0];
-    setEditing({
-      isNew: true,
-      shift: {
-        id: newId(),
-        date,
-        start: last?.start ?? '16:00',
-        end: last?.end ?? '17:00',
-        locationId: location?.id ?? '',
-        locationName: location?.name ?? '',
-      },
+  const openShift = (params: { shiftId: string } | { date: string }) =>
+    router.push({
+      pathname: '/(teacher)/organization/shift',
+      params: { teacherId, weekStart, ...params },
     });
-  };
 
   const nextWeek = shiftWeek(weekStart, 1);
   const weekLabel = (start: string) => `week of ${format(parseISO(start), 'MMM d')}`;
@@ -198,7 +181,7 @@ export default function TeacherWeekScreen() {
                     <Pressable
                       key={s.id}
                       style={styles.shift}
-                      onPress={() => setEditing({ shift: s, isNew: false })}
+                      onPress={() => openShift({ shiftId: s.id })}
                       accessibilityRole="button"
                     >
                       <Text variant="bodyMedium" style={styles.shiftTime}>
@@ -215,7 +198,7 @@ export default function TeacherWeekScreen() {
                 <IconButton
                   icon="plus"
                   iconColor="#1a73e8"
-                  onPress={() => startNewShift(date)}
+                  onPress={() => openShift({ date })}
                   disabled={locations.length === 0}
                   accessibilityLabel={`Add shift on ${format(parseISO(date), 'EEEE')}`}
                 />
@@ -241,15 +224,6 @@ export default function TeacherWeekScreen() {
         </Button>
       </View>
 
-      <ShiftEditor
-        shift={editing?.shift ?? null}
-        isNew={editing?.isNew ?? false}
-        otherShifts={shifts}
-        locations={locations}
-        onSave={(s) => saveShift(orgId, teacherId, weekStart, s, user.uid)}
-        onDelete={(s) => deleteShift(orgId, teacherId, weekStart, s.id, user.uid)}
-        onDismiss={() => setEditing(null)}
-      />
 
       <AppSnackbar
         type={message?.type}
