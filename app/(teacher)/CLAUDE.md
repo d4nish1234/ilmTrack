@@ -5,7 +5,7 @@ Teacher screens. Bottom tab layout: Classes, Organization (only for org admins),
 ## organization/
 - **index.tsx** — Selected org (switcher when there are several) and its tools list.
 - **timekeeping.tsx** — On/off switch, locations, teachers with this week's summary. Tapping a location opens the **location.tsx** sheet.
-- **shift.tsx** / **location.tsx** — Modal sheets wrapping `ShiftForm` / `LocationForm`. Each loads its own data from params (`teacherId`, `weekStart`, `shiftId` or `date`; `locationId`), so the screens that open them just push a route.
+- **shift.tsx** / **location.tsx** — Modal sheets wrapping `ShiftForm` / `LocationForm`. An existing shift's sheet also has `TimeWorkedPanel` (what was worked, Correct time / Add time); a shift removed after it was worked opens with only that panel. Each loads its own data from params (`teacherId`, `weekStart`, `shiftId` or `date`; `locationId`), so the screens that open them just push a route.
 - **teacher/[teacherId].tsx** — One teacher's week: + per day, tap a shift to edit (both open the **shift.tsx** sheet), "Copy to next week" (asks before replacing, then moves to the copied week).
 
 ## Top-level screens

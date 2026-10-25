@@ -56,8 +56,12 @@ export interface TimeEntry {
   status: TimeEntryStatus;
   segments: { start: Timestamp; end: Timestamp | null }[];
   note?: string;
-  endedBy?: 'teacher' | 'schedule';
+  endedBy?: 'teacher' | 'schedule' | 'admin';
   workedMinutes?: number;
+  /** The latest admin correction, shown to the teacher as "Edited by admin". */
+  correction?: { by: string; at: Timestamp; reason: string };
+  /** The teacher's own record before the first correction; null if the admin added the time. */
+  original?: { segments: { start: Timestamp; end: Timestamp | null }[]; workedMinutes: number; endedBy: string | null } | null;
 }
 
 /** A shift together with its organization, flattened for display. */

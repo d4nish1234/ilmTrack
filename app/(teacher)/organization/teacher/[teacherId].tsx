@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Divider, IconButton, Text } from 'react-native-paper';
@@ -11,25 +11,57 @@ import {
   copyWeek,
   inspectWeek,
   type WeekSnapshot,
+  subscribeToOrgWeekEntries,
   subscribeToTeacherWeek,
   subscribeToTimekeeping,
 } from '../../../../src/services/timekeeping.service';
+import { shareCsv } from '../../../../src/services/export.service';
 import { AppSnackbar, Button, LoadingSpinner } from '../../../../src/components/common';
-import type { Shift, TimekeepingLocation } from '../../../../src/types';
+import type { Shift, TimeEntry, TimekeepingLocation } from '../../../../src/types';
 import {
   formatTime,
   shiftWeek,
   weekDates,
   currentWeekStart,
   weekSummary,
+  formatDuration,
 } from '../../../../src/utils/timekeeping';
+import { csvFileName, timesheetCsv, timesheetRows, totals, type TimesheetRow } from '../../../../src/utils/timesheet';
+
+function deviceTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
+/** The small line under a shift: what was worked against it. */
+function workedLabel(row: TimesheetRow): string {
+  switch (row.status) {
+    case 'running':
+      return `● On shift · ${formatDuration(row.workedMinutes)}`;
+    case 'paused':
+      return `On break · ${formatDuration(row.workedMinutes)}`;
+    case 'worked':
+      return `Worked ${formatDuration(row.workedMinutes)}${row.entry?.correction ? ' · edited' : ''}`;
+    case 'not-started':
+      return 'Not started';
+    case 'late':
+      return 'Not started yet';
+    default:
+      return '';
+  }
+}
 
 /**
  * One teacher's week: a row per day, tap + to add a shift, tap a shift to
- * change it, and one button to carry the week over to the next.
+ * change it or its hours, one button to carry the week over to the next, and
+ * an export. Each shift shows what was worked against it; a shift removed
+ * after it was worked still shows, so its hours aren't lost.
  */
 export default function TeacherWeekScreen() {
-  const { teacherId, name } = useLocalSearchParams<{ teacherId: string; name?: string }>();
+  const { teacherId, name, email } = useLocalSearchParams<{ teacherId: string; name?: string; email?: string }>();
   const { user } = useAuth();
   const { selectedOrg } = useOrganizations();
   const orgId = selectedOrg?.id;
@@ -41,6 +73,14 @@ export default function TeacherWeekScreen() {
   const [weekStart, setWeekStart] = useState<string | null>(null);
   const thisWeek = currentWeekStart(timezone);
   const [copying, setCopying] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [entries, setEntries] = useState<TimeEntry[]>([]);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
   const [message, setMessage] = useState<{ text: string; type: 'error' | 'success' } | null>(null);
 
   useEffect(() => {
@@ -72,11 +112,51 @@ export default function TeacherWeekScreen() {
     });
   }, [orgId, teacherId, weekStart]);
 
+  useEffect(() => {
+    if (!orgId || !teacherId || !weekStart) return;
+    setEntries([]);
+    return subscribeToOrgWeekEntries(
+      orgId,
+      weekStart,
+      setEntries,
+      (err) => console.error('Error loading hours:', err),
+      teacherId
+    );
+  }, [orgId, teacherId, weekStart]);
+
+  const rows = useMemo(
+    () =>
+      timesheetRows(
+        shifts,
+        entries,
+        new Map(locations.map((l) => [l.id, l.name])),
+        timezone ?? deviceTimezone(),
+        now
+      ),
+    [shifts, entries, locations, timezone, now]
+  );
+
   if (!orgId || !teacherId || !user) return null;
   if (!weekStart) return <LoadingSpinner />;
 
-  const locationName = (shift: Shift) =>
-    locations.find((l) => l.id === shift.locationId)?.name ?? 'Location removed';
+  const worked = totals(rows);
+
+  const exportWeek = async () => {
+    setExporting(true);
+    try {
+      const teacherName = name || 'Teacher';
+      await shareCsv(
+        csvFileName([teacherName, selectedOrg?.name ?? ''], weekStart),
+        timesheetCsv([{ teacher: { uid: teacherId, name: teacherName, email: email ?? '' }, rows }])
+      );
+    } catch (err) {
+      console.error('Error exporting week:', err);
+      setMessage({ text: "Couldn't export this week.", type: 'error' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
 
   const openShift = (params: { shiftId: string } | { date: string }) =>
     router.push({
@@ -161,7 +241,7 @@ export default function TeacherWeekScreen() {
 
       <ScrollView>
         {weekDates(weekStart).map((date) => {
-          const dayShifts = shifts.filter((s) => s.date === date);
+          const dayRows = rows.filter((r) => r.date === date);
           return (
             <View key={date}>
               <View style={styles.day}>
@@ -172,24 +252,30 @@ export default function TeacherWeekScreen() {
                   </Text>
                 </View>
                 <View style={styles.dayShifts}>
-                  {dayShifts.length === 0 && (
+                  {dayRows.length === 0 && (
                     <Text variant="bodyMedium" style={styles.none}>
                       —
                     </Text>
                   )}
-                  {dayShifts.map((s) => (
+                  {dayRows.map((r) => (
                     <Pressable
-                      key={s.id}
-                      style={styles.shift}
-                      onPress={() => openShift({ shiftId: s.id })}
+                      key={`${r.date}_${r.shiftId}`}
+                      style={[styles.shift, r.removed && styles.removedShift]}
+                      onPress={() => openShift({ shiftId: r.shiftId, date: r.date })}
                       accessibilityRole="button"
                     >
-                      <Text variant="bodyMedium" style={styles.shiftTime}>
-                        {formatTime(s.start)}–{formatTime(s.end)}
+                      <Text variant="bodyMedium" style={[styles.shiftTime, r.removed && styles.removedText]}>
+                        {formatTime(r.start)}–{formatTime(r.end)}
+                        {r.removed ? ' · removed' : ''}
                       </Text>
-                      {locations.length > 1 && (
+                      {(locations.length > 1 || r.removed) && (
                         <Text variant="bodySmall" style={styles.muted}>
-                          {locationName(s)}
+                          {r.locationName}
+                        </Text>
+                      )}
+                      {!!workedLabel(r) && (
+                        <Text variant="bodySmall" style={styles.worked}>
+                          {workedLabel(r)}
                         </Text>
                       )}
                     </Pressable>
@@ -211,17 +297,30 @@ export default function TeacherWeekScreen() {
 
       <View style={styles.footer}>
         <Text variant="bodyMedium" style={styles.total}>
-          {weekSummary(shifts)}
+          {weekSummary(shifts)} · worked {formatDuration(worked.workedMinutes)}
         </Text>
-        <Button
-          mode="outlined"
-          icon="content-copy"
-          onPress={() => copyToNextWeek()}
-          loading={copying}
-          disabled={copying || shifts.length === 0}
-        >
-          Copy to next week
-        </Button>
+        <View style={styles.footerButtons}>
+          <Button
+            mode="outlined"
+            icon="content-copy"
+            onPress={() => copyToNextWeek()}
+            loading={copying}
+            disabled={copying || shifts.length === 0}
+            style={styles.footerButton}
+          >
+            Copy to next week
+          </Button>
+          <Button
+            mode="outlined"
+            icon="file-delimited-outline"
+            onPress={exportWeek}
+            loading={exporting}
+            disabled={exporting || rows.length === 0}
+            style={styles.footerButton}
+          >
+            Export
+          </Button>
+        </View>
       </View>
 
 
@@ -250,6 +349,23 @@ const styles = StyleSheet.create({
   },
   muted: {
     color: '#666',
+  },
+  worked: {
+    color: '#444',
+    marginTop: 2,
+  },
+  removedShift: {
+    backgroundColor: '#f1f3f4',
+  },
+  removedText: {
+    color: '#5f6368',
+  },
+  footerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  footerButton: {
+    flex: 1,
   },
   day: {
     flexDirection: 'row',

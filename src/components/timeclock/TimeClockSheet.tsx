@@ -338,7 +338,11 @@ function ShiftSummary({ shift, now, showOrg, onDone }: { shift: ShiftView; now: 
     <Card style={styles.card} mode="contained">
       <Card.Content>
         <Text variant="labelLarge" style={[styles.status, { color: tone.idle.fg }]}>
-          {entry.endedBy === 'schedule' ? 'SHIFT ENDED AUTOMATICALLY' : 'SHIFT ENDED'}
+          {entry.correction
+            ? 'SHIFT EDITED BY ADMIN'
+            : entry.endedBy === 'schedule'
+              ? 'SHIFT ENDED AUTOMATICALLY'
+              : 'SHIFT ENDED'}
         </Text>
         <Text variant="titleMedium" style={styles.heading}>
           {format(parseISO(shift.date), 'EEEE, MMM d')}
@@ -355,6 +359,12 @@ function ShiftSummary({ shift, now, showOrg, onDone }: { shift: ShiftView; now: 
             {formatWorked(worked)}
           </Text>
         </View>
+
+        {entry.correction && (
+          <Text variant="bodyMedium" style={[styles.edited, { color: tone.paused.fg }]}>
+            Your admin changed this shift’s time: {entry.correction.reason}
+          </Text>
+        )}
 
         <TextInput
           label="Note (optional)"
@@ -404,6 +414,11 @@ function WeekRow({ shift, now, showOrg }: { shift: ShiftView; now: number; showO
         <Text variant="bodySmall" style={styles.muted} numberOfLines={1}>
           {[shift.locationName, showOrg ? shift.orgName : ''].filter(Boolean).join(' · ')}
         </Text>
+        {shift.entry?.correction && (
+          <Text variant="bodySmall" style={{ color: tone.paused.fg }} numberOfLines={2}>
+            Edited by admin: {shift.entry.correction.reason}
+          </Text>
+        )}
       </View>
       <Text
         variant="bodyMedium"
@@ -482,6 +497,9 @@ const styles = StyleSheet.create({
   },
   note: {
     backgroundColor: '#fff',
+  },
+  edited: {
+    marginBottom: 12,
   },
   closeButton: {
     marginTop: 24,

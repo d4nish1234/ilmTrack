@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Chip, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { format, parseISO } from 'date-fns';
@@ -19,6 +20,8 @@ interface ShiftFormProps {
   onDelete: (shift: Shift) => Promise<void>;
   /** Called after a save or delete, and on Cancel. */
   onDone: () => void;
+  /** Shown under the form: the Time worked panel. */
+  children?: React.ReactNode;
 }
 
 /**
@@ -33,6 +36,7 @@ export function ShiftForm({
   onSave,
   onDelete,
   onDone,
+  children,
 }: ShiftFormProps) {
   const [draft, setDraft] = useState<Shift>(shift);
   const [saving, setSaving] = useState(false);
@@ -56,7 +60,7 @@ export function ShiftForm({
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" bottomOffset={16}>
         <Text variant="titleLarge" style={styles.title}>
           {format(parseISO(draft.date), 'EEEE, MMM d')}
         </Text>
@@ -127,7 +131,8 @@ export function ShiftForm({
             Cancel
           </Button>
         </View>
-      </ScrollView>
+        {children}
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

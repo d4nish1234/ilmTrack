@@ -64,6 +64,44 @@ export function entryIdFor(orgId: string, teacherId: string, date: string, shift
   return `${orgId}_${teacherId}_${date}_${shiftId}`;
 }
 
+function wallClock(ms: number, timeZone: string) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).formatToParts(ms);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  return { year: get('year'), month: get('month'), day: get('day'), hour: get('hour'), minute: get('minute') };
+}
+
+/**
+ * The instant a zone's clock reads `date` `time`. Mirrors the server's
+ * zonedTimeToInstant (functions/src/timeclockCore.ts) exactly: a skipped
+ * spring-forward time resolves to after the change, a repeated fall-back time
+ * to its first occurrence.
+ */
+export function zonedTimeToInstant(date: string, time: string, timeZone: string): number {
+  const [y, mo, d] = date.split('-').map(Number);
+  const [h, mi] = time.split(':').map(Number);
+  const asUtc = Date.UTC(y, mo - 1, d, h, mi);
+  const offsetAt = (ms: number) => {
+    const w = wallClock(ms, timeZone);
+    return Date.UTC(w.year, w.month - 1, w.day, w.hour, w.minute) - Math.floor(ms / 60_000) * 60_000;
+  };
+  const first = asUtc - offsetAt(asUtc);
+  const second = asUtc - offsetAt(first);
+  const reads = (ms: number) => {
+    const w = wallClock(ms, timeZone);
+    return w.year === y && w.month === mo && w.day === d && w.hour === h && w.minute === mi;
+  };
+  const exact = [first, second].filter(reads);
+  return exact.length > 0 ? Math.min(...exact) : first;
+}
+
 /** 'HH:mm' as a clock in this IANA zone reads at the instant. */
 export function wallTime(ms: number, timeZone: string): string {
   try {

@@ -499,3 +499,154 @@ describe('getMyTimekeeping', () => {
     expect(res.orgs[0].shifts).toHaveLength(1);
   });
 });
+
+describe('correctTimeEntry', () => {
+  const correct = (uid: string, overrides: object = {}) =>
+    call(fns.correctTimeEntry, uid, {
+      orgId: ORG, teacherId: TEACHER, weekStart: WEEK, shiftId: 's1', date: DATE,
+      start: '16:00', end: '16:30', reason: 'Forgot to end',
+      ...overrides,
+    });
+
+  it("lets an org admin fix a forgotten End, keeping the teacher's own record", async () => {
+    await seed();
+    vi.setSystemTime(at('16:00'));
+    await start();
+    await fns.closeFinishedShifts(at('17:05').getTime()); // ran to the end: 60m
+    vi.setSystemTime(at('18:00'));
+    await correct(ADMIN);
+
+    const e = await entry();
+    expect(e.workedMinutes).toBe(30);
+    expect(e.endedBy).toBe('admin');
+    expect(e.status).toBe('done');
+    expect(e.correction).toMatchObject({ by: ADMIN, reason: 'Forgot to end' });
+    expect(e.original).toMatchObject({ workedMinutes: 60, endedBy: 'schedule' });
+    expect(e.original.segments).toHaveLength(1);
+  });
+
+  it('keeps the first original through later corrections', async () => {
+    await seed();
+    vi.setSystemTime(at('16:00'));
+    await start();
+    await fns.closeFinishedShifts(at('17:05').getTime());
+    vi.setSystemTime(at('18:00'));
+    await correct(ADMIN, { end: '16:30' });
+    await correct(ADMIN, { end: '16:45', reason: 'Actually left at 4:45' });
+
+    const e = await entry();
+    expect(e.workedMinutes).toBe(45);
+    expect(e.correction.reason).toBe('Actually left at 4:45');
+    expect(e.original.workedMinutes).toBe(60);
+  });
+
+  it('adds time for a shift the teacher never started', async () => {
+    await seed();
+    vi.setSystemTime(at('18:00'));
+    await correct(ADMIN, { start: '16:05', end: '17:00', reason: 'Phone was dead' });
+
+    const e = await entry();
+    expect(e.workedMinutes).toBe(55);
+    expect(e.status).toBe('done');
+    expect(e.locationName).toBe('Main campus');
+    expect(e.original).toBeNull();
+  });
+
+  it('refuses anyone but an org admin, including the teacher', async () => {
+    await seed();
+    vi.setSystemTime(at('18:00'));
+    expect((await refusal(correct(TEACHER))).code).toBe('permission-denied');
+    expect((await refusal(correct(STRANGER))).code).toBe('permission-denied');
+  });
+
+  it('requires a reason', async () => {
+    await seed();
+    vi.setSystemTime(at('18:00'));
+    expect((await refusal(correct(ADMIN, { reason: '   ' }))).reason).toBe('no-reason');
+  });
+
+  it('keeps worked time within the shift', async () => {
+    await seed();
+    vi.setSystemTime(at('18:00'));
+    expect((await refusal(correct(ADMIN, { start: '15:30' }))).reason).toBe('outside-shift');
+    expect((await refusal(correct(ADMIN, { end: '17:30' }))).reason).toBe('outside-shift');
+    expect((await refusal(correct(ADMIN, { start: '16:30', end: '16:00' }))).code).toBe('invalid-argument');
+  });
+
+  it('allows longer hours once the admin extends the shift', async () => {
+    await seed();
+    vi.setSystemTime(at('16:00'));
+    await start();
+    await fns.closeFinishedShifts(at('17:05').getTime());
+    await db.collection('schedules').doc(`${ORG}_${TEACHER}_${WEEK}`).update({
+      shifts: [shift('s1', '16:00', '17:30')],
+    });
+    vi.setSystemTime(at('18:00'));
+    await correct(ADMIN, { end: '17:30', reason: 'Stayed for parents' });
+    expect((await entry()).workedMinutes).toBe(90);
+  });
+
+  it("won't correct a shift that's still running", async () => {
+    await seed();
+    vi.setSystemTime(at('16:10'));
+    await start();
+    expect((await refusal(correct(ADMIN, { end: '16:05' }))).reason).toBe('still-running');
+  });
+
+  it("won't record time that hasn't happened", async () => {
+    await seed();
+    vi.setSystemTime(at('15:00'));
+    expect((await refusal(correct(ADMIN))).code).toBe('invalid-argument');
+  });
+
+  it('corrects a shift that was deleted after it ran, within its recorded times', async () => {
+    await seed();
+    vi.setSystemTime(at('16:00'));
+    await start();
+    await fns.closeFinishedShifts(at('17:05').getTime());
+    await db.collection('schedules').doc(`${ORG}_${TEACHER}_${WEEK}`).update({ shifts: [] });
+    vi.setSystemTime(at('18:00'));
+    await correct(ADMIN, { end: '16:20' });
+    expect((await entry()).workedMinutes).toBe(20);
+    expect((await refusal(correct(ADMIN, { end: '17:30' }))).reason).toBe('outside-shift');
+  });
+
+  it("records the teacher's time when correcting a shift not yet closed out", async () => {
+    await seed();
+    vi.setSystemTime(at('16:05'));
+    await start();
+    // Past its end, but the close-out job hasn't run: no workedMinutes yet.
+    vi.setSystemTime(at('17:02'));
+    await correct(ADMIN, { end: '16:40' });
+    const e = await entry();
+    expect(e.original.workedMinutes).toBe(55);
+    expect(e.workedMinutes).toBe(40);
+    expect(e.openUntil).toBeUndefined();
+  });
+
+  it('refuses a week that does not hold the date', async () => {
+    await seed();
+    vi.setSystemTime(at('18:00'));
+    expect((await refusal(correct(ADMIN, { weekStart: '2026-10-19' }))).code).toBe('invalid-argument');
+  });
+
+  it("won't add time to a shift that is still on", async () => {
+    await seed();
+    vi.setSystemTime(at('16:30'));
+    expect((await refusal(correct(ADMIN, { end: '16:20' }))).reason).toBe('not-over');
+  });
+
+  it("labels added time whose location was deleted", async () => {
+    await seed();
+    await db.collection('timekeeping').doc(ORG).update({ locations: [] });
+    vi.setSystemTime(at('18:00'));
+    await correct(ADMIN);
+    expect((await entry()).locationName).toBe('Location removed');
+  });
+
+  it('refuses a shift that neither exists nor was ever worked', async () => {
+    await seed();
+    vi.setSystemTime(at('18:00'));
+    expect((await refusal(correct(ADMIN, { shiftId: 'nope' }))).code).toBe('not-found');
+  });
+});

@@ -15,8 +15,9 @@ import {
   serverTimestamp,
   where,
 } from 'firebase/firestore';
-import { firestore } from '../config/firebase';
-import type { Shift, TimekeepingLocation, TimekeepingSettings, WeekSchedule } from '../types';
+import { httpsCallable } from 'firebase/functions';
+import { firestore, functions } from '../config/firebase';
+import type { Shift, TimeEntry, TimekeepingLocation, TimekeepingSettings, WeekSchedule } from '../types';
 import {
   TimekeepingError,
   copyShiftsToWeek,
@@ -280,4 +281,61 @@ export async function copyWeek(
     });
     return copied.length;
   });
+}
+
+// ─── Hours worked (admin) ────────────────────────────────────────────────
+
+/**
+ * The organization's time entries for one week, live; pass `teacherId` for
+ * just one teacher's. Org admins can read them (firestore.rules); only the
+ * time-clock Cloud Functions write them. Equality filters only, so no index.
+ */
+export function subscribeToOrgWeekEntries(
+  orgId: string,
+  weekStart: string,
+  onUpdate: (entries: TimeEntry[]) => void,
+  onError: (error: Error) => void,
+  teacherId?: string
+): () => void {
+  const q = query(
+    collection(firestore, 'timeEntries'),
+    where('orgId', '==', orgId),
+    where('weekStart', '==', weekStart),
+    ...(teacherId ? [where('teacherId', '==', teacherId)] : [])
+  );
+  return onSnapshot(
+    q,
+    (snap) => onUpdate(snap.docs.map((d) => ({ ...(d.data() as TimeEntry), id: d.id }))),
+    onError
+  );
+}
+
+export interface Correction {
+  orgId: string;
+  teacherId: string;
+  weekStart: string;
+  shiftId: string;
+  date: string;
+  /** 'HH:mm', org time */
+  start: string;
+  end: string;
+  reason: string;
+}
+
+/**
+ * Set what a teacher actually worked on one shift, or add time for one never
+ * started. Server-side (correctTimeEntry): admins only, a reason required, and
+ * the teacher's own record is kept.
+ */
+export async function correctTimeEntry(correction: Correction): Promise<void> {
+  try {
+    await httpsCallable<Correction, unknown>(functions, 'correctTimeEntry')(correction);
+  } catch (error) {
+    const e = error as { code?: string; message?: string };
+    // The server's refusals are written to be shown; anything else isn't.
+    if (e.code && e.code !== 'functions/internal' && e.code !== 'functions/unavailable' && e.message) {
+      throw new TimekeepingError(e.message);
+    }
+    throw error;
+  }
 }

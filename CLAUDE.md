@@ -109,6 +109,9 @@ teacher's shifts week by week (Organization tab → Timekeeping).
   left running still counts exactly to its end. `closeFinishedShiftsJob`
   (every 5 min) finalises them via `openUntil`, a field present only on open
   entries — a single-field query, so no composite index.
+- **Admin corrections** (`correctTimeEntry`): within the scheduled shift (extend
+  the shift first to pay for longer), reason required, teacher's own record
+  kept in `original`. Teachers see "Edited by admin" and the reason.
 - **One open shift per teacher**, via `activeShifts/{uid}`. Release it only if
   it still points at the entry being closed (back-to-back shifts).
 - Teachers can't read `timekeeping/{orgId}`; `getMyTimekeeping` returns their

@@ -40,6 +40,9 @@ import {
 const REGION = 'us-central1';
 const NOTE_MAX = 500;
 const ORG_HINT_MAX = 20;
+const REASON_MAX = 200;
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 type Status = 'running' | 'paused' | 'done';
 
@@ -73,8 +76,15 @@ interface TimeEntry {
   status: Status;
   segments: StoredSegment[];
   note?: string;
-  endedBy?: 'teacher' | 'schedule';
+  endedBy?: 'teacher' | 'schedule' | 'admin';
   workedMinutes?: number;
+  /** The latest admin correction. */
+  correction?: { by: string; at: Timestamp; reason: string };
+  /**
+   * How the teacher's own record stood before the first correction, kept for
+   * the record. Null when the admin added time for a shift never started.
+   */
+  original?: { segments: StoredSegment[]; workedMinutes: number; endedBy: string | null } | null;
   /** Present only while open: equals endAt. The close-out job queries it. */
   openUntil?: Timestamp;
 }
@@ -527,6 +537,159 @@ export const setShiftNote = onCall({ region: REGION }, async (request) => {
     });
   });
   return { entryId };
+});
+
+// ─── Admin corrections ───────────────────────────────────────────────────
+
+/**
+ * An org admin sets how long a teacher actually worked on one shift: worked
+ * from `start` to `end` (wall-clock, the org's timezone, the shift's date),
+ * with a reason. Used to fix a forgotten End or a glitchy Start, and to add
+ * time for a shift the teacher never started.
+ *
+ * The worked time must fall within the shift as scheduled now, so to pay for
+ * staying late the admin first extends the shift, then corrects it. (If the
+ * shift was deleted after it ran, the entry's own times are the bounds.) A
+ * shift still running can't be corrected: there's nothing final to correct.
+ *
+ * The teacher's own record is kept in `original` the first time, so a
+ * correction never erases what they recorded.
+ */
+export const correctTimeEntry = onCall({ region: REGION }, async (request) => {
+  const uid = requireUid(request);
+  const data = (request.data ?? {}) as Record<string, unknown>;
+  const orgId = requireString(data.orgId, 'organization');
+  const teacherId = requireString(data.teacherId, 'teacher');
+  const weekStart = requireString(data.weekStart, 'week');
+  const shiftId = requireString(data.shiftId, 'shift');
+  const date = requireString(data.date, 'date');
+  const start = requireString(data.start, 'start time');
+  const end = requireString(data.end, 'end time');
+  const reason = typeof data.reason === 'string' ? data.reason.trim().slice(0, REASON_MAX) : '';
+
+  if (!DATE_RE.test(date) || !DATE_RE.test(weekStart)) fail('invalid-argument', 'That date is not valid.');
+  // The entry is filed under its week; a wrong one would hide it from the timesheet.
+  if (mondayOf(date) !== weekStart) fail('invalid-argument', 'That date is not in that week.');
+  if (!TIME_RE.test(start) || !TIME_RE.test(end)) fail('invalid-argument', 'Those times are not valid.');
+  if (start >= end) fail('invalid-argument', 'The end must be after the start.');
+  if (!reason) fail('invalid-argument', 'Say why the time is being corrected.', 'no-reason');
+
+  const [orgSnap, tkSnap] = await Promise.all([
+    db().collection('organizations').doc(orgId).get(),
+    db().collection('timekeeping').doc(orgId).get(),
+  ]);
+  const memberUserIds = (orgSnap.data()?.memberUserIds ?? []) as string[];
+  if (!orgSnap.exists || !memberUserIds.includes(uid)) {
+    fail('permission-denied', "Only this organization's admins can correct hours.");
+  }
+  const timezone = tkSnap.data()?.timezone;
+  if (!isValidTimeZone(timezone)) fail('failed-precondition', 'Timekeeping has no timezone set.');
+
+  const scheduleSnap = await db().collection('schedules').doc(`${orgId}_${teacherId}_${weekStart}`).get();
+  const scheduled = parseShift(
+    ((scheduleSnap.data()?.shifts ?? []) as unknown[]).find((s) => (s as { id?: unknown })?.id === shiftId)
+  );
+  if (scheduled && scheduled.date !== date) fail('invalid-argument', 'That shift is on another day.');
+
+  const entryRef = db().collection('timeEntries').doc(`${orgId}_${teacherId}_${date}_${shiftId}`);
+  const workedFrom = zonedTimeToInstant(date, start, timezone);
+  const workedTo = zonedTimeToInstant(date, end, timezone);
+  const now = Date.now();
+
+  await db().runTransaction(async (tx) => {
+    const snap = await tx.get(entryRef);
+    const existing = snap.exists ? (snap.data() as TimeEntry) : null;
+    if (!scheduled && !existing) fail('not-found', 'That shift is no longer on the schedule.');
+
+    // Bounds: the shift as scheduled now, or, if it was deleted after it ran,
+    // the times the entry recorded.
+    const startAt = scheduled ? zonedTimeToInstant(date, scheduled.start, timezone) : existing!.startAt.toMillis();
+    const endAt = scheduled ? zonedTimeToInstant(date, scheduled.end, timezone) : existing!.endAt.toMillis();
+    if (workedFrom < startAt || workedTo > endAt) {
+      fail(
+        'invalid-argument',
+        'Worked time must be within the shift. To pay for longer, extend the shift first.',
+        'outside-shift'
+      );
+    }
+    if (workedFrom > now) fail('invalid-argument', "You can't record time that hasn't happened yet.");
+    if (existing && existing.status !== 'done' && now < existing.endAt.toMillis()) {
+      fail('failed-precondition', 'This shift is still running. Correct it once it has ended.', 'still-running');
+    }
+    if (!existing && now < endAt) {
+      // Adding time now would mark the shift ended, and the teacher could no
+      // longer start it.
+      fail('failed-precondition', 'This shift is still on. Add time once it has ended.', 'not-over');
+    }
+
+    const segments = [{ start: Timestamp.fromMillis(workedFrom), end: Timestamp.fromMillis(Math.min(workedTo, now)) }];
+    const worked = workedMinutes(
+      segments.map((s) => ({ start: s.start.toMillis(), end: s.end.toMillis() })),
+      startAt,
+      endAt,
+      now
+    );
+    const correction = { by: uid, at: Timestamp.fromMillis(now), reason };
+
+    if (existing) {
+      tx.update(entryRef, {
+        startAt: Timestamp.fromMillis(startAt),
+        endAt: Timestamp.fromMillis(endAt),
+        segments,
+        status: 'done',
+        endedBy: 'admin',
+        workedMinutes: worked,
+        correction,
+        // Keep the teacher's own record the first time only.
+        ...(existing.original === undefined
+          ? {
+              original: {
+                segments: existing.segments,
+                // An entry still open past its end (the close-out job hasn't
+                // run yet) has no workedMinutes: count it as closeEntry would.
+                workedMinutes:
+                  existing.workedMinutes ??
+                  workedMinutes(
+                    existing.segments.map((s) => ({ start: s.start.toMillis(), end: s.end ? s.end.toMillis() : null })),
+                    existing.startAt.toMillis(),
+                    existing.endAt.toMillis(),
+                    Math.min(now, existing.endAt.toMillis())
+                  ),
+                endedBy: existing.endedBy ?? null,
+              },
+            }
+          : {}),
+        openUntil: FieldValue.delete(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    } else {
+      const location = (Array.isArray(tkSnap.data()?.locations) ? tkSnap.data()!.locations : []).find(
+        (l: { id?: string }) => l.id === scheduled!.locationId
+      );
+      tx.set(entryRef, {
+        orgId,
+        teacherId,
+        shiftId,
+        date,
+        weekStart,
+        startAt: Timestamp.fromMillis(startAt),
+        endAt: Timestamp.fromMillis(endAt),
+        timezone,
+        locationId: scheduled!.locationId,
+        locationName: location?.name ?? 'Location removed',
+        status: 'done',
+        segments,
+        endedBy: 'admin',
+        workedMinutes: worked,
+        correction,
+        original: null,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
+  });
+
+  return { entryId: entryRef.id };
 });
 
 // ─── Close-out ───────────────────────────────────────────────────────────

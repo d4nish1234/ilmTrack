@@ -65,12 +65,16 @@ export function orgTeacherIds(
   return [...ids];
 }
 
-/** The organization's teachers with names, sorted by name. */
-export async function getOrgTeachers(orgId: string): Promise<OrgTeacher[]> {
+/**
+ * The organization's teachers with names, sorted by name. `alsoInclude` adds
+ * people who don't teach one of its classes — its admins, who may track their
+ * own time — so they can be scheduled too.
+ */
+export async function getOrgTeachers(orgId: string, alsoInclude: string[] = []): Promise<OrgTeacher[]> {
   const classSnap = await getDocs(query(classesRef, where('orgId', '==', orgId)));
   const classes = classSnap.docs.map((d) => ({ ...d.data(), id: d.id }) as Class);
 
-  const uids = orgTeacherIds(classes);
+  const uids = [...new Set([...orgTeacherIds(classes), ...alsoInclude])];
   const users = new Map<string, User>();
   for (let i = 0; i < uids.length; i += IN_LIMIT) {
     const snap = await getDocs(

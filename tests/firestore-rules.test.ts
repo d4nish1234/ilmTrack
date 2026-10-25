@@ -1058,10 +1058,29 @@ describe('Time entries', () => {
     );
   });
 
-  it("an org admin can read the org's entries", async () => {
+  it("an org admin can read the org's entries, including a week's worth for timesheets", async () => {
     const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
     await assertSucceeds(getDoc(doc(db, 'timeEntries', ENTRY_ID)));
     await assertSucceeds(getDocs(query(collection(db, 'timeEntries'), where('orgId', '==', ORG_ID))));
+    await assertSucceeds(
+      getDocs(query(collection(db, 'timeEntries'), where('orgId', '==', ORG_ID), where('weekStart', '==', '2026-10-12')))
+    );
+    // One teacher's week, as the shift sheet and teacher's week screen ask.
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(db, 'timeEntries'),
+          where('orgId', '==', ORG_ID),
+          where('weekStart', '==', '2026-10-12'),
+          where('teacherId', '==', INVITED_TEACHER_UID)
+        )
+      )
+    );
+  });
+
+  it("a teacher CANNOT list the org's entries, only their own", async () => {
+    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+    await assertFails(getDocs(query(collection(db, 'timeEntries'), where('orgId', '==', ORG_ID))));
   });
 
   it("someone else CANNOT read a teacher's hours", async () => {
