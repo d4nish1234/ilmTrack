@@ -3,8 +3,10 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { PaperProvider, MD3LightTheme } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { StyleSheet } from 'react-native';
 import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
+import { OrganizationProvider } from '../src/contexts/OrganizationContext';
 import { LoadingSpinner, KeyboardAccessory } from '../src/components/common';
 import VersionGate from '../src/components/VersionGate';
 import {
@@ -121,15 +123,21 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
-        <PaperProvider theme={theme}>
-          {/* Above AuthProvider on purpose: an unsupported build is stopped
-              before it can sign in or issue a query. */}
-          <VersionGate>
-            <AuthProvider>
-              <RootLayoutNav />
-            </AuthProvider>
-          </VersionGate>
-        </PaperProvider>
+        {/* Reports keyboard height to KeyboardAwareModal and friends. */}
+        <KeyboardProvider>
+          <PaperProvider theme={theme}>
+            {/* Above AuthProvider on purpose: an unsupported build is stopped
+                before it can sign in or issue a query. */}
+            <VersionGate>
+              <AuthProvider>
+                {/* Subscribes only for teachers; parents get an empty list. */}
+                <OrganizationProvider>
+                  <RootLayoutNav />
+                </OrganizationProvider>
+              </AuthProvider>
+            </VersionGate>
+          </PaperProvider>
+        </KeyboardProvider>
       </SafeAreaProvider>
       {/* iOS keyboard accessory with "Done" button */}
       <KeyboardAccessory />

@@ -222,7 +222,7 @@ export default function AttendanceListScreen() {
               >
                 Load More
               </Button>
-            ) : null
+            ) : undefined
           }
         />
       ) : (
@@ -237,9 +237,10 @@ export default function AttendanceListScreen() {
         icon="plus"
         style={styles.fab}
         onPress={() =>
-          router.push(
-            `/(teacher)/classes/${classId}/students/${studentId}/attendance/add`
-          )
+          router.push({
+            pathname: '/(teacher)/classes/add-attendance',
+            params: { classId, studentId },
+          })
         }
       />
     </View>

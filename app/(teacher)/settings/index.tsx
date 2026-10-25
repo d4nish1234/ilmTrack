@@ -13,16 +13,16 @@ import {
   Switch,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../../src/contexts/AuthContext';
-import { Button } from '../../src/components/common';
-import { firestore } from '../../src/config/firebase';
+import { useAuth } from '../../../src/contexts/AuthContext';
+import { Button } from '../../../src/components/common';
+import { firestore } from '../../../src/config/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { removePushToken } from '../../src/services/notification.service';
-import { getStudent } from '../../src/services/student.service';
-import { Student } from '../../src/types';
+import { removePushToken } from '../../../src/services/notification.service';
+import { getClassesByIds } from '../../../src/services/class.service';
+import { Class } from '../../../src/types';
 
-export default function ParentSettingsScreen() {
-  const { user, signOut, refreshUser, resetPassword, registerPushNotifications, deleteAccount } = useAuth();
+export default function TeacherSettingsScreen() {
+  const { user, signOut, refreshUser, resetPassword, registerPushNotifications, deleteTeacherAccount } = useAuth();
   const [showEditName, setShowEditName] = useState(false);
   const [firstName, setFirstName] = useState(user?.firstName || '');
   const [lastName, setLastName] = useState(user?.lastName || '');
@@ -31,29 +31,36 @@ export default function ParentSettingsScreen() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
-  const [linkedStudents, setLinkedStudents] = useState<Student[]>([]);
+  const [ownedClasses, setOwnedClasses] = useState<Class[]>([]);
+  const [adminClasses, setAdminClasses] = useState<Class[]>([]);
 
   const notificationsEnabled = user?.notificationsEnabled ?? false;
 
   useEffect(() => {
-    const fetchLinkedStudents = async () => {
-      if (!user?.studentIds?.length) {
-        setLinkedStudents([]);
-        return;
-      }
-      const students: Student[] = [];
-      for (const id of user.studentIds) {
-        try {
-          const s = await getStudent(id);
-          if (s) students.push(s);
-        } catch {
-          // Skip students that can't be fetched
+    const fetchClasses = async () => {
+      if (!user) return;
+      try {
+        if (user.classIds?.length) {
+          const owned = await getClassesByIds(user.classIds);
+          setOwnedClasses(owned);
         }
+      } catch (err) {
+        console.error('Failed to fetch owned classes:', err);
       }
-      setLinkedStudents(students);
+      try {
+        if (user.adminClassIds?.length) {
+          const admin = await getClassesByIds(user.adminClassIds);
+          const verified = admin.filter((cls) =>
+            cls.admins?.some((a) => a.userId === user.uid)
+          );
+          setAdminClasses(verified);
+        }
+      } catch (err) {
+        console.error('Failed to fetch admin classes:', err);
+      }
     };
-    fetchLinkedStudents();
-  }, [user?.studentIds]);
+    fetchClasses();
+  }, [user?.classIds, user?.adminClassIds]);
 
   const handleToggleNotifications = async () => {
     if (!user || togglingNotifications) return;
@@ -132,7 +139,7 @@ export default function ParentSettingsScreen() {
 
     setDeleting(true);
     try {
-      await deleteAccount(deletePassword);
+      await deleteTeacherAccount(deletePassword);
     } catch (error: any) {
       console.error('Delete account error:', error);
       if (error?.code === 'auth/wrong-password' || error?.code === 'auth/invalid-credential') {
@@ -140,7 +147,6 @@ export default function ParentSettingsScreen() {
       } else {
         Alert.alert('Error', 'Failed to delete account. Please try again.');
       }
-    } finally {
       setDeleting(false);
     }
   };
@@ -203,7 +209,7 @@ export default function ParentSettingsScreen() {
             {user?.email}
           </Text>
           <Text variant="bodySmall" style={styles.role}>
-            Parent
+            Teacher
           </Text>
         </View>
 
@@ -239,7 +245,7 @@ export default function ParentSettingsScreen() {
             title="Help & Support"
             left={(props) => <List.Icon {...props} icon="help-circle" />}
             right={(props) => <List.Icon {...props} icon="chevron-right" />}
-            onPress={() => router.push('/(parent)/help')}
+            onPress={() => router.push('/(teacher)/settings/help')}
           />
         </List.Section>
 
@@ -262,7 +268,7 @@ export default function ParentSettingsScreen() {
             Danger Zone
           </Text>
           <Text variant="bodySmall" style={styles.dangerNote}>
-            Permanently delete your account and remove access to all linked children. This cannot be undone.
+            Permanently delete your account, all your classes, students, and their records. This cannot be undone.
           </Text>
           <Button
             mode="outlined"
@@ -327,21 +333,34 @@ export default function ParentSettingsScreen() {
             Delete Account?
           </Text>
 
-          {linkedStudents.length > 0 && (
-            <View style={styles.studentListContainer}>
+          {ownedClasses.length > 0 && (
+            <View style={styles.classListContainer}>
               <Text variant="bodyMedium" style={styles.deleteModalText}>
-                You will lose access to:
+                The following classes and ALL their data will be permanently deleted:
               </Text>
-              {linkedStudents.map((s) => (
-                <Text key={s.id} variant="bodyMedium" style={styles.studentListItem}>
-                  {'\u2022'} {s.firstName} {s.lastName}
+              {ownedClasses.map((cls) => (
+                <Text key={cls.id} variant="bodyMedium" style={styles.classListItem}>
+                  {'\u2022'} {cls.name} ({cls.studentCount} student{cls.studentCount !== 1 ? 's' : ''})
                 </Text>
               ))}
             </View>
           )}
 
-          <Text variant="bodyMedium" style={styles.deleteModalText}>
-            If you re-create your account with the same email, you will be re-linked to your students automatically.
+          {adminClasses.length > 0 && (
+            <View style={styles.classListContainer}>
+              <Text variant="bodyMedium" style={styles.deleteModalText}>
+                You will be removed as co-teacher from:
+              </Text>
+              {adminClasses.map((cls) => (
+                <Text key={cls.id} variant="bodyMedium" style={styles.classListItem}>
+                  {'\u2022'} {cls.name}
+                </Text>
+              ))}
+            </View>
+          )}
+
+          <Text variant="bodyMedium" style={styles.deleteModalWarning}>
+            This action cannot be undone.
           </Text>
 
           <TextInput
@@ -445,12 +464,18 @@ const styles = StyleSheet.create({
   deleteModalText: {
     color: '#444',
     textAlign: 'center',
-    marginBottom: 12,
-  },
-  studentListContainer: {
     marginBottom: 8,
   },
-  studentListItem: {
+  deleteModalWarning: {
+    color: '#d32f2f',
+    textAlign: 'center',
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  classListContainer: {
+    marginBottom: 8,
+  },
+  classListItem: {
     color: '#444',
     textAlign: 'center',
     fontWeight: '600',

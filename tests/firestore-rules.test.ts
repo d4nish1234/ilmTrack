@@ -4,7 +4,7 @@ import {
   assertFails,
   RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, deleteField, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, deleteField, collection, addDoc, query, where, getDocs, documentId } from 'firebase/firestore';
 import { readFileSync } from 'fs';
 import { describe, it, beforeAll, afterAll, beforeEach } from 'vitest';
 
@@ -694,6 +694,326 @@ describe('Config collection (version gate)', () => {
     const db = testEnv.unauthenticatedContext().firestore();
     await assertFails(getDoc(doc(db, 'students', STUDENT_ID)));
     await assertFails(getDoc(doc(db, 'classes', CLASS_ID)));
+  });
+});
+
+describe('Organizations collection', () => {
+  const ORG_ID = 'org1';
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, 'organizations', ORG_ID), {
+        name: 'Test Org',
+        members: [{ userId: TEACHER_UID, email: 'teacher@test.com', role: 'owner' }],
+        memberUserIds: [TEACHER_UID],
+      });
+      // Teaching in an org is not administering it: this co-teacher's class
+      // is in the org, but they are not a member.
+      await updateDoc(doc(db, 'classes', CLASS_ID), { orgId: ORG_ID });
+    });
+  });
+
+  it('a member can read their organization', async () => {
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertSucceeds(getDoc(doc(db, 'organizations', ORG_ID)));
+  });
+
+  it('a member can list the organizations they administer', async () => {
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertSucceeds(
+      getDocs(query(collection(db, 'organizations'), where('memberUserIds', 'array-contains', TEACHER_UID)))
+    );
+  });
+
+  it('a teacher of one of its classes who is not a member CANNOT read it', async () => {
+    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+    await assertFails(getDoc(doc(db, 'organizations', ORG_ID)));
+  });
+
+  it('an unrelated teacher CANNOT read it', async () => {
+    const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+    await assertFails(getDoc(doc(db, 'organizations', ORG_ID)));
+  });
+
+  it('an unfiltered list query is rejected', async () => {
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertFails(getDocs(collection(db, 'organizations')));
+  });
+
+  it('a member CANNOT write it, so nobody can add themselves as an admin', async () => {
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertFails(updateDoc(doc(db, 'organizations', ORG_ID), { name: 'Renamed' }));
+    await assertFails(
+      updateDoc(doc(db, 'organizations', ORG_ID), { memberUserIds: [TEACHER_UID, OTHER_TEACHER_UID] })
+    );
+  });
+
+  it('nobody can create one', async () => {
+    const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+    await assertFails(
+      setDoc(doc(db, 'organizations', 'org2'), { name: 'Mine', members: [], memberUserIds: [OTHER_TEACHER_UID] })
+    );
+  });
+
+  describe("a class's organization is assigned by the console only", () => {
+    // CLASS_ID is in ORG_ID (set in beforeEach); OTHER_TEACHER_UID owns a
+    // standalone class.
+    const OWN_CLASS_ID = 'ownClass';
+
+    beforeEach(async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'classes', OWN_CLASS_ID), {
+          name: 'Own Class',
+          teacherId: OTHER_TEACHER_UID,
+          admins: [],
+          adminUserIds: [OTHER_TEACHER_UID],
+          studentCount: 0,
+        });
+      });
+    });
+
+    it('a teacher CANNOT create a class already in an organization', async () => {
+      const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+      await assertFails(
+        setDoc(doc(db, 'classes', 'newClass'), {
+          name: 'Sneaky',
+          teacherId: OTHER_TEACHER_UID,
+          admins: [],
+          studentCount: 0,
+          orgId: ORG_ID,
+        })
+      );
+    });
+
+    it('a teacher can still create an ordinary class', async () => {
+      const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+      await assertSucceeds(
+        setDoc(doc(db, 'classes', 'newClass'), {
+          name: 'Ordinary',
+          teacherId: OTHER_TEACHER_UID,
+          admins: [],
+          studentCount: 0,
+        })
+      );
+    });
+
+    it('an owner CANNOT attach their class to an organization', async () => {
+      const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+      await assertFails(updateDoc(doc(db, 'classes', OWN_CLASS_ID), { orgId: ORG_ID }));
+    });
+
+    it('an owner CANNOT move or detach a class that is in an organization', async () => {
+      const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+      await assertFails(updateDoc(doc(db, 'classes', CLASS_ID), { orgId: 'org2' }));
+      await assertFails(updateDoc(doc(db, 'classes', CLASS_ID), { orgId: deleteField() }));
+    });
+
+    it('a co-teacher CANNOT change it either', async () => {
+      const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+      await assertFails(updateDoc(doc(db, 'classes', CLASS_ID), { orgId: deleteField() }));
+    });
+
+    it('ordinary edits to a class in an organization still work', async () => {
+      const owner = testEnv.authenticatedContext(TEACHER_UID).firestore();
+      await assertSucceeds(updateDoc(doc(owner, 'classes', CLASS_ID), { name: 'Renamed' }));
+      const coTeacher = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+      await assertSucceeds(updateDoc(doc(coTeacher, 'classes', CLASS_ID), { studentCount: 2 }));
+    });
+  });
+
+  it('any teacher can still find the classes in an organization', async () => {
+    // getOrgTeachers relies on this: classes are readable by any signed-in user.
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertSucceeds(getDocs(query(collection(db, 'classes'), where('orgId', '==', ORG_ID))));
+  });
+
+  it("an org admin can batch-read the org's teachers' profiles by id", async () => {
+    // getOrgTeachers relies on this too. If the users rule is ever narrowed,
+    // this fails here instead of the Timekeeping teacher list going blank.
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertSucceeds(
+      getDocs(
+        query(collection(db, 'users'), where(documentId(), 'in', [TEACHER_UID, INVITED_TEACHER_UID]))
+      )
+    );
+  });
+});
+
+describe('Timekeeping', () => {
+  const ORG_ID = 'org1';
+  const OTHER_ORG_ID = 'org2';
+  const WEEK = '2026-10-12';
+  const SCHEDULE_ID = `${ORG_ID}_${INVITED_TEACHER_UID}_${WEEK}`;
+  const shift = {
+    id: 's1',
+    date: WEEK,
+    start: '16:00',
+    end: '17:00',
+    locationId: 'loc1',
+    locationName: 'Main campus',
+  };
+  const schedule = {
+    orgId: ORG_ID,
+    teacherId: INVITED_TEACHER_UID,
+    weekStart: WEEK,
+    shifts: [shift],
+  };
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      // TEACHER_UID administers org1; OTHER_TEACHER_UID administers org2.
+      await setDoc(doc(db, 'organizations', ORG_ID), {
+        name: 'Test Org',
+        members: [{ userId: TEACHER_UID, email: 'teacher@test.com', role: 'owner' }],
+        memberUserIds: [TEACHER_UID],
+      });
+      await setDoc(doc(db, 'organizations', OTHER_ORG_ID), {
+        name: 'Other Org',
+        members: [{ userId: OTHER_TEACHER_UID, email: 'other@test.com', role: 'owner' }],
+        memberUserIds: [OTHER_TEACHER_UID],
+      });
+    });
+  });
+
+  describe('settings', () => {
+    it('an org admin can turn it on, read it and add locations', async () => {
+      const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+      await assertSucceeds(
+        setDoc(doc(db, 'timekeeping', ORG_ID), { orgId: ORG_ID, enabled: true, locations: [] })
+      );
+      await assertSucceeds(getDoc(doc(db, 'timekeeping', ORG_ID)));
+      await assertSucceeds(
+        updateDoc(doc(db, 'timekeeping', ORG_ID), {
+          locations: [{ id: 'loc1', name: 'Main campus', latitude: 43.7, longitude: -79.7, radiusM: 150 }],
+        })
+      );
+    });
+
+    it("a teacher in the org who is not an admin CANNOT read or write it", async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'timekeeping', ORG_ID), { orgId: ORG_ID, enabled: true, locations: [] });
+      });
+      const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+      await assertFails(getDoc(doc(db, 'timekeeping', ORG_ID)));
+      await assertFails(updateDoc(doc(db, 'timekeeping', ORG_ID), { enabled: false }));
+    });
+
+    it("another org's admin CANNOT write it", async () => {
+      const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+      await assertFails(
+        setDoc(doc(db, 'timekeeping', ORG_ID), { orgId: ORG_ID, enabled: true, locations: [] })
+      );
+    });
+
+    it('CANNOT be filed under one org while naming another', async () => {
+      const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+      await assertFails(
+        setDoc(doc(db, 'timekeeping', ORG_ID), { orgId: OTHER_ORG_ID, enabled: true, locations: [] })
+      );
+    });
+
+    it('nobody can delete it', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'timekeeping', ORG_ID), { orgId: ORG_ID, enabled: true, locations: [] });
+      });
+      const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+      await assertFails(deleteDoc(doc(db, 'timekeeping', ORG_ID)));
+    });
+  });
+
+  describe('schedules', () => {
+    const seedSchedule = () =>
+      testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'schedules', SCHEDULE_ID), schedule);
+      });
+
+    it('an org admin can set a teacher\'s week', async () => {
+      const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+      await assertSucceeds(setDoc(doc(db, 'schedules', SCHEDULE_ID), schedule));
+    });
+
+    it('an org admin can read a week that does not exist yet (transactions start there)', async () => {
+      const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+      await assertSucceeds(getDoc(doc(db, 'schedules', SCHEDULE_ID)));
+    });
+
+    it('an org admin can edit and delete it', async () => {
+      await seedSchedule();
+      const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+      await assertSucceeds(updateDoc(doc(db, 'schedules', SCHEDULE_ID), { shifts: [] }));
+      await assertSucceeds(deleteDoc(doc(db, 'schedules', SCHEDULE_ID)));
+    });
+
+    it('an org admin can list the week for the whole org', async () => {
+      await seedSchedule();
+      const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+      await assertSucceeds(
+        getDocs(
+          query(collection(db, 'schedules'), where('orgId', '==', ORG_ID), where('weekStart', '==', WEEK))
+        )
+      );
+    });
+
+    it('the teacher can read their own week, including one not set yet', async () => {
+      await seedSchedule();
+      const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+      await assertSucceeds(getDoc(doc(db, 'schedules', SCHEDULE_ID)));
+      await assertSucceeds(getDoc(doc(db, 'schedules', `${ORG_ID}_${INVITED_TEACHER_UID}_2026-10-19`)));
+      await assertSucceeds(
+        getDocs(query(collection(db, 'schedules'), where('teacherId', '==', INVITED_TEACHER_UID)))
+      );
+    });
+
+    it('the teacher CANNOT change their own shifts', async () => {
+      await seedSchedule();
+      const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+      await assertFails(
+        updateDoc(doc(db, 'schedules', SCHEDULE_ID), { shifts: [{ ...shift, end: '23:00' }] })
+      );
+    });
+
+    it("someone unrelated CANNOT read a teacher's week", async () => {
+      await seedSchedule();
+      const db = testEnv.authenticatedContext(PARENT_UID).firestore();
+      await assertFails(getDoc(doc(db, 'schedules', SCHEDULE_ID)));
+      await assertFails(getDoc(doc(db, 'schedules', `${ORG_ID}_${INVITED_TEACHER_UID}_2026-10-19`)));
+    });
+
+    it("another org's admin CANNOT read or write it", async () => {
+      await seedSchedule();
+      const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+      await assertFails(getDoc(doc(db, 'schedules', SCHEDULE_ID)));
+      await assertFails(updateDoc(doc(db, 'schedules', SCHEDULE_ID), { shifts: [] }));
+    });
+
+    it("an admin CANNOT file a week under their org while it names another", async () => {
+      // OTHER_TEACHER_UID administers org2, so a doc id naming org2 passes the
+      // admin check — the id must still match the data.
+      const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+      await assertFails(
+        setDoc(doc(db, 'schedules', `${OTHER_ORG_ID}_${INVITED_TEACHER_UID}_${WEEK}`), schedule)
+      );
+    });
+
+    it('CANNOT move a week to another teacher or date by editing its fields', async () => {
+      await seedSchedule();
+      const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+      await assertFails(updateDoc(doc(db, 'schedules', SCHEDULE_ID), { teacherId: OTHER_TEACHER_UID }));
+      await assertFails(updateDoc(doc(db, 'schedules', SCHEDULE_ID), { weekStart: '2026-10-19' }));
+    });
+
+    it('rejects a malformed week', async () => {
+      const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+      await assertFails(
+        setDoc(doc(db, 'schedules', `${ORG_ID}_${INVITED_TEACHER_UID}_next`), {
+          ...schedule,
+          weekStart: 'next',
+        })
+      );
+      await assertFails(setDoc(doc(db, 'schedules', SCHEDULE_ID), { ...schedule, shifts: 'all day' }));
+    });
   });
 });
 

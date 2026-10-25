@@ -71,11 +71,28 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Check for invites and link parent to students via HTTPS callable (uses Admin SDK,
 // so it can update student/homework/attendance docs regardless of security rules).
+/**
+ * Invite acceptance trusts the email_verified claim in the ID token, not the
+ * account: acceptParentInvites reads it server-side, and the adminInvites rule
+ * reads it via verifiedEmail(). Right after a user verifies, the cached token
+ * can still say false for up to an hour, so a link attempted then would
+ * silently link nothing. Refresh the token first when the two disagree.
+ */
+async function ensureVerifiedToken(): Promise<void> {
+  const current = auth.currentUser;
+  if (!current?.emailVerified) return;
+  const { claims } = await current.getIdTokenResult();
+  if (claims.email_verified !== true) {
+    await current.getIdToken(true);
+  }
+}
+
 async function acceptPendingInvites(
   userId: string,
   email: string,
   existingStudentIds: string[] = []
 ): Promise<string[]> {
+  await ensureVerifiedToken();
   const acceptInvites = httpsCallable<{ email: string }, { studentIds: string[] }>(
     functions,
     'acceptParentInvites'
@@ -103,6 +120,7 @@ async function acceptPendingAdminInvites(
   email: string,
   existingAdminClassIds: string[] = []
 ): Promise<string[]> {
+  await ensureVerifiedToken();
   const adminInvitesRef = collection(firestore, 'adminInvites');
 
   // Query ALL admin invites for this email
@@ -367,23 +385,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseUser.reload();
     // Get fresh reference from auth.currentUser to preserve methods
     const freshUser = auth.currentUser;
-    if (freshUser) {
-      setFirebaseUser(freshUser);
+    if (!freshUser) return;
 
-      // onAuthStateChanged doesn't reliably re-fire after reload(), so stamp
-      // emailVerified here if it just became true, then notify admin via callable.
-      if (freshUser.emailVerified && user && !user.emailVerified) {
-        try {
-          await updateDoc(doc(firestore, 'users', freshUser.uid), {
-            emailVerified: true,
-          });
-          setUser((prev) => (prev ? { ...prev, emailVerified: true } : prev));
+    // onAuthStateChanged doesn't reliably re-fire after reload(), so when the
+    // email has just become verified, do here what a sign-in would: stamp
+    // emailVerified (the Cloud Function watches it to notify the admin) and
+    // link pending invites, which signup skipped because the email wasn't
+    // verified yet.
+    //
+    // All of it happens BEFORE setFirebaseUser below. The context's
+    // emailVerified comes from the Firebase user, and the moment it flips the
+    // root layout navigates home — publishing it first would land a parent on
+    // an empty home screen while their children were still being linked.
+    if (freshUser.emailVerified && user && !user.emailVerified) {
+      try {
+        await updateDoc(doc(firestore, 'users', freshUser.uid), {
+          emailVerified: true,
+        });
+      } catch (error) {
+        console.error('Error stamping emailVerified:', error);
+      }
 
-        } catch (error) {
-          console.error('Error stamping emailVerified:', error);
+      try {
+        if (freshUser.email && user.role === 'parent') {
+          await acceptPendingInvites(freshUser.uid, freshUser.email, user.studentIds || []);
+        } else if (freshUser.email && user.role === 'teacher') {
+          await acceptPendingAdminInvites(freshUser.uid, freshUser.email, user.adminClassIds || []);
         }
+      } catch (error) {
+        console.warn('Could not link invites after verification; will retry on next sign-in.', error);
+      }
+
+      // One update with everything above, read back from Firestore.
+      const refreshedDoc = await getDoc(doc(firestore, 'users', freshUser.uid)).catch(() => null);
+      if (refreshedDoc?.exists()) {
+        setUser({ uid: freshUser.uid, ...refreshedDoc.data() } as User);
+      } else {
+        setUser((prev) => (prev ? { ...prev, emailVerified: true } : prev));
       }
     }
+
+    setFirebaseUser(freshUser);
   }, [firebaseUser, user]);
 
   const registerPushNotifications = useCallback(async () => {

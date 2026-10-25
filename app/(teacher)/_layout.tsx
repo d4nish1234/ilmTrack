@@ -1,8 +1,11 @@
 import { Tabs, router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SelectedClassProvider } from '../../src/contexts/SelectedClassContext';
+import { useOrganizations } from '../../src/contexts/OrganizationContext';
 
 export default function TeacherLayout() {
+  const { organizations } = useOrganizations();
+
   return (
     <SelectedClassProvider>
       <Tabs
@@ -29,11 +32,13 @@ export default function TeacherLayout() {
           name="classes"
           options={{
             title: 'Classes',
+            // Cast: @expo/vector-icons' types predate React Native 0.88's ColorValue;
+            // tab colours are always strings here.
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
                 name="google-classroom"
                 size={size}
-                color={color}
+                color={color as string}
               />
             ),
             headerShown: false,
@@ -45,19 +50,25 @@ export default function TeacherLayout() {
           }}
         />
         <Tabs.Screen
-          name="settings"
+          name="organization"
           options={{
-            title: 'Settings',
+            title: 'Organization',
+            // Only for people who administer an organization.
+            href: organizations.length > 0 ? undefined : null,
             tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="cog" size={size} color={color} />
+              <MaterialCommunityIcons name="office-building" size={size} color={color as string} />
             ),
+            headerShown: false,
           }}
         />
         <Tabs.Screen
-          name="help"
+          name="settings"
           options={{
-            href: null, // Hide from tab bar
-            title: 'Help & Support',
+            title: 'Settings',
+            headerShown: false,
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="cog" size={size} color={color as string} />
+            ),
           }}
         />
       </Tabs>

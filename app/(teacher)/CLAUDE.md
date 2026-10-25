@@ -1,15 +1,23 @@
 # app/(teacher)/
 
-Teacher screens. Bottom tab layout: Home, Classes, Settings.
+Teacher screens. Bottom tab layout: Classes, Organization (only for org admins), Settings.
+
+## organization/
+- **index.tsx** — Selected org (switcher when there are several) and its tools list.
+- **timekeeping.tsx** — On/off switch, locations (`LocationEditor`), teachers with this week's summary.
+- **teacher/[teacherId].tsx** — One teacher's week: + per day, tap a shift to edit (`ShiftEditor`), "Copy to next week" (asks before replacing, then moves to the copied week).
 
 ## Top-level screens
 - **index.tsx** — Home dashboard. Shows class dropdown, today's attendance list (mark present/absent inline), recent homework, quick-assign homework. Uses `subscribeToStudents`, `getStudentAttendanceForDate`, `toggleAttendance`, `createHomework`.
-- **settings.tsx** — Account info, push notification toggle, sign out.
-- **help.tsx** — Help/FAQ.
+- **settings/index.tsx** — Account info, push notification toggle, sign out.
+- **settings/help.tsx** — Help/FAQ, pushed from Settings. Not a hidden tab: since expo-router 58, focusing a tab hidden with `href: null` redirects to the first tab.
 
 ## classes/
 - **index.tsx** — Class list. Uses `subscribeToClasses(teacherId, ...)`.
 - **create.tsx** — Create new class form.
+- **add-attendance.tsx** — The one Add Attendance sheet (`AddAttendanceForm`, params `classId`, `studentId`). Opened by the student screen's Add Attendance button and Attendance History's +. Same reason as add-homework for living here.
+- **evaluate-homework.tsx** — Evaluate Homework sheet (`EvaluateHomeworkForm`, param `studentId`), opened by the Classes swipe "Evaluate": rate up to 3 pending items and mark each Complete / Late / Incomplete.
+- **add-homework.tsx** — The one Add Homework sheet (`AddHomeworkForm`, params `classId`, `studentId`). Opened by the Classes swipe "New", the student screen's Add Homework button and Homework History's +. Kept in the classes stack so it is always presented as a modal sheet; asks before a second assignment on the same day.
 
 ## classes/[classId]/
 - **index.tsx** — Class detail: student list + FAB to add student. Uses `subscribeToStudents(classId, teacherId, ...)`.
@@ -26,8 +34,6 @@ Teacher screens. Bottom tab layout: Home, Classes, Settings.
 
 ## classes/[classId]/students/[studentId]/homework/
 - **index.tsx** — Full homework list with pagination. `getHomeworkPaginated(studentId, teacherId, ...)`.
-- **add.tsx** — Assign homework form. Fetches student to get `parentUserIds` and `invitedTeacherIds`, passes them to `createHomework`.
 
 ## classes/[classId]/students/[studentId]/attendance/
 - **index.tsx** — Full attendance list with pagination. `getAttendancePaginated(studentId, teacherId, ...)`.
-- **add.tsx** — Mark attendance with date picker + status. Fetches student for access arrays, passes to `createAttendance`.

@@ -30,13 +30,6 @@ export default function AttendanceLayout() {
           ),
         }}
       />
-      <Stack.Screen
-        name="add"
-        options={{
-          title: 'Add Attendance',
-          presentation: 'modal',
-        }}
-      />
     </Stack>
   );
 }

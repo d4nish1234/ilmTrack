@@ -16,6 +16,10 @@ export interface Class {
   description?: string;
   teacherId: string;
   admins: Admin[];
+  /** Owner + accepted co-teachers, maintained by the syncClassAdminUserIds trigger. */
+  adminUserIds?: string[];
+  /** The organization this class belongs to, set from ilmtrack-admin. Standalone classes have none. */
+  orgId?: string;
   studentCount: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;

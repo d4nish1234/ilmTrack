@@ -352,7 +352,7 @@ export default function HomeworkListScreen() {
               >
                 Load More
               </Button>
-            ) : null
+            ) : undefined
           }
         />
       ) : (
@@ -367,9 +367,10 @@ export default function HomeworkListScreen() {
         icon="plus"
         style={styles.fab}
         onPress={() =>
-          router.push(
-            `/(teacher)/classes/${classId}/students/${studentId}/homework/add`
-          )
+          router.push({
+            pathname: '/(teacher)/classes/add-homework',
+            params: { classId, studentId },
+          })
         }
       />
 

@@ -4,13 +4,9 @@ import {
   View,
   FlatList,
   TouchableOpacity,
-  Animated,
   Alert,
-  Keyboard,
-  TouchableWithoutFeedback,
-  ScrollView,
-  Modal as RNModal,
-  Dimensions,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 import {
   Text,
@@ -19,33 +15,30 @@ import {
   IconButton,
   Menu,
   Searchbar,
-  Portal,
-  Modal,
-  TextInput,
-  Button,
 } from 'react-native-paper';
-import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import ReanimatedSwipeable, {
+  SwipeDirection,
+  type SwipeableMethods,
+} from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Reanimated, {
+  interpolate,
+  useAnimatedStyle,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { router, Stack } from 'expo-router';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { useClasses } from '../../../src/hooks/useClasses';
 import { useSelectedClass } from '../../../src/hooks/useSelectedClass';
 import { ClassDropdown } from '../../../src/components/teacher';
 import { LoadingSpinner, AppSnackbar } from '../../../src/components/common';
-import { Student, AttendanceStatus, Homework, HomeworkStatus, HomeworkEvaluation } from '../../../src/types';
+import { Student, AttendanceStatus } from '../../../src/types';
 import { firestore } from '../../../src/config/firebase';
 import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import {
   toggleAttendance,
 } from '../../../src/services/attendance.service';
-import {
-  createHomework,
-  getHomeworkAssignedToday,
-  getRecentPendingHomeworkAsTeacher,
-  updateHomework,
-} from '../../../src/services/homework.service';
-import { getInvitedTeacherIds, updateStudentSurahAyahMode } from '../../../src/services/student.service';
-import { SurahAyahInput, SurahAyahSelection } from '../../../src/components/homework/SurahAyahInput';
-import { format } from 'date-fns';
+import { getInvitedTeacherIds } from '../../../src/services/student.service';
 
 interface TodayAttendance {
   [studentId: string]: AttendanceStatus | null;
@@ -67,31 +60,8 @@ export default function ClassesScreen() {
   // Attendance state
   const [todayAttendance, setTodayAttendance] = useState<TodayAttendance>({});
 
-  // Homework modal state
-  const [homeworkModalVisible, setHomeworkModalVisible] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [homeworkTitle, setHomeworkTitle] = useState('');
-  const [homeworkDescription, setHomeworkDescription] = useState('');
-  const [submittingHomework, setSubmittingHomework] = useState(false);
 
-  // Quran mode state for homework modal
-  const [hwQuranMode, setHwQuranMode] = useState(false);
-  const [hwMenuVisible, setHwMenuVisible] = useState(false);
-  const [hwMenuPosition, setHwMenuPosition] = useState({ top: 0, right: 0 });
-  const hwMenuAnchorRef = useRef<View>(null);
-  const [surahAyah, setSurahAyah] = useState<SurahAyahSelection>({
-    fromSurah: null, fromAyah: null, toSurah: null, toAyah: null,
-  });
-
-  // Evaluate modal state
-  const [evaluateModalVisible, setEvaluateModalVisible] = useState(false);
-  const [pendingHomework, setPendingHomework] = useState<Homework[]>([]);
-  const [loadingPendingHomework, setLoadingPendingHomework] = useState(false);
-  const [updatingHomeworkId, setUpdatingHomeworkId] = useState<string | null>(null);
-  const [selectedEvaluations, setSelectedEvaluations] = useState<Record<string, HomeworkEvaluation | null>>({});
-  const [homeworkComments, setHomeworkComments] = useState<Record<string, string>>({});
-
-  const swipeableRefs = useRef<Map<string, Swipeable | null>>(new Map());
+  const swipeableRefs = useRef<Map<string, SwipeableMethods | null>>(new Map());
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -263,214 +233,34 @@ export default function ClassesScreen() {
   };
 
   // Swipe left: homework actions
-  const openHwMenu = useCallback(() => {
-    hwMenuAnchorRef.current?.measureInWindow((x, y, width, height) => {
-      setHwMenuPosition({ top: y + height, right: Dimensions.get('window').width - x - width });
-      setHwMenuVisible(true);
-    });
-  }, []);
-
-  const closeHwMenu = useCallback(() => {
-    setHwMenuVisible(false);
-  }, []);
-
-  const toggleHwQuranMode = async () => {
-    closeHwMenu();
-    const newMode = !hwQuranMode;
-    setHwQuranMode(newMode);
-    if (selectedStudent) {
-      try {
-        await updateStudentSurahAyahMode(selectedStudent.id, newMode);
-      } catch (err) {
-        console.error('Failed to update Quran mode:', err);
-      }
-    }
-    if (newMode) {
-      setSurahAyah({ fromSurah: null, fromAyah: null, toSurah: null, toAyah: null });
-    }
-  };
-
   const handleOpenNewHomework = (student: Student) => {
-    setSelectedStudent(student);
-    setHomeworkTitle('');
-    setHomeworkDescription('');
-    setHwQuranMode(!!student.surahAyahMode);
-    setSurahAyah({ fromSurah: null, fromAyah: null, toSurah: null, toAyah: null });
-    setHomeworkModalVisible(true);
     swipeableRefs.current.get(student.id)?.close();
+    if (!selectedClassId) return;
+    router.push({
+      pathname: '/(teacher)/classes/add-homework',
+      params: { classId: selectedClassId, studentId: student.id },
+    });
   };
 
-  const handleOpenEvaluate = async (student: Student) => {
-    setSelectedStudent(student);
-    setLoadingPendingHomework(true);
-    setEvaluateModalVisible(true);
+  const handleOpenEvaluate = (student: Student) => {
     swipeableRefs.current.get(student.id)?.close();
-
-    try {
-      const homework = await getRecentPendingHomeworkAsTeacher(student.id, user!.uid, 3);
-      setPendingHomework(homework);
-    } catch (error) {
-      console.error('Error fetching pending homework:', error);
-      Alert.alert('Error', 'Failed to load homework');
-    } finally {
-      setLoadingPendingHomework(false);
-    }
-  };
-
-  const handleQuickStatusUpdate = async (homeworkId: string, status: HomeworkStatus) => {
-    const evaluation = selectedEvaluations[homeworkId];
-    if (!evaluation) {
-      Alert.alert('Rating Required', 'Please select a star rating before marking the homework.');
-      return;
-    }
-
-    setUpdatingHomeworkId(homeworkId);
-    try {
-      const comment = homeworkComments[homeworkId]?.trim();
-      const updateData: { status: HomeworkStatus; evaluation: HomeworkEvaluation; notes?: string } = {
-        status,
-        evaluation,
-      };
-      if (comment) {
-        updateData.notes = comment;
-      }
-      await updateHomework(homeworkId, updateData);
-      setSnackbarMessage(`Homework marked as ${status}`);
-      setPendingHomework((prev) => prev.filter((h) => h.id !== homeworkId));
-      setSelectedEvaluations((prev) => {
-        const updated = { ...prev };
-        delete updated[homeworkId];
-        return updated;
-      });
-      setHomeworkComments((prev) => {
-        const updated = { ...prev };
-        delete updated[homeworkId];
-        return updated;
-      });
-      if (selectedStudent && pendingHomework.length > 1) {
-        const moreHomework = await getRecentPendingHomeworkAsTeacher(selectedStudent.id, user!.uid, 3);
-        setPendingHomework(moreHomework.filter((h) => h.id !== homeworkId));
-      }
-    } catch (error) {
-      console.error('Error updating homework:', error);
-      Alert.alert('Error', 'Failed to update homework');
-    } finally {
-      setUpdatingHomeworkId(null);
-    }
-  };
-
-  const handleStarPress = (homeworkId: string, rating: HomeworkEvaluation) => {
-    setSelectedEvaluations((prev) => ({
-      ...prev,
-      [homeworkId]: prev[homeworkId] === rating ? null : rating,
-    }));
-  };
-
-  const renderStars = (homeworkId: string) => {
-    const currentRating = selectedEvaluations[homeworkId] || 0;
-    return (
-      <View style={styles.starsContainer}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <TouchableOpacity
-            key={star}
-            onPress={() => handleStarPress(homeworkId, star as HomeworkEvaluation)}
-            style={styles.starButton}
-          >
-            <IconButton
-              icon={star <= currentRating ? 'star' : 'star-outline'}
-              iconColor={star <= currentRating ? '#ffc107' : '#ccc'}
-              size={28}
-              style={{ margin: 0 }}
-            />
-          </TouchableOpacity>
-        ))}
-      </View>
-    );
-  };
-
-  const handleSubmitHomework = async () => {
-    if (!selectedStudent || !user?.uid || !selectedClassId) return;
-    if (!homeworkTitle.trim()) {
-      Alert.alert('Error', 'Please enter a homework title');
-      return;
-    }
-
-    setSubmittingHomework(true);
-    try {
-      const existingHomework = await getHomeworkAssignedToday(
-        selectedStudent.id,
-        user.uid,
-        new Date()
-      );
-
-      if (existingHomework.length > 0) {
-        Alert.alert(
-          'Homework Already Assigned',
-          'This student already has homework assigned for today. Do you want to add another?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Add Anyway',
-              onPress: async () => {
-                const freshIds = await getInvitedTeacherIds(selectedClassId);
-                await createHomework(
-                  selectedStudent.id,
-                  selectedClassId,
-                  user.uid,
-                  {
-                    title: homeworkTitle.trim(),
-                    description: homeworkDescription.trim() || undefined,
-                  },
-                  selectedStudent.parentUserIds || [],
-                  freshIds
-                );
-                setHomeworkModalVisible(false);
-                setSnackbarMessage('Homework assigned successfully');
-              },
-            },
-          ]
-        );
-        setSubmittingHomework(false);
-        return;
-      }
-
-      const freshTeacherIds = await getInvitedTeacherIds(selectedClassId);
-      await createHomework(selectedStudent.id, selectedClassId, user.uid, {
-        title: homeworkTitle.trim(),
-        description: homeworkDescription.trim() || undefined,
-      }, selectedStudent.parentUserIds || [], freshTeacherIds);
-
-      setHomeworkModalVisible(false);
-      setSnackbarMessage('Homework assigned successfully');
-    } catch (error) {
-      console.error('Error creating homework:', error);
-      Alert.alert('Error', 'Failed to assign homework');
-    } finally {
-      setSubmittingHomework(false);
-    }
+    router.push({
+      pathname: '/(teacher)/classes/evaluate-homework',
+      params: { studentId: student.id },
+    });
   };
 
   // Swipe action renderers
-  const renderRightActions = (
-    progress: Animated.AnimatedInterpolation<number>,
-    student: Student
-  ) => {
+  const renderRightActions = (progress: SharedValue<number>, student: Student) => {
     const status = todayAttendance[student.id];
     const isPresent = status === 'present';
     const isAbsent = status === 'absent';
 
-    const trans = progress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [100, 0],
-    });
-
     return (
-      <Animated.View
-        style={[
-          styles.swipeAction,
-          styles.swipeActionRight,
-          { transform: [{ translateX: trans }] },
-        ]}
+      <SwipeActionPanel
+        progress={progress}
+        hiddenOffset={100}
+        style={[styles.swipeAction, styles.swipeActionRight]}
       >
         <View style={[styles.swipeContent, { backgroundColor: isPresent ? '#ff5722' : '#4caf50' }]}>
           <Text style={styles.swipeText}>
@@ -482,26 +272,16 @@ export default function ClassesScreen() {
             size={24}
           />
         </View>
-      </Animated.View>
+      </SwipeActionPanel>
     );
   };
 
-  const renderLeftActions = (
-    progress: Animated.AnimatedInterpolation<number>,
-    student: Student
-  ) => {
-    const trans = progress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [-160, 0],
-    });
-
+  const renderLeftActions = (progress: SharedValue<number>, student: Student) => {
     return (
-      <Animated.View
-        style={[
-          styles.swipeAction,
-          styles.swipeActionLeft,
-          { transform: [{ translateX: trans }] },
-        ]}
+      <SwipeActionPanel
+        progress={progress}
+        hiddenOffset={-160}
+        style={[styles.swipeAction, styles.swipeActionLeft]}
       >
         <View style={styles.swipeActionsRow}>
           <TouchableOpacity
@@ -519,7 +299,7 @@ export default function ClassesScreen() {
             <Text style={styles.swipeButtonText}>Evaluate</Text>
           </TouchableOpacity>
         </View>
-      </Animated.View>
+      </SwipeActionPanel>
     );
   };
 
@@ -558,14 +338,17 @@ export default function ClassesScreen() {
     const chipStyle = getAttendanceChipStyle(status);
 
     return (
-      <Swipeable
+      <ReanimatedSwipeable
         ref={(ref) => {
           swipeableRefs.current.set(item.id, ref);
         }}
         renderRightActions={(progress) => renderRightActions(progress, item)}
         renderLeftActions={(progress) => renderLeftActions(progress, item)}
         onSwipeableOpen={(direction) => {
-          if (direction === 'right') {
+          // ReanimatedSwipeable names the direction of the swipe, the legacy
+          // Swipeable named the panel. Swiping LEFT opens the right-hand
+          // (attendance) panel — this was `direction === 'right'` before.
+          if (direction === SwipeDirection.LEFT) {
             handleSwipeRight(item);
           }
         }}
@@ -591,7 +374,7 @@ export default function ClassesScreen() {
             </Card.Content>
           </Card>
         </TouchableOpacity>
-      </Swipeable>
+      </ReanimatedSwipeable>
     );
   };
 
@@ -732,225 +515,6 @@ export default function ClassesScreen() {
         </View>
       )}
 
-      {/* Homework Modal */}
-      <Portal>
-        <Modal
-          visible={homeworkModalVisible}
-          onDismiss={Keyboard.dismiss}
-          dismissable={true}
-          contentContainerStyle={styles.modalContainer}
-        >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View>
-              <View style={styles.modalTitleRow}>
-                <View style={styles.modalTitleContent}>
-                  <Text variant="titleLarge" style={styles.modalTitle}>
-                    Assign Homework
-                  </Text>
-                  {selectedStudent && (
-                    <Text variant="bodyMedium" style={styles.modalSubtitle}>
-                      For: {selectedStudent.firstName} {selectedStudent.lastName}
-                    </Text>
-                  )}
-                </View>
-                <View ref={hwMenuAnchorRef}>
-                  <IconButton
-                    icon="dots-vertical"
-                    size={24}
-                    onPress={openHwMenu}
-                  />
-                </View>
-              </View>
-
-              {hwQuranMode ? (
-                <SurahAyahInput
-                  value={surahAyah}
-                  onChange={setSurahAyah}
-                  onTitleChange={setHomeworkTitle}
-                />
-              ) : (
-                <TextInput
-                  label="Title *"
-                  value={homeworkTitle}
-                  onChangeText={setHomeworkTitle}
-                  mode="outlined"
-                  style={styles.input}
-                  returnKeyType="done"
-                />
-              )}
-
-              <TextInput
-                label="Description (optional)"
-                value={homeworkDescription}
-                onChangeText={setHomeworkDescription}
-                mode="outlined"
-                multiline
-                numberOfLines={3}
-                style={styles.input}
-              />
-
-              <View style={styles.modalActions}>
-                <Button
-                  mode="outlined"
-                  onPress={() => setHomeworkModalVisible(false)}
-                  style={styles.modalButton}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  mode="contained"
-                  onPress={handleSubmitHomework}
-                  loading={submittingHomework}
-                  disabled={submittingHomework || !homeworkTitle.trim()}
-                  style={styles.modalButton}
-                >
-                  Assign
-                </Button>
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
-        </Modal>
-      </Portal>
-
-      {/* Quran Mode menu for homework modal */}
-      <RNModal
-        visible={hwMenuVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={closeHwMenu}
-      >
-        <TouchableWithoutFeedback onPress={closeHwMenu}>
-          <View style={styles.hwMenuBackdrop}>
-            <TouchableWithoutFeedback>
-              <View style={[styles.hwMenuContent, { position: 'absolute', top: hwMenuPosition.top, right: hwMenuPosition.right }]}>
-                <TouchableOpacity style={styles.hwMenuItem} onPress={toggleHwQuranMode}>
-                  {hwQuranMode && (
-                    <IconButton icon="check" size={20} style={styles.hwMenuIcon} />
-                  )}
-                  <Text variant="bodyLarge" style={[styles.hwMenuText, !hwQuranMode && styles.hwMenuTextNoIcon]}>
-                    Quran Mode
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </RNModal>
-
-      {/* Evaluate Homework Modal */}
-      <Portal>
-        <Modal
-          visible={evaluateModalVisible}
-          onDismiss={() => setEvaluateModalVisible(false)}
-          dismissable={true}
-          contentContainerStyle={styles.modalContainer}
-        >
-          <View>
-            <Text variant="titleLarge" style={styles.modalTitle}>
-              Evaluate Homework
-            </Text>
-            {selectedStudent && (
-              <Text variant="bodyMedium" style={styles.modalSubtitle}>
-                {selectedStudent.firstName} {selectedStudent.lastName}
-              </Text>
-            )}
-
-            {loadingPendingHomework ? (
-              <View style={styles.evaluateLoading}>
-                <Text variant="bodyMedium" style={styles.loadingText}>Loading...</Text>
-              </View>
-            ) : pendingHomework.length === 0 ? (
-              <View style={styles.evaluateEmpty}>
-                <Text variant="bodyMedium" style={styles.emptyText}>
-                  No pending homework to evaluate
-                </Text>
-              </View>
-            ) : (
-              <ScrollView style={styles.homeworkScrollView} showsVerticalScrollIndicator={true}>
-                <View style={styles.homeworkList}>
-                {pendingHomework.map((hw) => (
-                  <Card key={hw.id} style={styles.homeworkCard}>
-                    <Card.Content style={styles.homeworkCardContent}>
-                      <View style={styles.homeworkHeader}>
-                        <Text variant="titleMedium" style={styles.homeworkTitleText}>
-                          {hw.title}
-                        </Text>
-                        <Text variant="bodySmall" style={styles.homeworkDate}>
-                          {hw.createdAt ? format(hw.createdAt.toDate(), 'MMM d') : 'Today'}
-                        </Text>
-                      </View>
-
-                      {renderStars(hw.id)}
-
-                      <TextInput
-                        placeholder="Comment (optional)"
-                        value={homeworkComments[hw.id] || ''}
-                        onChangeText={(text) =>
-                          setHomeworkComments((prev) => ({ ...prev, [hw.id]: text }))
-                        }
-                        mode="outlined"
-                        dense
-                        style={styles.commentInput}
-                      />
-
-                      <View style={styles.statusButtons}>
-                        <TouchableOpacity
-                          style={[styles.statusButton, styles.statusComplete, updatingHomeworkId === hw.id && styles.statusButtonDisabled]}
-                          onPress={() => handleQuickStatusUpdate(hw.id, 'completed')}
-                          disabled={updatingHomeworkId === hw.id}
-                        >
-                          <IconButton
-                            icon="check"
-                            iconColor="#fff"
-                            size={24}
-                            style={{ margin: 0 }}
-                          />
-                          <Text style={styles.statusButtonText}>Complete</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.statusButton, styles.statusLate, updatingHomeworkId === hw.id && styles.statusButtonDisabled]}
-                          onPress={() => handleQuickStatusUpdate(hw.id, 'late')}
-                          disabled={updatingHomeworkId === hw.id}
-                        >
-                          <IconButton
-                            icon="clock-outline"
-                            iconColor="#fff"
-                            size={24}
-                            style={{ margin: 0 }}
-                          />
-                          <Text style={styles.statusButtonText}>Late</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.statusButton, styles.statusIncomplete, updatingHomeworkId === hw.id && styles.statusButtonDisabled]}
-                          onPress={() => handleQuickStatusUpdate(hw.id, 'incomplete')}
-                          disabled={updatingHomeworkId === hw.id}
-                        >
-                          <IconButton
-                            icon="close"
-                            iconColor="#fff"
-                            size={24}
-                            style={{ margin: 0 }}
-                          />
-                          <Text style={styles.statusButtonText}>Incomplete</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </Card.Content>
-                  </Card>
-                ))}
-                </View>
-              </ScrollView>
-            )}
-
-            <Button
-              mode="outlined"
-              onPress={() => setEvaluateModalVisible(false)}
-              style={styles.closeButton}
-            >
-              Close
-            </Button>
-          </View>
-        </Modal>
-      </Portal>
       <AppSnackbar
         type="success"
         message={snackbarMessage}
@@ -958,6 +522,34 @@ export default function ClassesScreen() {
       />
     </GestureHandlerRootView>
   );
+}
+
+/**
+ * A swipe action panel that slides in from `hiddenOffset` as the row opens.
+ * A component rather than inline styles because the animation now runs on
+ * Reanimated shared values, which need the useAnimatedStyle hook.
+ *
+ * ReanimatedSwipeable keeps both panels behind the row at all times (the
+ * legacy Swipeable moved them off-screen), so a closed panel is hidden
+ * outright. Otherwise it shows through the card's rounded corners, and
+ * through the card itself while TouchableOpacity dims it on press.
+ */
+function SwipeActionPanel({
+  progress,
+  hiddenOffset,
+  style,
+  children,
+}: {
+  progress: SharedValue<number>;
+  hiddenOffset: number;
+  style: StyleProp<ViewStyle>;
+  children: React.ReactNode;
+}) {
+  const slide = useAnimatedStyle(() => ({
+    opacity: progress.value > 0 ? 1 : 0,
+    transform: [{ translateX: interpolate(progress.value, [0, 1], [hiddenOffset, 0]) }],
+  }));
+  return <Reanimated.View style={[style, slide]}>{children}</Reanimated.View>;
 }
 
 const styles = StyleSheet.create({
@@ -1097,161 +689,5 @@ const styles = StyleSheet.create({
   createClassFab: {
     marginTop: 24,
     backgroundColor: '#1a73e8',
-  },
-  modalContainer: {
-    backgroundColor: '#fff',
-    margin: 20,
-    padding: 20,
-    borderRadius: 12,
-    elevation: 24,
-    zIndex: 1000,
-  },
-  modalTitleRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'flex-start' as const,
-    justifyContent: 'space-between' as const,
-    marginBottom: 8,
-  },
-  modalTitleContent: {
-    flex: 1,
-  },
-  modalTitle: {
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  modalSubtitle: {
-    color: '#666',
-  },
-  input: {
-    marginBottom: 12,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-    marginTop: 8,
-  },
-  modalButton: {
-    minWidth: 100,
-  },
-  evaluateLoading: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: '#666',
-  },
-  evaluateEmpty: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: '#666',
-    textAlign: 'center',
-  },
-  homeworkScrollView: {
-    maxHeight: 350,
-    marginTop: 8,
-  },
-  homeworkList: {
-    gap: 12,
-  },
-  homeworkCard: {
-    backgroundColor: '#f9f9f9',
-  },
-  homeworkCardContent: {
-    flexDirection: 'column',
-    paddingVertical: 12,
-    gap: 12,
-  },
-  homeworkHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  homeworkTitleText: {
-    fontWeight: '600',
-    flex: 1,
-  },
-  homeworkDate: {
-    color: '#666',
-    marginLeft: 8,
-  },
-  starsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  starButton: {
-    padding: 0,
-  },
-  commentInput: {
-    backgroundColor: '#fff',
-    fontSize: 14,
-  },
-  statusButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  statusButton: {
-    flex: 1,
-    height: 56,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-  },
-  statusButtonDisabled: {
-    opacity: 0.5,
-  },
-  statusButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 12,
-    marginTop: -4,
-  },
-  statusComplete: {
-    backgroundColor: '#4caf50',
-  },
-  statusLate: {
-    backgroundColor: '#ff9800',
-  },
-  statusIncomplete: {
-    backgroundColor: '#f44336',
-  },
-  closeButton: {
-    marginTop: 16,
-  },
-  hwMenuBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-  },
-  hwMenuContent: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    paddingVertical: 4,
-    minWidth: 180,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  hwMenuItem: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  hwMenuIcon: {
-    margin: 0,
-    marginRight: 4,
-  },
-  hwMenuText: {
-    fontSize: 16,
-  },
-  hwMenuTextNoIcon: {
-    paddingLeft: 8,
   },
 });

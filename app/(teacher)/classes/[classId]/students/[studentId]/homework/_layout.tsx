@@ -31,13 +31,6 @@ export default function HomeworkLayout() {
         }}
       />
       <Stack.Screen
-        name="add"
-        options={{
-          title: 'Add Homework',
-          presentation: 'modal',
-        }}
-      />
-      <Stack.Screen
         name="edit"
         options={{
           title: 'Edit Homework',

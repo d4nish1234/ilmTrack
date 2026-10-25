@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, View, KeyboardAvoidingView, Platform, ScrollView, Modal as RNModal, TouchableOpacity, TouchableWithoutFeedback, Dimensions } from 'react-native';
-import { router, useLocalSearchParams, Stack } from 'expo-router';
+import { Alert, StyleSheet, View, KeyboardAvoidingView, Platform, ScrollView, Modal as RNModal, TouchableOpacity, TouchableWithoutFeedback, Dimensions, type ViewInstance } from 'react-native';
+import { Stack } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconButton, Text } from 'react-native-paper';
-import { useAuth } from '../../../../../../../src/contexts/AuthContext';
-import { createHomework } from '../../../../../../../src/services/homework.service';
-import { getStudent, getInvitedTeacherIds, updateStudentSurahAyahMode } from '../../../../../../../src/services/student.service';
-import { Button, Input, AppSnackbar } from '../../../../../../../src/components/common';
-import { SurahAyahInput, SurahAyahSelection } from '../../../../../../../src/components/homework/SurahAyahInput';
-import { Student } from '../../../../../../../src/types';
+import { useAuth } from '../../contexts/AuthContext';
+import { createHomework, getHomeworkAssignedToday } from '../../services/homework.service';
+import { getStudent, getInvitedTeacherIds, updateStudentSurahAyahMode } from '../../services/student.service';
+import { Button, Input, AppSnackbar } from '../common';
+import { SurahAyahInput, SurahAyahSelection } from './SurahAyahInput';
+import { Student } from '../../types';
 
 const schema = yup.object({
   title: yup.string().required('Title is required'),
@@ -23,11 +23,22 @@ type FormData = yup.InferType<typeof schema>;
 
 const MENU_DEBOUNCE_MS = 300;
 
-export default function AddHomeworkScreen() {
-  const { classId, studentId } = useLocalSearchParams<{
-    classId: string;
-    studentId: string;
-  }>();
+interface AddHomeworkFormProps {
+  classId: string | undefined;
+  studentId: string | undefined;
+  /** Called after the homework is saved, and on Cancel. */
+  onDone: () => void;
+}
+
+/**
+ * The Add Homework form: title (or Quran Mode surah/ayah), description, notes.
+ * Rendered by the classes/add-homework route, which every "add homework"
+ * action opens.
+ *
+ * Must be rendered inside a Stack screen: it puts the Quran Mode menu in the
+ * header.
+ */
+export function AddHomeworkForm({ classId, studentId, onDone }: AddHomeworkFormProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +47,7 @@ export default function AddHomeworkScreen() {
   // Menu state
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
-  const menuAnchorRef = useRef<View>(null);
+  const menuAnchorRef = useRef<ViewInstance>(null);
   const lastMenuActionRef = useRef(0);
 
   // Quran Mode state
@@ -113,7 +124,7 @@ export default function AddHomeworkScreen() {
     setValue('title', title);
   };
 
-  const onSubmit = async (data: FormData) => {
+  const save = async (data: FormData) => {
     if (!classId || !studentId || !user) return;
 
     setLoading(true);
@@ -126,13 +137,41 @@ export default function AddHomeworkScreen() {
         description: data.description,
         notes: data.notes,
       }, student?.parentUserIds || [], freshTeacherIds);
-      router.back();
+      onDone();
     } catch (err: any) {
       console.error('Error creating homework:', err);
       setError('Failed to add homework. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  // A second assignment on the same day is usually a double tap or a mix-up,
+  // so ask first. Carried over from the Classes screen's old inline form.
+  const onSubmit = async (data: FormData) => {
+    if (!studentId || !user) return;
+
+    setLoading(true);
+    let assignedToday = 0;
+    try {
+      assignedToday = (await getHomeworkAssignedToday(studentId, user.uid, new Date())).length;
+    } catch (err) {
+      // Not worth blocking the save over; skip the question.
+      console.error("Error checking today's homework:", err);
+    } finally {
+      setLoading(false);
+    }
+
+    if (assignedToday === 0) return save(data);
+
+    Alert.alert(
+      'Homework Already Assigned',
+      'This student already has homework assigned for today. Do you want to add another?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Add Anyway', onPress: () => save(data) },
+      ]
+    );
   };
 
   return (
@@ -223,7 +262,7 @@ export default function AddHomeworkScreen() {
               Add Homework
             </Button>
 
-            <Button mode="outlined" onPress={() => router.back()}>
+            <Button mode="outlined" onPress={onDone}>
               Cancel
             </Button>
           </View>
