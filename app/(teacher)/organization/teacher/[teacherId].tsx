@@ -7,22 +7,24 @@ import { format, parseISO } from 'date-fns';
 import { useAuth } from '../../../../src/contexts/AuthContext';
 import { useOrganizations } from '../../../../src/contexts/OrganizationContext';
 import {
+  WeekChangedError,
   copyWeek,
-  countShifts,
+  inspectWeek,
+  type WeekSnapshot,
   deleteShift,
   newId,
   saveShift,
   subscribeToTeacherWeek,
   subscribeToTimekeeping,
 } from '../../../../src/services/timekeeping.service';
-import { AppSnackbar, Button } from '../../../../src/components/common';
+import { AppSnackbar, Button, LoadingSpinner } from '../../../../src/components/common';
 import { ShiftEditor } from '../../../../src/components/timekeeping/ShiftEditor';
 import type { Shift, TimekeepingLocation } from '../../../../src/types';
 import {
   formatTime,
   shiftWeek,
   weekDates,
-  weekStartOf,
+  currentWeekStart,
   weekSummary,
 } from '../../../../src/utils/timekeeping';
 
@@ -35,11 +37,13 @@ export default function TeacherWeekScreen() {
   const { user } = useAuth();
   const { selectedOrg } = useOrganizations();
   const orgId = selectedOrg?.id;
-  const thisWeek = weekStartOf(new Date());
-
-  const [weekStart, setWeekStart] = useState(thisWeek);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [locations, setLocations] = useState<TimekeepingLocation[]>([]);
+  const [timezone, setTimezone] = useState<string | null>(null);
+  // Null until the settings (and so the organization's timezone) have loaded,
+  // so the first week shown is the organization's current week.
+  const [weekStart, setWeekStart] = useState<string | null>(null);
+  const thisWeek = currentWeekStart(timezone);
   const [editing, setEditing] = useState<{ shift: Shift; isNew: boolean } | null>(null);
   const [copying, setCopying] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'error' | 'success' } | null>(null);
@@ -48,13 +52,22 @@ export default function TeacherWeekScreen() {
     if (!orgId) return;
     return subscribeToTimekeeping(
       orgId,
-      (s) => setLocations(s?.locations ?? []),
-      (err) => console.error('Error loading locations:', err)
+      (s) => {
+        setLocations(s?.locations ?? []);
+        const zone = s?.timezone ?? null;
+        setTimezone(zone);
+        setWeekStart((current) => current ?? currentWeekStart(zone));
+      },
+      (err) => {
+        console.error('Error loading locations:', err);
+        // Still show a week: the device's own, the explicit fallback.
+        setWeekStart((current) => current ?? currentWeekStart(null));
+      }
     );
   }, [orgId]);
 
   useEffect(() => {
-    if (!orgId || !teacherId) return;
+    if (!orgId || !teacherId || !weekStart) return;
     // Clear the previous week straight away, so the total, the copy button
     // and its confirmation never describe a week that is no longer shown.
     setShifts([]);
@@ -65,6 +78,7 @@ export default function TeacherWeekScreen() {
   }, [orgId, teacherId, weekStart]);
 
   if (!orgId || !teacherId || !user) return null;
+  if (!weekStart) return <LoadingSpinner />;
 
   const locationName = (shift: Shift) =>
     locations.find((l) => l.id === shift.locationId)?.name ?? shift.locationName;
@@ -90,10 +104,11 @@ export default function TeacherWeekScreen() {
   const nextWeek = shiftWeek(weekStart, 1);
   const weekLabel = (start: string) => `week of ${format(parseISO(start), 'MMM d')}`;
 
-  const doCopy = async () => {
+  /** Copy onto next week as it was when inspected; see copyWeek. */
+  const doCopy = async (expected: WeekSnapshot): Promise<void> => {
     setCopying(true);
     try {
-      const count = await copyWeek(orgId, teacherId, weekStart, nextWeek, user.uid);
+      const count = await copyWeek(orgId, teacherId, weekStart, nextWeek, expected, user.uid);
       // Move to the copy, so the same button carries it on another week.
       setWeekStart(nextWeek);
       setMessage({
@@ -101,6 +116,12 @@ export default function TeacherWeekScreen() {
         type: 'success',
       });
     } catch (err) {
+      if (err instanceof WeekChangedError) {
+        // Someone wrote next week after it was inspected: look again and ask
+        // again, rather than replacing shifts the admin hasn't seen.
+        setCopying(false);
+        return copyToNextWeek(true);
+      }
       console.error('Error copying week:', err);
       setMessage({ text: "Couldn't copy this week. Please try again.", type: 'error' });
     } finally {
@@ -108,17 +129,21 @@ export default function TeacherWeekScreen() {
     }
   };
 
-  const copyToNextWeek = async () => {
+  const copyToNextWeek = async (changedMeanwhile = false): Promise<void> => {
     try {
-      const existing = await countShifts(orgId, teacherId, nextWeek);
-      if (existing === 0) return doCopy();
+      const target = await inspectWeek(orgId, teacherId, nextWeek);
+      // Nothing there to lose, so no need to ask.
+      if (target.count === 0) return doCopy(target);
+      const shiftsThere = `${target.count} shift${target.count === 1 ? '' : 's'}`;
       Alert.alert(
-        'Replace next week?',
-        `The ${weekLabel(nextWeek)} already has ${existing} shift${existing === 1 ? '' : 's'}. ` +
+        changedMeanwhile ? 'Next week just changed' : 'Replace next week?',
+        (changedMeanwhile
+          ? `Someone else just edited the ${weekLabel(nextWeek)}. It now has ${shiftsThere}. `
+          : `The ${weekLabel(nextWeek)} already has ${shiftsThere}. `) +
           `They will be replaced with the ${shifts.length} from the ${weekLabel(weekStart)}.`,
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Replace', style: 'destructive', onPress: doCopy },
+          { text: 'Replace', style: 'destructive', onPress: () => doCopy(target) },
         ]
       );
     } catch (err) {
@@ -208,7 +233,7 @@ export default function TeacherWeekScreen() {
         <Button
           mode="outlined"
           icon="content-copy"
-          onPress={copyToNextWeek}
+          onPress={() => copyToNextWeek()}
           loading={copying}
           disabled={copying || shifts.length === 0}
         >

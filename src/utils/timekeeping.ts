@@ -36,6 +36,35 @@ export function scheduleId(orgId: string, teacherId: string, weekStart: string):
   return `${orgId}_${teacherId}_${weekStart}`;
 }
 
+/**
+ * Today's date ('yyyy-MM-dd') in an IANA timezone. Falls back to the device's
+ * own date when the zone is missing (an organization set up before its
+ * timezone was recorded) or unknown to this device.
+ */
+export function todayIn(timezone: string | null | undefined, now: Date = new Date()): string {
+  if (timezone) {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(now);
+      const part = (type: string) => parts.find((p) => p.type === type)?.value;
+      const [y, m, d] = [part('year'), part('month'), part('day')];
+      if (y && m && d) return `${y}-${m}-${d}`;
+    } catch {
+      // Unknown zone: fall through to the device date.
+    }
+  }
+  return format(now, DATE_FORMAT);
+}
+
+/** The Monday of the current week in the organization's timezone. */
+export function currentWeekStart(timezone: string | null | undefined, now: Date = new Date()): string {
+  return weekStartOf(parseISO(todayIn(timezone, now)));
+}
+
 /** The Monday of the week containing this date, as 'yyyy-MM-dd'. */
 export function weekStartOf(date: Date): string {
   return format(startOfWeek(date, { weekStartsOn: 1 }), DATE_FORMAT);

@@ -2,12 +2,14 @@ import { describe, it, expect } from 'vitest';
 import {
   TimekeepingError,
   copyShiftsToWeek,
+  currentWeekStart,
   errorMessage,
   formatDuration,
   formatTime,
   scheduleId,
   shiftProblem,
   shiftWeek,
+  todayIn,
   snapToStep,
   totalMinutes,
   weekDates,
@@ -148,5 +150,25 @@ describe('errorMessage', () => {
     expect(errorMessage(new TimekeepingError('This overlaps.'), 'fallback')).toBe('This overlaps.');
     expect(errorMessage(new Error('FirebaseError: [code=permission-denied]'), 'fallback')).toBe('fallback');
     expect(errorMessage('oops', 'fallback')).toBe('fallback');
+  });
+});
+
+describe('current week in the organization timezone', () => {
+  // 2026-10-19 02:00 UTC: still Sunday the 18th in Toronto, already Monday
+  // the 19th in London. The two weeks differ.
+  const now = new Date(Date.UTC(2026, 9, 19, 2, 0));
+
+  it("uses the organization's date, not the device's", () => {
+    expect(todayIn('America/Toronto', now)).toBe('2026-10-18');
+    expect(todayIn('Europe/London', now)).toBe('2026-10-19');
+    expect(currentWeekStart('America/Toronto', now)).toBe('2026-10-12');
+    expect(currentWeekStart('Europe/London', now)).toBe('2026-10-19');
+  });
+
+  it("falls back to the device's date when the zone is missing or unknown", () => {
+    const deviceWeek = weekStartOf(now);
+    expect(currentWeekStart(null, now)).toBe(deviceWeek);
+    expect(currentWeekStart(undefined, now)).toBe(deviceWeek);
+    expect(currentWeekStart('Not/AZone', now)).toBe(deviceWeek);
   });
 });

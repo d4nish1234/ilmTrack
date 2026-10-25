@@ -17,7 +17,7 @@ import {
 import { LoadingSpinner, AppSnackbar } from '../../../src/components/common';
 import { LocationEditor } from '../../../src/components/timekeeping/LocationEditor';
 import type { OrgTeacher, TimekeepingLocation, TimekeepingSettings, WeekSchedule } from '../../../src/types';
-import { weekStartOf, weekSummary } from '../../../src/utils/timekeeping';
+import { currentWeekStart, weekSummary } from '../../../src/utils/timekeeping';
 
 /**
  * Timekeeping for the selected organization: the on/off switch, where
@@ -27,10 +27,11 @@ export default function TimekeepingScreen() {
   const { user } = useAuth();
   const { selectedOrg } = useOrganizations();
   const orgId = selectedOrg?.id;
-  const thisWeek = weekStartOf(new Date());
-
   const [settings, setSettings] = useState<TimekeepingSettings | null>(null);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  // In the organization's timezone, so an admin in another zone sees the
+  // same week as the school near the Sunday/Monday boundary.
+  const thisWeek = currentWeekStart(settings?.timezone);
   const [teachers, setTeachers] = useState<OrgTeacher[]>([]);
   const [week, setWeek] = useState<Map<string, WeekSchedule>>(new Map());
   const [refreshing, setRefreshing] = useState(false);

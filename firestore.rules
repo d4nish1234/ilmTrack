@@ -215,14 +215,26 @@ service cloud.firestore {
     }
 
     // Classes collection
+    // A class's organization is assigned by ilmtrack-admin (Admin SDK) only.
+    // Classes are readable by everyone signed in, so organization ids are not
+    // secret; without this, anyone could attach their class to an organization
+    // and join its teacher roster, or detach a class from one. Nothing in the
+    // app writes orgId. Compared with get() so adding, changing and removing
+    // the field are all caught.
+    function orgIdUnchanged() {
+      return request.resource.data.get('orgId', null) == resource.data.get('orgId', null);
+    }
+
     match /classes/{classId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() &&
-        request.resource.data.teacherId == request.auth.uid;
+        request.resource.data.teacherId == request.auth.uid &&
+        !request.resource.data.keys().hasAny(['orgId']);
       // A co-teacher may edit the class (name, studentCount, ...) but may not
       // change who owns it or who administers it. That belongs to the owner,
       // and it is what stopped the old escalation from becoming permanent.
-      allow update: if isAuthenticated() && (
+      // Neither may change its organization.
+      allow update: if isAuthenticated() && orgIdUnchanged() && (
         resource.data.teacherId == request.auth.uid ||
         (
           isClassMember(resource.data) &&

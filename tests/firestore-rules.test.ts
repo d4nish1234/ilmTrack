@@ -756,6 +756,72 @@ describe('Organizations collection', () => {
     );
   });
 
+  describe("a class's organization is assigned by the console only", () => {
+    // CLASS_ID is in ORG_ID (set in beforeEach); OTHER_TEACHER_UID owns a
+    // standalone class.
+    const OWN_CLASS_ID = 'ownClass';
+
+    beforeEach(async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'classes', OWN_CLASS_ID), {
+          name: 'Own Class',
+          teacherId: OTHER_TEACHER_UID,
+          admins: [],
+          adminUserIds: [OTHER_TEACHER_UID],
+          studentCount: 0,
+        });
+      });
+    });
+
+    it('a teacher CANNOT create a class already in an organization', async () => {
+      const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+      await assertFails(
+        setDoc(doc(db, 'classes', 'newClass'), {
+          name: 'Sneaky',
+          teacherId: OTHER_TEACHER_UID,
+          admins: [],
+          studentCount: 0,
+          orgId: ORG_ID,
+        })
+      );
+    });
+
+    it('a teacher can still create an ordinary class', async () => {
+      const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+      await assertSucceeds(
+        setDoc(doc(db, 'classes', 'newClass'), {
+          name: 'Ordinary',
+          teacherId: OTHER_TEACHER_UID,
+          admins: [],
+          studentCount: 0,
+        })
+      );
+    });
+
+    it('an owner CANNOT attach their class to an organization', async () => {
+      const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+      await assertFails(updateDoc(doc(db, 'classes', OWN_CLASS_ID), { orgId: ORG_ID }));
+    });
+
+    it('an owner CANNOT move or detach a class that is in an organization', async () => {
+      const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+      await assertFails(updateDoc(doc(db, 'classes', CLASS_ID), { orgId: 'org2' }));
+      await assertFails(updateDoc(doc(db, 'classes', CLASS_ID), { orgId: deleteField() }));
+    });
+
+    it('a co-teacher CANNOT change it either', async () => {
+      const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+      await assertFails(updateDoc(doc(db, 'classes', CLASS_ID), { orgId: deleteField() }));
+    });
+
+    it('ordinary edits to a class in an organization still work', async () => {
+      const owner = testEnv.authenticatedContext(TEACHER_UID).firestore();
+      await assertSucceeds(updateDoc(doc(owner, 'classes', CLASS_ID), { name: 'Renamed' }));
+      const coTeacher = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+      await assertSucceeds(updateDoc(doc(coTeacher, 'classes', CLASS_ID), { studentCount: 2 }));
+    });
+  });
+
   it('any teacher can still find the classes in an organization', async () => {
     // getOrgTeachers relies on this: classes are readable by any signed-in user.
     const db = testEnv.authenticatedContext(TEACHER_UID).firestore();

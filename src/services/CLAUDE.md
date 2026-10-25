@@ -52,7 +52,7 @@ Org admins' writes; each is a transaction setting absolute values.
 - `subscribeToOrgWeek(orgId, weekStart, ...)` — every teacher's week, keyed by teacherId
 - `subscribeToTeacherWeek(orgId, teacherId, weekStart, ...)`
 - `saveShift` / `deleteShift` — re-check overlaps against the stored week
-- `copyWeek(orgId, teacherId, from, to, uid)` — replaces the target week; `countShifts` lets the UI ask first
+- `inspectWeek` / `copyWeek(orgId, teacherId, from, to, expected, uid)` — replaces the target week only if it is unchanged since `inspectWeek` (compared in a transaction by `updatedAt`); otherwise throws `WeekChangedError` so the UI asks again
 
 ## notification.service.ts
 - `registerForPushNotifications()` — requests Expo push token

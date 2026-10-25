@@ -13,7 +13,6 @@ import {
   query,
   runTransaction,
   serverTimestamp,
-  setDoc,
   where,
 } from 'firebase/firestore';
 import { firestore } from '../config/firebase';
@@ -211,35 +210,74 @@ export function deleteShift(
   );
 }
 
-/** How many shifts the teacher already has that week. Used to ask before replacing. */
-export async function countShifts(orgId: string, teacherId: string, weekStart: string) {
+/**
+ * A week as it was inspected before asking to replace it: how many shifts it
+ * had, and its revision (the server time of its last write; null when the week
+ * has never been written).
+ */
+export interface WeekSnapshot {
+  count: number;
+  revision: number | null;
+}
+
+/** Thrown by copyWeek when the target week changed after it was inspected. */
+export class WeekChangedError extends TimekeepingError {}
+
+function revisionOf(snap: { exists(): boolean; data(): unknown }): number | null {
+  if (!snap.exists()) return null;
+  return (snap.data() as WeekSchedule).updatedAt?.toMillis?.() ?? 0;
+}
+
+/** Inspect a week before replacing it, so the admin can be asked first. */
+export async function inspectWeek(
+  orgId: string,
+  teacherId: string,
+  weekStart: string
+): Promise<WeekSnapshot> {
   const snap = await getDoc(doc(schedulesRef, scheduleId(orgId, teacherId, weekStart)));
-  return snap.exists() ? ((snap.data() as WeekSchedule).shifts ?? []).length : 0;
+  return {
+    count: snap.exists() ? ((snap.data() as WeekSchedule).shifts ?? []).length : 0,
+    revision: revisionOf(snap),
+  };
 }
 
 /**
  * Replace the target week with this week's shifts, same weekdays and times.
  * One absolute write, so running it twice gives the same result. Returns the
  * number of shifts copied.
+ *
+ * `expected` is the target week as inspected when the admin was asked (or not
+ * asked, because it was empty). If anyone has written that week since, nothing
+ * is copied and WeekChangedError is thrown, so the admin is asked again rather
+ * than losing a shift another admin just added.
  */
 export async function copyWeek(
   orgId: string,
   teacherId: string,
   fromWeekStart: string,
   toWeekStart: string,
+  expected: WeekSnapshot,
   uid: string
 ): Promise<number> {
-  const source = await getDoc(doc(schedulesRef, scheduleId(orgId, teacherId, fromWeekStart)));
-  const shifts = source.exists() ? ((source.data() as WeekSchedule).shifts ?? []) : [];
-  const copied = copyShiftsToWeek(shifts, fromWeekStart, toWeekStart, newId);
+  const sourceRef = doc(schedulesRef, scheduleId(orgId, teacherId, fromWeekStart));
+  const targetRef = doc(schedulesRef, scheduleId(orgId, teacherId, toWeekStart));
 
-  await setDoc(doc(schedulesRef, scheduleId(orgId, teacherId, toWeekStart)), {
-    orgId,
-    teacherId,
-    weekStart: toWeekStart,
-    shifts: copied,
-    updatedAt: serverTimestamp(),
-    updatedBy: uid,
+  return runTransaction(firestore, async (tx) => {
+    const [source, target] = [await tx.get(sourceRef), await tx.get(targetRef)];
+    if (revisionOf(target) !== expected.revision) {
+      throw new WeekChangedError('Next week was just changed by someone else.');
+    }
+
+    const shifts = source.exists() ? ((source.data() as WeekSchedule).shifts ?? []) : [];
+    const copied = copyShiftsToWeek(shifts, fromWeekStart, toWeekStart, newId);
+    tx.set(targetRef, {
+      orgId,
+      teacherId,
+      weekStart: toWeekStart,
+      shifts: copied,
+      updatedAt: serverTimestamp(),
+      updatedBy: uid,
+    });
+    return copied.length;
   });
-  return copied.length;
 }

@@ -10,11 +10,15 @@ interface TimeFieldProps {
   onChange: (value: string) => void;
 }
 
+/**
+ * The pickers need a Date, but a shift time is only a wall-clock time. Build it
+ * on a fixed day with no daylight-saving change rather than today: on a
+ * change day, times in the skipped hour don't exist (02:30 becomes 03:30 on
+ * 8 March in Toronto), so the picker would show the wrong time.
+ */
 function toDate(time: string): Date {
   const [h, m] = time.split(':').map(Number);
-  const d = new Date();
-  d.setHours(h, m, 0, 0);
-  return d;
+  return new Date(2001, 0, 15, h, m, 0, 0);
 }
 
 /**
