@@ -8,8 +8,8 @@ All data queries use `where('parentUserIds', 'array-contains', user.uid)` — NO
 - **index.tsx** — Dashboard. Fetches students by individual `getDoc` calls using `user.studentIds[]`. Shows recent homework and attendance summaries. Queries `homework` and `attendance` collections with `array-contains` on `parentUserIds`. Client-side sort by `createdAt` desc.
 - **homework.tsx** — Full homework list with pagination. Uses `getHomeworkPaginatedForParent(user.uid, pageSize, lastDoc)`. Supports child filter. Pull-to-refresh calls `checkForNewInvites()`.
 - **attendance.tsx** — Full attendance list with pagination. Uses `getAttendancePaginatedForParent(user.uid, pageSize, lastDoc)`. Same child filter and refresh pattern.
-- **settings.tsx** — Account info, push notification toggle, sign out.
-- **help.tsx** — Help/FAQ.
+- **settings/index.tsx** — Account info, push notification toggle, sign out.
+- **settings/help.tsx** — Help/FAQ, pushed from Settings. Not a hidden tab: since expo-router 58, focusing a tab hidden with `href: null` redirects to the first tab.
 
 ## Data flow
 1. Parent signs up/logs in → `acceptPendingInvites` runs in AuthContext

@@ -65,16 +65,10 @@ export default function TeacherLayout() {
           name="settings"
           options={{
             title: 'Settings',
+            headerShown: false,
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons name="cog" size={size} color={color as string} />
             ),
-          }}
-        />
-        <Tabs.Screen
-          name="help"
-          options={{
-            href: null, // Hide from tab bar
-            title: 'Help & Support',
           }}
         />
       </Tabs>

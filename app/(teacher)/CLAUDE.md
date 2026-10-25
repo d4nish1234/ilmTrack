@@ -9,8 +9,8 @@ Teacher screens. Bottom tab layout: Classes, Organization (only for org admins),
 
 ## Top-level screens
 - **index.tsx** — Home dashboard. Shows class dropdown, today's attendance list (mark present/absent inline), recent homework, quick-assign homework. Uses `subscribeToStudents`, `getStudentAttendanceForDate`, `toggleAttendance`, `createHomework`.
-- **settings.tsx** — Account info, push notification toggle, sign out.
-- **help.tsx** — Help/FAQ.
+- **settings/index.tsx** — Account info, push notification toggle, sign out.
+- **settings/help.tsx** — Help/FAQ, pushed from Settings. Not a hidden tab: since expo-router 58, focusing a tab hidden with `href: null` redirects to the first tab.
 
 ## classes/
 - **index.tsx** — Class list. Uses `subscribeToClasses(teacherId, ...)`.

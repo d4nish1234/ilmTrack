@@ -9,6 +9,8 @@ Key behaviors:
 - **`onAuthStateChanged`**: Fetches Firestore user profile, stamps `emailVerified: true` on first verified login (triggers Cloud Function for admin notification)
 - **`acceptPendingInvites(userId, email)`**: On parent login, queries `invites` collection for matching email, updates invite status to `accepted` (with `parentId`), adds `studentIds` to user profile. Cloud Function handles the rest (student doc + backfill).
 - **`acceptPendingAdminInvites(userId, email)`**: On teacher login, queries `adminInvites` for matching email, updates invite status (with `userId`), adds `adminClassIds` to user profile. Cloud Function handles class doc + backfill.
+- **`reloadFirebaseUser()`**: Called by the verify-email screen. When the email has just become verified it stamps `emailVerified` *and* links pending invites (parent or co-teacher), because `onAuthStateChanged` doesn't reliably re-fire after `reload()` and signup's own attempt ran unverified. It does all of that *before* publishing the refreshed Firebase user: the root layout navigates home as soon as `emailVerified` flips, so linking must already be done or a parent lands on an empty home screen.
+- **Token freshness**: invite acceptance trusts the ID token's `email_verified` claim, which can lag the account by up to an hour. `ensureVerifiedToken()` force-refreshes it before every acceptance when the two disagree.
 - **`checkForNewInvites()`**: Called on pull-to-refresh in parent screens — re-runs `acceptPendingInvites` for already-signed-in parents.
 
 ## ChildFilterContext.tsx
