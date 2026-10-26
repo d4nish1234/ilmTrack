@@ -197,6 +197,21 @@ describe('unlinkParentsFromStudent', () => {
     expect(p2.data()?.studentIds).toEqual([]);
   });
 
+  it("still deletes the invite when the parent's account was deleted", async () => {
+    // Otherwise signing up again with that email would re-link the parent.
+    await seed();
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const parents: Parent[] = [
+      { firstName: 'B', lastName: 'P', email: 'b@parent.com', userId: 'deleted-account', inviteStatus: 'accepted' },
+    ];
+
+    await unlinkParentsFromStudent('student-1', parents);
+
+    const invites = (await getDocs(collection(adminDb(), 'invites'))).docs.map((d) => d.data());
+    expect(invites.filter((i) => i.email === 'b@parent.com')).toEqual([]);
+    expect(errors).not.toHaveBeenCalled(); // an expected case, not an error
+  });
+
   it('raises permission failures instead of reporting a clean run', async () => {
     // The documented defect (#2): a denied write was logged and swallowed, so
     // the caller believed the parent had been unlinked while their access was

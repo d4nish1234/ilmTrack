@@ -46,9 +46,16 @@ export async function unlinkParentsFromStudent(
 
       if (userDocId) {
         const userRef = doc(firestore, 'users', userDocId);
-        await updateDoc(userRef, {
-          studentIds: arrayRemove(studentId),
-        });
+        try {
+          await updateDoc(userRef, {
+            studentIds: arrayRemove(studentId),
+          });
+        } catch (error) {
+          // The parent deleted their account: nothing to unlink there, but the
+          // invite below must still go, or signing up again with this email
+          // would link them straight back.
+          if ((error as { code?: string })?.code !== 'not-found') throw error;
+        }
       }
 
       // Delete invite documents for this parent+student to prevent
