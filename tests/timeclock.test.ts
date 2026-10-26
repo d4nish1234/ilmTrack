@@ -161,8 +161,20 @@ describe('shiftViews when the schedule changed after a shift started', () => {
     const lastWeek = entry('s0', 'done', [[at('16:00', '2026-10-06'), at('17:00', '2026-10-06')]], '2026-10-06', {
       weekStart: '2026-10-05',
     });
-    const otherOrg = { ...entry('s9', 'running', [[at('16:00'), null]]), orgId: 'gone', id: 'gone_t1_2026-10-13_s9' } as TimeEntry;
+    const otherOrg = { ...entry('s9', 'done', [[at('16:00'), at('17:00')]]), orgId: 'gone', id: 'gone_t1_2026-10-13_s9' } as TimeEntry;
     expect(views(d, [lastWeek, otherOrg])).toEqual([]);
+  });
+
+  it("keeps an open shift whose org is no longer listed, so it can still be ended", () => {
+    // Timekeeping was turned off mid-shift: the org drops out of getMyTimekeeping.
+    const open = {
+      ...entry('s9', 'running', [[at('16:00'), null]]),
+      orgId: 'off', id: 'off_t1_2026-10-13_s9', timezone: 'America/Toronto',
+    } as TimeEntry;
+    const [v] = views(data([]), [open]);
+    expect(v).toMatchObject({ orgId: 'off', entryId: 'off_t1_2026-10-13_s9', timezone: 'America/Toronto', start: '12:00' });
+    expect(focusOf([v], at('16:30'), EARLY, false).kind).toBe('running');
+    expect(timeClockScope([v], [], at('16:30'), { selectedOrgId: null, hasClasses: true, administeredOrgIds: [] })).toEqual(['off']);
   });
 });
 

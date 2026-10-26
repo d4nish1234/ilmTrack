@@ -76,7 +76,11 @@ export function subscribeToMyEntries(
 
 // ─── Ending, including offline ───────────────────────────────────────────
 
-const PENDING_END_KEY = '@ilmtrack/pendingShiftEnd';
+/**
+ * One queued End per teacher. Keyed by uid so a second teacher signing in on
+ * the same phone never sends (and, on refusal, discards) someone else's.
+ */
+const pendingEndKey = (teacherId: string) => `@ilmtrack/pendingShiftEnd:${teacherId}`;
 
 interface PendingEnd {
   entryId: string;
@@ -95,24 +99,27 @@ export function isRetryable(error: unknown): boolean {
  * End a shift. Without a connection the end is saved and sent later with the
  * time End was tapped, so a teacher can always end on time.
  *
+ * `endedAt` is the tap time on the server's clock (the phone's corrected by
+ * the context's skew): the server trusts it to shorten the shift, so a slow
+ * phone clock mustn't cost the teacher minutes.
+ *
  * Returns 'queued' when it will be finished later.
  */
-export async function endShift(entryId: string): Promise<'done' | 'queued'> {
-  const endedAt = Date.now();
+export async function endShift(teacherId: string, entryId: string, endedAt: number): Promise<'done' | 'queued'> {
   try {
     await call<object>('endShift')({ entryId, endedAt });
     return 'done';
   } catch (error) {
     if (!isRetryable(error)) throw error;
-    await AsyncStorage.setItem(PENDING_END_KEY, JSON.stringify({ entryId, endedAt } satisfies PendingEnd));
+    await AsyncStorage.setItem(pendingEndKey(teacherId), JSON.stringify({ entryId, endedAt } satisfies PendingEnd));
     return 'queued';
   }
 }
 
-/** The end waiting to be sent, if any. */
-export async function getPendingEnd(): Promise<PendingEnd | null> {
+/** This teacher's end waiting to be sent, if any. */
+export async function getPendingEnd(teacherId: string): Promise<PendingEnd | null> {
   try {
-    const raw = await AsyncStorage.getItem(PENDING_END_KEY);
+    const raw = await AsyncStorage.getItem(pendingEndKey(teacherId));
     return raw ? (JSON.parse(raw) as PendingEnd) : null;
   } catch {
     return null;
@@ -120,16 +127,16 @@ export async function getPendingEnd(): Promise<PendingEnd | null> {
 }
 
 /** Send a saved end. Safe to call repeatedly: ending twice changes nothing. */
-export async function flushPendingEnd(): Promise<void> {
-  const pending = await getPendingEnd();
+export async function flushPendingEnd(teacherId: string): Promise<void> {
+  const pending = await getPendingEnd(teacherId);
   if (!pending) return;
   try {
     await call<object>('endShift')({ entryId: pending.entryId, endedAt: pending.endedAt });
-    await AsyncStorage.removeItem(PENDING_END_KEY);
+    await AsyncStorage.removeItem(pendingEndKey(teacherId));
   } catch (error) {
     // Still offline: keep it. Anything else (the shift is gone, or already
     // closed by the server) won't succeed on retry, so drop it.
-    if (!isRetryable(error)) await AsyncStorage.removeItem(PENDING_END_KEY);
+    if (!isRetryable(error)) await AsyncStorage.removeItem(pendingEndKey(teacherId));
   }
 }
 

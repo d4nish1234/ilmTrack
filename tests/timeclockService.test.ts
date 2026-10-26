@@ -70,53 +70,59 @@ describe('getMyWeek', () => {
 });
 
 describe('ending a shift', () => {
-  it('ends straight away when online, with the tap time and no position', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(1_000_000);
-    expect(await endShift('e1')).toBe('done');
+  it('ends straight away when online, with the given (server-clock) tap time and no position', async () => {
+    expect(await endShift('t1', 'e1', 1_000_000)).toBe('done');
     expect(fx.calls).toEqual([{ name: 'endShift', data: { entryId: 'e1', endedAt: 1_000_000 } }]);
-    expect(await getPendingEnd()).toBeNull();
+    expect(await getPendingEnd('t1')).toBeNull();
   });
 
   it('queues the end, with the tap time, when there is no connection', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(2_000_000);
     fx.respond = () => failure('functions/unavailable');
-    expect(await endShift('e1')).toBe('queued');
-    expect(await getPendingEnd()).toEqual({ entryId: 'e1', endedAt: 2_000_000 });
+    expect(await endShift('t1', 'e1', 2_000_000)).toBe('queued');
+    expect(await getPendingEnd('t1')).toEqual({ entryId: 'e1', endedAt: 2_000_000 });
   });
 
   it("doesn't queue a refusal: it won't succeed later either", async () => {
     fx.respond = () => failure('functions/permission-denied');
-    await expect(endShift('e1')).rejects.toThrow();
-    expect(await getPendingEnd()).toBeNull();
+    await expect(endShift('t1', 'e1', 1)).rejects.toThrow();
+    expect(await getPendingEnd('t1')).toBeNull();
+  });
+
+  it("keeps each teacher's queued end to themselves on a shared phone", async () => {
+    fx.respond = () => failure('functions/unavailable');
+    await endShift('teacherA', 'eA', 123);
+    fx.respond = () => ({ data: {} });
+    expect(await getPendingEnd('teacherB')).toBeNull();
+    await flushPendingEnd('teacherB'); // B signs in: A's end is neither sent nor dropped
+    expect(fx.calls.filter((c) => c.data && (c.data as { entryId?: string }).entryId === 'eA')).toHaveLength(1);
+    expect(await getPendingEnd('teacherA')).toEqual({ entryId: 'eA', endedAt: 123 });
   });
 });
 
 describe('sending a queued end', () => {
   it('sends the original tap time, then forgets it', async () => {
-    fx.store.set('@ilmtrack/pendingShiftEnd', JSON.stringify({ entryId: 'e1', endedAt: 123 }));
-    await flushPendingEnd();
+    fx.store.set('@ilmtrack/pendingShiftEnd:t1', JSON.stringify({ entryId: 'e1', endedAt: 123 }));
+    await flushPendingEnd('t1');
     expect(fx.calls).toEqual([{ name: 'endShift', data: { entryId: 'e1', endedAt: 123 } }]);
-    expect(await getPendingEnd()).toBeNull();
+    expect(await getPendingEnd('t1')).toBeNull();
   });
 
   it('keeps it while still offline', async () => {
-    fx.store.set('@ilmtrack/pendingShiftEnd', JSON.stringify({ entryId: 'e1', endedAt: 123 }));
+    fx.store.set('@ilmtrack/pendingShiftEnd:t1', JSON.stringify({ entryId: 'e1', endedAt: 123 }));
     fx.respond = () => failure('functions/deadline-exceeded');
-    await flushPendingEnd();
-    expect(await getPendingEnd()).toEqual({ entryId: 'e1', endedAt: 123 });
+    await flushPendingEnd('t1');
+    expect(await getPendingEnd('t1')).toEqual({ entryId: 'e1', endedAt: 123 });
   });
 
   it('drops it when the server refuses for good', async () => {
-    fx.store.set('@ilmtrack/pendingShiftEnd', JSON.stringify({ entryId: 'e1', endedAt: 123 }));
+    fx.store.set('@ilmtrack/pendingShiftEnd:t1', JSON.stringify({ entryId: 'e1', endedAt: 123 }));
     fx.respond = () => failure('functions/not-found');
-    await flushPendingEnd();
-    expect(await getPendingEnd()).toBeNull();
+    await flushPendingEnd('t1');
+    expect(await getPendingEnd('t1')).toBeNull();
   });
 
   it('does nothing when nothing is queued', async () => {
-    await flushPendingEnd();
+    await flushPendingEnd('t1');
     expect(fx.calls).toEqual([]);
   });
 });

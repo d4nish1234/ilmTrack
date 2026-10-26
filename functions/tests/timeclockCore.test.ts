@@ -38,6 +38,16 @@ describe('zonedTimeToInstant', () => {
     // 2027-03-14 02:30 does not exist in Toronto; the clock reads 03:30 then.
     expect(iso(zonedTimeToInstant('2027-03-14', '02:30', 'America/Toronto'))).toBe('2027-03-14T07:30:00.000Z');
   });
+  it('gets both DST edges right in zones east of UTC too', () => {
+    // London: 01:30 repeats on 2026-10-25 (first is BST) and is skipped on 2027-03-28.
+    expect(iso(zonedTimeToInstant('2026-10-25', '01:30', 'Europe/London'))).toBe('2026-10-25T00:30:00.000Z');
+    expect(iso(zonedTimeToInstant('2027-03-28', '01:30', 'Europe/London'))).toBe('2027-03-28T01:30:00.000Z');
+    // Sydney, southern hemisphere: 02:30 repeats on 2027-04-04, is skipped on 2026-10-04.
+    expect(iso(zonedTimeToInstant('2027-04-04', '02:30', 'Australia/Sydney'))).toBe('2027-04-03T15:30:00.000Z');
+    expect(iso(zonedTimeToInstant('2026-10-04', '02:30', 'Australia/Sydney'))).toBe('2026-10-03T16:30:00.000Z');
+    // A half-hour offset with no DST.
+    expect(iso(zonedTimeToInstant('2026-10-13', '16:00', 'Asia/Kolkata'))).toBe('2026-10-13T10:30:00.000Z');
+  });
 });
 
 describe('dates and weeks', () => {

@@ -47,6 +47,14 @@ describe('zonedTimeToInstant (client, mirrors the server)', () => {
     expect(iso(zonedTimeToInstant('2026-11-01', '01:30', 'America/Toronto'))).toBe('2026-11-01T05:30:00.000Z');
     expect(iso(zonedTimeToInstant('2027-03-14', '02:30', 'America/Toronto'))).toBe('2027-03-14T07:30:00.000Z');
   });
+
+  it('matches the server in zones east of UTC and the southern hemisphere', () => {
+    expect(iso(zonedTimeToInstant('2026-10-25', '01:30', 'Europe/London'))).toBe('2026-10-25T00:30:00.000Z');
+    expect(iso(zonedTimeToInstant('2027-03-28', '01:30', 'Europe/London'))).toBe('2027-03-28T01:30:00.000Z');
+    expect(iso(zonedTimeToInstant('2027-04-04', '02:30', 'Australia/Sydney'))).toBe('2027-04-03T15:30:00.000Z');
+    expect(iso(zonedTimeToInstant('2026-10-04', '02:30', 'Australia/Sydney'))).toBe('2026-10-03T16:30:00.000Z');
+    expect(iso(zonedTimeToInstant('2026-10-13', '16:00', 'Asia/Kolkata'))).toBe('2026-10-13T10:30:00.000Z');
+  });
 });
 
 describe('timesheetRows', () => {
@@ -90,6 +98,14 @@ describe('timesheetRows', () => {
     expect(rows[0]).toMatchObject({ removed: true, start: '16:00', end: '17:00', workedMinutes: 40 });
     // Removed shifts count as worked but not as scheduled.
     expect(totals(rows)).toEqual({ scheduledMinutes: 0, workedMinutes: 40 });
+  });
+
+  it('shows where a shift was worked, as recorded, even after the location is renamed', () => {
+    const renamed = new Map([['l1', 'New name']]);
+    const [worked] = timesheetRows([shift('s1', '16:00', '17:00')], [entry('s1', 'done', [[at('16:00'), at('16:30')]])], renamed, TZ, at('18:00'));
+    expect(worked.locationName).toBe('Main campus');
+    const [notYet] = timesheetRows([shift('s1', '16:00', '17:00')], [], renamed, TZ, at('12:00'));
+    expect(notYet.locationName).toBe('New name');
   });
 
   it('labels a shift whose location was deleted', () => {

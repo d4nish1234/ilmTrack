@@ -52,6 +52,8 @@ export default function TimekeepingScreen() {
   const [toggling, setToggling] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [entries, setEntries] = useState<TimeEntry[]>([]);
+  // Which week each listener last delivered, or null after an error.
+  const [loaded, setLoaded] = useState<{ week: string | null; hours: string | null }>({ week: null, hours: null });
   const [exporting, setExporting] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
@@ -81,17 +83,40 @@ export default function TimekeepingScreen() {
 
   useEffect(() => {
     if (!orgId || !enabled) return;
-    return subscribeToOrgWeek(orgId, thisWeek, setWeek, (err) =>
-      console.error('Error loading this week:', err)
+    return subscribeToOrgWeek(
+      orgId,
+      thisWeek,
+      (w) => {
+        setWeek(w);
+        setLoaded((l) => ({ ...l, week: thisWeek }));
+      },
+      (err) => {
+        console.error('Error loading this week:', err);
+        setLoaded((l) => ({ ...l, week: null }));
+        setMessage("Couldn't load this week's shifts.");
+      }
     );
   }, [orgId, enabled, thisWeek]);
 
   useEffect(() => {
     if (!orgId || !enabled) return;
-    return subscribeToOrgWeekEntries(orgId, thisWeek, setEntries, (err) =>
-      console.error("Error loading this week's hours:", err)
+    return subscribeToOrgWeekEntries(
+      orgId,
+      thisWeek,
+      (e) => {
+        setEntries(e);
+        setLoaded((l) => ({ ...l, hours: thisWeek }));
+      },
+      (err) => {
+        console.error("Error loading this week's hours:", err);
+        setLoaded((l) => ({ ...l, hours: null }));
+        setMessage("Couldn't load this week's hours.");
+      }
     );
   }, [orgId, enabled, thisWeek]);
+  // The CSV is only offered once this week's shifts and hours have both
+  // loaded, so it can never report worked shifts as zero.
+  const exportReady = loaded.week === thisWeek && loaded.hours === thisWeek;
 
   const timezone = settings?.timezone ?? deviceTimezone();
   const locationNames = useMemo(
@@ -287,7 +312,7 @@ export default function TimekeepingScreen() {
                   icon="file-delimited-outline"
                   onPress={exportWeek}
                   loading={exporting}
-                  disabled={exporting}
+                  disabled={exporting || !exportReady}
                 >
                   Export this week (CSV)
                 </Button>

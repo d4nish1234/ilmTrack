@@ -75,6 +75,9 @@ export default function TeacherWeekScreen() {
   const [copying, setCopying] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [entries, setEntries] = useState<TimeEntry[]>([]);
+  // Which week each listener last delivered, or null after an error: the
+  // export waits for both, so it never reports worked shifts as zero.
+  const [loaded, setLoaded] = useState<{ week: string | null; hours: string | null }>({ week: null, hours: null });
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -106,10 +109,20 @@ export default function TeacherWeekScreen() {
     // Clear the previous week straight away, so the total, the copy button
     // and its confirmation never describe a week that is no longer shown.
     setShifts([]);
-    return subscribeToTeacherWeek(orgId, teacherId, weekStart, setShifts, (err) => {
-      console.error('Error loading week:', err);
-      setMessage({ text: "Couldn't load this week.", type: 'error' });
-    });
+    return subscribeToTeacherWeek(
+      orgId,
+      teacherId,
+      weekStart,
+      (s) => {
+        setShifts(s);
+        setLoaded((l) => ({ ...l, week: weekStart }));
+      },
+      (err) => {
+        console.error('Error loading week:', err);
+        setLoaded((l) => ({ ...l, week: null }));
+        setMessage({ text: "Couldn't load this week.", type: 'error' });
+      }
+    );
   }, [orgId, teacherId, weekStart]);
 
   useEffect(() => {
@@ -118,8 +131,15 @@ export default function TeacherWeekScreen() {
     return subscribeToOrgWeekEntries(
       orgId,
       weekStart,
-      setEntries,
-      (err) => console.error('Error loading hours:', err),
+      (e) => {
+        setEntries(e);
+        setLoaded((l) => ({ ...l, hours: weekStart }));
+      },
+      (err) => {
+        console.error('Error loading hours:', err);
+        setLoaded((l) => ({ ...l, hours: null }));
+        setMessage({ text: "Couldn't load this week's hours.", type: 'error' });
+      },
       teacherId
     );
   }, [orgId, teacherId, weekStart]);
@@ -315,7 +335,7 @@ export default function TeacherWeekScreen() {
             icon="file-delimited-outline"
             onPress={exportWeek}
             loading={exporting}
-            disabled={exporting || rows.length === 0}
+            disabled={exporting || rows.length === 0 || loaded.week !== weekStart || loaded.hours !== weekStart}
             style={styles.footerButton}
           >
             Export

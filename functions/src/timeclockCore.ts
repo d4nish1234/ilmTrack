@@ -52,21 +52,27 @@ function offsetAt(ms: number, timeZone: string): number {
  * is the conventional resolution. In the repeated hour of a fall-back change
  * it returns the first occurrence.
  */
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 export function zonedTimeToInstant(date: string, time: string, timeZone: string): number {
   const [y, mo, d] = date.split('-').map(Number);
   const [h, mi] = time.split(':').map(Number);
   const asUtc = Date.UTC(y, mo - 1, d, h, mi);
-  // The offset at the first guess may differ from the offset at the answer
-  // when a DST change falls between them, so try both.
-  const first = asUtc - offsetAt(asUtc, timeZone);
-  const second = asUtc - offsetAt(first, timeZone);
+  // The zone's offsets a day either side: around a DST change these are the
+  // offsets before and after it (zones never change twice within two days).
+  // Guessing from the offset *at* the wall time picks the wrong side in zones
+  // east of UTC.
+  const before = asUtc - offsetAt(asUtc - DAY_MS, timeZone);
+  const after = asUtc - offsetAt(asUtc + DAY_MS, timeZone);
   const reads = (ms: number) => {
     const w = wallClock(ms, timeZone);
     return w.year === y && w.month === mo && w.day === d && w.hour === h && w.minute === mi;
   };
-  const exact = [first, second].filter(reads);
+  const exact = [before, after].filter(reads);
   if (exact.length > 0) return Math.min(...exact); // first occurrence when repeated
-  return first; // skipped hour: the reading after the change
+  // Skipped: read with the offset before the change, the clock shows the time
+  // one gap later (02:30 → 03:30).
+  return before;
 }
 
 /** The zone's date at an instant, 'yyyy-MM-dd'. */

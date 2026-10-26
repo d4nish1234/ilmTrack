@@ -19,6 +19,7 @@ import {
 } from '../services/timeclock.service';
 import { getShiftPosition, type PositionProblem } from '../services/shiftLocation.service';
 import { focusOf, shiftViews, timeClockScope, timekeepingOrgHints, type Focus } from '../utils/timeclock';
+import { currentWeekStart, todayIn } from '../utils/timekeeping';
 import type { MyOrgTimekeeping, MyTimekeeping, ShiftView, TimeEntry } from '../types';
 
 export type ActionResult =
@@ -30,6 +31,8 @@ interface TimeClockContextType {
   shifts: ShiftView[];
   /** The organizations shown: usually just the selected class's. */
   orgs: MyOrgTimekeeping[];
+  /** Every shift this week, in every organization (for a just-ended one). */
+  allShifts: ShiftView[];
   focus: Focus;
   /** Server-corrected now, ticking every second while on shift. */
   now: number;
@@ -82,8 +85,8 @@ export function TimeClockProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     if (!uid) return;
     try {
-      await flushPendingEnd();
-      setPendingEndId((await getPendingEnd())?.entryId ?? null);
+      await flushPendingEnd(uid);
+      setPendingEndId((await getPendingEnd(uid))?.entryId ?? null);
       if (!hintKey) {
         // No class in an organization and none administered: the time clock
         // can't apply, so don't spend a function call and reads finding out.
@@ -114,8 +117,14 @@ export function TimeClockProvider({ children }: { children: ReactNode }) {
     return () => sub.remove();
   }, [uid, refresh]);
 
+  // Each organization's week, plus the phone's: an open shift in an org no
+  // longer listed (timekeeping turned off mid-shift) must stay visible so it
+  // can be ended.
   const weekKey = useMemo(
-    () => [...new Set((data?.orgs ?? []).map((o) => o.weekStart))].sort().join(','),
+    () =>
+      data
+        ? [...new Set([...data.orgs.map((o) => o.weekStart), currentWeekStart(null)])].sort().join(',')
+        : '',
     [data]
   );
   useEffect(() => {
@@ -126,6 +135,17 @@ export function TimeClockProvider({ children }: { children: ReactNode }) {
   }, [uid, weekKey]);
 
   const allShifts = useMemo(() => (uid ? shiftViews(data, entries, uid) : []), [data, entries, uid]);
+
+  // `today` and `weekStart` come from the server, so they'd go stale if the
+  // app stays open past midnight in an organization: fetch again then, once.
+  const fetchedDay = useRef<string | null>(null);
+  const dayKey = (data?.orgs ?? []).map((o) => todayIn(o.timezone, new Date(now))).join(',');
+  const listedDay = (data?.orgs ?? []).map((o) => o.today).join(',');
+  useEffect(() => {
+    if (dayKey === listedDay || fetchedDay.current === dayKey) return;
+    fetchedDay.current = dayKey;
+    refresh();
+  }, [dayKey, listedDay, refresh]);
   // Re-derived as the clock ticks, so a shift ending in another org hands the
   // bar back to the selected class's.
   const hasClasses = classes.length > 0;
@@ -187,6 +207,7 @@ export function TimeClockProvider({ children }: { children: ReactNode }) {
   const value: TimeClockContextType = {
     shifts,
     orgs,
+    allShifts,
     focus,
     now,
     earlyStartMs: data?.earlyStartMs ?? DEFAULT_EARLY_START_MS,
@@ -203,7 +224,8 @@ export function TimeClockProvider({ children }: { children: ReactNode }) {
       // No location: ending is never blocked, and where it happened isn't
       // recorded.
       try {
-        const outcome = await endShift(shift.entryId);
+        if (!uid) return { ok: false, message: GENERIC };
+        const outcome = await endShift(uid, shift.entryId, Date.now() + skew.current);
         if (outcome === 'queued') setPendingEndId(shift.entryId);
         await refresh();
         return { ok: true, queued: outcome === 'queued' };

@@ -113,8 +113,10 @@ teacher's shifts week by week (Organization tab → Timekeeping).
   the shift first to pay for longer), reason required, teacher's own record
   kept in `original`. Teachers see "Edited by admin" and the reason.
 - **Teacher history** (Time sheet → Past weeks): one week at a time from
-  `getMyWeek` plus live entries; missed shifts show as "Not started". Shown
-  even after timekeeping is turned off — they're the teacher's own hours.
+  `getMyWeek` plus live entries; missed shifts show as "Not started".
+  `getMyWeek` still returns a week after timekeeping is turned off, but the
+  app only reaches history through the bar, which an org with timekeeping
+  off doesn't show.
 - **One open shift per teacher**, via `activeShifts/{uid}`. Release it only if
   it still points at the entry being closed (back-to-back shifts).
 - Teachers can't read `timekeeping/{orgId}`; `getMyTimekeeping` returns their

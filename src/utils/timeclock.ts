@@ -8,7 +8,15 @@
  */
 import { format, parseISO } from 'date-fns';
 import type { MyTimekeeping, ShiftView, TimeEntry } from '../types';
-import { formatTime, shiftMinutes } from './timekeeping';
+import { formatTime, shiftMinutes, todayIn } from './timekeeping';
+
+function deviceTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
 
 type Millis = { toMillis(): number };
 
@@ -92,14 +100,16 @@ export function zonedTimeToInstant(date: string, time: string, timeZone: string)
     const w = wallClock(ms, timeZone);
     return Date.UTC(w.year, w.month - 1, w.day, w.hour, w.minute) - Math.floor(ms / 60_000) * 60_000;
   };
-  const first = asUtc - offsetAt(asUtc);
-  const second = asUtc - offsetAt(first);
+  // The offsets a day either side: before and after any DST change.
+  const day = 24 * 60 * 60 * 1000;
+  const before = asUtc - offsetAt(asUtc - day);
+  const after = asUtc - offsetAt(asUtc + day);
   const reads = (ms: number) => {
     const w = wallClock(ms, timeZone);
     return w.year === y && w.month === mo && w.day === d && w.hour === h && w.minute === mi;
   };
-  const exact = [first, second].filter(reads);
-  return exact.length > 0 ? Math.min(...exact) : first;
+  const exact = [before, after].filter(reads);
+  return exact.length > 0 ? Math.min(...exact) : before;
 }
 
 /** 'HH:mm' as a clock in this IANA zone reads at the instant. */
@@ -133,7 +143,8 @@ export function wallTime(ms: number, timeZone: string): string {
 export function shiftViews(
   data: MyTimekeeping | null,
   entries: Map<string, TimeEntry>,
-  teacherId: string
+  teacherId: string,
+  now: number = Date.now()
 ): ShiftView[] {
   if (!data) return [];
   const orgsById = new Map(data.orgs.map((o) => [o.orgId, o]));
@@ -153,6 +164,7 @@ export function shiftViews(
         ...(entry ? { ...fromEntry(entry, org.timezone), locationName: entry.locationName } : {}),
         orgId: org.orgId,
         orgName: org.orgName,
+        timezone: org.timezone,
         weekStart: org.weekStart,
         today: org.today,
         entryId,
@@ -165,8 +177,32 @@ export function shiftViews(
   for (const entry of entries.values()) {
     if (shown.has(entry.id)) continue;
     const org = orgsById.get(entry.orgId);
-    // Only this week's entries of orgs still listed; anything else is history.
-    if (!org || entry.weekStart !== org.weekStart) continue;
+    const open = entry.status === 'running' || entry.status === 'paused';
+    if (!org) {
+      // Its organization is no longer listed (timekeeping was turned off
+      // mid-shift, say). The server still lets it be ended, so an open one
+      // stays in view with what the entry itself recorded; anything else is
+      // history.
+      if (!open) continue;
+      const timezone = entry.timezone ?? deviceTimeZone();
+      views.push({
+        id: entry.shiftId,
+        date: entry.date,
+        locationId: '',
+        locationName: entry.locationName,
+        ...fromEntry(entry, timezone),
+        orgId: entry.orgId,
+        orgName: '',
+        timezone,
+        weekStart: entry.weekStart,
+        today: todayIn(timezone, new Date(now)),
+        entryId: entry.id,
+        entry,
+      });
+      continue;
+    }
+    // Only this week's entries; anything else is history.
+    if (entry.weekStart !== org.weekStart) continue;
     views.push({
       id: entry.shiftId,
       date: entry.date,
@@ -175,6 +211,7 @@ export function shiftViews(
       ...fromEntry(entry, org.timezone),
       orgId: org.orgId,
       orgName: org.orgName,
+      timezone: org.timezone,
       weekStart: org.weekStart,
       today: org.today,
       entryId: entry.id,

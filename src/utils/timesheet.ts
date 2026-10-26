@@ -83,7 +83,12 @@ export function timesheetRows(
       date: s.date,
       start: s.start,
       end: s.end,
-      locationName: locationNames.get(s.locationId) ?? 'Location removed',
+      // Where it was worked, as recorded; renaming or deleting a location
+      // later doesn't rewrite past timesheets.
+      locationName:
+        byShift.get(`${s.date}_${s.id}`)?.locationName ||
+        locationNames.get(s.locationId) ||
+        'Location removed',
       removed: false,
     })
   );

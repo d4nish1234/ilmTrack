@@ -53,6 +53,8 @@ export interface TimeEntry {
   endAt: Timestamp;
   /** Where the work happened, kept even if the location is later renamed or deleted. */
   locationName: string;
+  /** The organization's timezone when the shift was started. */
+  timezone?: string;
   status: TimeEntryStatus;
   segments: { start: Timestamp; end: Timestamp | null }[];
   note?: string;
@@ -68,6 +70,8 @@ export interface TimeEntry {
 export interface ShiftView extends MyShift {
   orgId: string;
   orgName: string;
+  /** The organization's timezone: times on screen are shown on its clock. */
+  timezone: string;
   weekStart: string;
   /** Today in this shift's organization. */
   today: string;

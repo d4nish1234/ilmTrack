@@ -12,7 +12,7 @@ import {
   hasAskedForLocation,
   type PositionProblem,
 } from '../../services/shiftLocation.service';
-import { countingFrom, formatClock, formatWorked, workedMs } from '../../utils/timeclock';
+import { countingFrom, formatClock, formatWorked, wallTime, workedMs } from '../../utils/timeclock';
 import { currentWeekStart, formatTime } from '../../utils/timekeeping';
 import type { ShiftView } from '../../types';
 import { useAppTheme } from '../../constants/theme';
@@ -25,7 +25,8 @@ interface TimeClockSheetProps {
 }
 
 const shiftTimes = (s: ShiftView) => `${formatTime(s.start)}–${formatTime(s.end)}`;
-const clockTime = (ms: number) => format(ms, 'h:mm a');
+/** An instant on the organization's clock, like the shift times beside it. */
+const clockTime = (ms: number, timeZone: string) => formatTime(wallTime(ms, timeZone));
 
 /**
  * Everything about the teacher's time: start, break, resume, end, the end
@@ -118,7 +119,9 @@ export function TimeClockSheet({ onDone }: TimeClockSheetProps) {
 
   if (loading && shifts.length === 0) return <LoadingSpinner />;
 
-  const justEnded = justEndedId ? shifts.find((s) => s.entryId === justEndedId) : undefined;
+  // From every shift, not just the selected class's org: ending a shift in
+  // another org hands the bar back, but its summary should still show.
+  const justEnded = justEndedId ? clock.allShifts.find((s) => s.entryId === justEndedId) : undefined;
   const summaryShift =
     justEnded?.entry?.status === 'done'
       ? justEnded
@@ -228,7 +231,7 @@ function FocusCard({
             </Text>
           ) : (
             <Text variant="bodyMedium" style={styles.muted}>
-              {counting ? `Started ${clockTime(counting)} · ` : ''}ends automatically at {formatTime(s.end)}
+              {counting ? `Started ${clockTime(counting, s.timezone)} · ` : ''}ends automatically at {formatTime(s.end)}
             </Text>
           )}
           <Text variant="bodyMedium" style={styles.muted}>
@@ -298,11 +301,28 @@ function FocusCard({
             {place(s)}
           </Text>
           <Text variant="bodyMedium" style={styles.hint}>
-            You can start from {clockTime(opens)}.
+            You can start from {clockTime(opens, s.timezone)}.
           </Text>
         </>
       );
     }
+    case 'done-today':
+      // Today's shifts are over. Usually the sheet shows the ended shift's
+      // summary instead; this covers the few minutes after a shift ran to its
+      // end before the server's close-out makes it final.
+      return (
+        <>
+          <Text variant="labelLarge" style={[styles.status, { color: tone.idle.fg }]}>
+            TODAY
+          </Text>
+          <Text variant="headlineSmall" style={styles.heading}>
+            {formatWorked(focus.workedTodayMs)} worked
+          </Text>
+          <Text variant="bodyMedium" style={styles.muted}>
+            Your shift ended at {formatTime(focus.shift.end)}. It’s saved automatically.
+          </Text>
+        </>
+      );
     case 'week-over':
       return (
         <>
@@ -382,7 +402,7 @@ function ShiftSummary({ shift, now, showOrg, onDone }: { shift: ShiftView; now: 
 
         <View style={styles.summaryRow}>
           <Text variant="titleMedium">
-            {first ? clockTime(first) : '—'} → {lastEnd ? clockTime(lastEnd) : '—'}
+            {first ? clockTime(first, shift.timezone) : '—'} → {lastEnd ? clockTime(lastEnd, shift.timezone) : '—'}
           </Text>
           <Text variant="titleMedium" style={styles.total}>
             {formatWorked(worked)}
