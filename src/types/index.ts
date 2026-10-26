@@ -5,3 +5,4 @@ export * from './homework.types';
 export * from './attendance.types';
 export * from './organization.types';
 export * from './timekeeping.types';
+export * from './timeclock.types';

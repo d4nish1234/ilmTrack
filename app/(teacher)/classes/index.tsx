@@ -31,6 +31,8 @@ import { useAuth } from '../../../src/contexts/AuthContext';
 import { useClasses } from '../../../src/hooks/useClasses';
 import { useSelectedClass } from '../../../src/hooks/useSelectedClass';
 import { ClassDropdown } from '../../../src/components/teacher';
+import { TimeClockBar } from '../../../src/components/timeclock/TimeClockBar';
+import { useTimeClock } from '../../../src/contexts/TimeClockContext';
 import { LoadingSpinner, AppSnackbar } from '../../../src/components/common';
 import { Student, AttendanceStatus } from '../../../src/types';
 import { firestore } from '../../../src/config/firebase';
@@ -63,14 +65,17 @@ export default function ClassesScreen() {
 
   const swipeableRefs = useRef<Map<string, SwipeableMethods | null>>(new Map());
 
+  const { refresh: refreshTimeClock } = useTimeClock();
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await checkForNewAdminInvites();
+      // The time clock too: a class just added to an organization, or
+      // timekeeping just turned on, shows up without reopening the app.
+      await Promise.all([checkForNewAdminInvites(), refreshTimeClock()]);
     } finally {
       setRefreshing(false);
     }
-  }, [checkForNewAdminInvites]);
+  }, [checkForNewAdminInvites, refreshTimeClock]);
 
 
   // Snackbar state
@@ -436,6 +441,10 @@ export default function ClassesScreen() {
           </Menu>
         )}
       </View>
+
+      {/* Shown for the selected class's organization when it has timekeeping
+          on, or while a shift is open (see timeClockScope). */}
+      <TimeClockBar />
 
       {selectedClassId ? (
         <>

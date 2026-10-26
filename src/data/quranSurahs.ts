@@ -164,3 +164,19 @@ export function getNextAyahPosition(
   // Already at last ayah of last surah
   return { surahNumber, ayah };
 }
+
+/**
+ * Why a Quran Mode range can't be saved yet, or null when it can. Both ends
+ * need a surah and an ayah. No order is enforced: memorisation often runs
+ * backwards through the Quran (An-Nas towards An-Naba).
+ */
+export function surahAyahRangeProblem(range: {
+  fromSurah: unknown;
+  fromAyah: number | null;
+  toSurah: unknown;
+  toAyah: number | null;
+}): string | null {
+  if (!range.fromSurah || !range.fromAyah) return 'Choose the surah and ayah it starts from.';
+  if (!range.toSurah || !range.toAyah) return 'Choose the surah and ayah it ends at.';
+  return null;
+}

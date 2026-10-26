@@ -1,44 +1,46 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Chip, Modal, Portal, Text } from 'react-native-paper';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { Chip, Text } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { format, parseISO } from 'date-fns';
 import { Button } from '../common';
 import { TimeField } from './TimeField';
 import type { Shift, TimekeepingLocation } from '../../types';
 import { errorMessage, formatDuration, shiftMinutes, shiftProblem } from '../../utils/timekeeping';
 
-interface ShiftEditorProps {
+interface ShiftFormProps {
   /** The shift being edited, or a new one prefilled with a date and default times. */
-  shift: Shift | null;
+  shift: Shift;
   isNew: boolean;
   /** The teacher's other shifts that week, to catch overlaps before saving. */
   otherShifts: Shift[];
   locations: TimekeepingLocation[];
   onSave: (shift: Shift) => Promise<void>;
   onDelete: (shift: Shift) => Promise<void>;
-  onDismiss: () => void;
+  /** Called after a save or delete, and on Cancel. */
+  onDone: () => void;
+  /** Shown under the form: the Time worked panel. */
+  children?: React.ReactNode;
 }
 
-/** Start, end and (when there is a choice) location. Nothing else. */
-export function ShiftEditor({
+/**
+ * Start, end and (when there is a choice) location. Nothing else. Rendered by
+ * the organization/shift route as a sheet.
+ */
+export function ShiftForm({
   shift,
   isNew,
   otherShifts,
   locations,
   onSave,
   onDelete,
-  onDismiss,
-}: ShiftEditorProps) {
-  const [draft, setDraft] = useState<Shift | null>(shift);
+  onDone,
+  children,
+}: ShiftFormProps) {
+  const [draft, setDraft] = useState<Shift>(shift);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setDraft(shift);
-    setError(null);
-  }, [shift]);
-
-  if (!draft) return null;
 
   const problem = shiftProblem(draft, otherShifts);
   const locationMissing = !locations.some((l) => l.id === draft.locationId);
@@ -48,7 +50,7 @@ export function ShiftEditor({
     setError(null);
     try {
       await action();
-      onDismiss();
+      onDone();
     } catch (err) {
       setError(errorMessage(err, "Couldn't save. Check your connection and try again."));
     } finally {
@@ -57,12 +59,8 @@ export function ShiftEditor({
   };
 
   return (
-    <Portal>
-      <Modal
-        visible
-        onDismiss={() => !saving && onDismiss()}
-        contentContainerStyle={styles.container}
-      >
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" bottomOffset={16}>
         <Text variant="titleLarge" style={styles.title}>
           {format(parseISO(draft.date), 'EEEE, MMM d')}
         </Text>
@@ -95,7 +93,7 @@ export function ShiftEditor({
                   key={l.id}
                   selected={l.id === draft.locationId}
                   showSelectedOverlay
-                  onPress={() => setDraft({ ...draft, locationId: l.id, locationName: l.name })}
+                  onPress={() => setDraft({ ...draft, locationId: l.id })}
                   style={styles.chip}
                 >
                   {l.name}
@@ -129,21 +127,23 @@ export function ShiftEditor({
               Delete shift
             </Button>
           )}
-          <Button mode="text" onPress={onDismiss} disabled={saving}>
+          <Button mode="text" onPress={onDone} disabled={saving}>
             Cancel
           </Button>
         </View>
-      </Modal>
-    </Portal>
+        {children}
+      </KeyboardAwareScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     backgroundColor: '#fff',
-    margin: 20,
-    padding: 24,
-    borderRadius: 12,
+  },
+  content: {
+    padding: 16,
   },
   title: {
     fontWeight: '600',

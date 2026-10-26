@@ -1017,6 +1017,93 @@ describe('Timekeeping', () => {
   });
 });
 
+describe('Time entries', () => {
+  const ORG_ID = 'org1';
+  const ENTRY_ID = `${ORG_ID}_${INVITED_TEACHER_UID}_2026-10-13_s1`;
+  const entry = {
+    orgId: ORG_ID,
+    teacherId: INVITED_TEACHER_UID,
+    shiftId: 's1',
+    date: '2026-10-13',
+    weekStart: '2026-10-12',
+    status: 'running',
+    segments: [],
+    flags: [],
+  };
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, 'organizations', ORG_ID), {
+        name: 'Test Org',
+        members: [{ userId: TEACHER_UID, email: 'teacher@test.com', role: 'owner' }],
+        memberUserIds: [TEACHER_UID],
+      });
+      await setDoc(doc(db, 'timeEntries', ENTRY_ID), entry);
+      await setDoc(doc(db, 'activeShifts', INVITED_TEACHER_UID), { entryId: ENTRY_ID });
+    });
+  });
+
+  it('the teacher can read their own entries, singly and as a list', async () => {
+    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+    await assertSucceeds(getDoc(doc(db, 'timeEntries', ENTRY_ID)));
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(db, 'timeEntries'),
+          where('teacherId', '==', INVITED_TEACHER_UID),
+          where('weekStart', 'in', ['2026-10-05', '2026-10-12'])
+        )
+      )
+    );
+  });
+
+  it("an org admin can read the org's entries, including a week's worth for timesheets", async () => {
+    const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertSucceeds(getDoc(doc(db, 'timeEntries', ENTRY_ID)));
+    await assertSucceeds(getDocs(query(collection(db, 'timeEntries'), where('orgId', '==', ORG_ID))));
+    await assertSucceeds(
+      getDocs(query(collection(db, 'timeEntries'), where('orgId', '==', ORG_ID), where('weekStart', '==', '2026-10-12')))
+    );
+    // One teacher's week, as the shift sheet and teacher's week screen ask.
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(db, 'timeEntries'),
+          where('orgId', '==', ORG_ID),
+          where('weekStart', '==', '2026-10-12'),
+          where('teacherId', '==', INVITED_TEACHER_UID)
+        )
+      )
+    );
+  });
+
+  it("a teacher CANNOT list the org's entries, only their own", async () => {
+    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+    await assertFails(getDocs(query(collection(db, 'timeEntries'), where('orgId', '==', ORG_ID))));
+  });
+
+  it("someone else CANNOT read a teacher's hours", async () => {
+    const db = testEnv.authenticatedContext(OTHER_TEACHER_UID).firestore();
+    await assertFails(getDoc(doc(db, 'timeEntries', ENTRY_ID)));
+  });
+
+  it('nobody can write hours from the app, including the teacher', async () => {
+    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+    await assertFails(updateDoc(doc(db, 'timeEntries', ENTRY_ID), { status: 'done', workedMinutes: 600 }));
+    await assertFails(setDoc(doc(db, 'timeEntries', `${ORG_ID}_${INVITED_TEACHER_UID}_2026-10-14_s2`), entry));
+    await assertFails(deleteDoc(doc(db, 'timeEntries', ENTRY_ID)));
+    const admin = testEnv.authenticatedContext(TEACHER_UID).firestore();
+    await assertFails(updateDoc(doc(admin, 'timeEntries', ENTRY_ID), { workedMinutes: 0 }));
+  });
+
+  it('the active-shift lock is off limits to clients', async () => {
+    const db = testEnv.authenticatedContext(INVITED_TEACHER_UID).firestore();
+    await assertFails(getDoc(doc(db, 'activeShifts', INVITED_TEACHER_UID)));
+    await assertFails(deleteDoc(doc(db, 'activeShifts', INVITED_TEACHER_UID)));
+  });
+});
+
 describe('Users collection', () => {
   it('authenticated user can read any user profile', async () => {
     const db = testEnv.authenticatedContext(PARENT_UID).firestore();

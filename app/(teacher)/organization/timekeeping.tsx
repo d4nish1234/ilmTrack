@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, ScrollView, RefreshControl, View } from 'react-native';
 import { router } from 'expo-router';
 import { List, Text, Divider, Switch } from 'react-native-paper';
@@ -7,21 +7,35 @@ import { useAuth } from '../../../src/contexts/AuthContext';
 import { useOrganizations } from '../../../src/contexts/OrganizationContext';
 import { getOrgTeachers } from '../../../src/services/organization.service';
 import {
-  deleteLocation,
-  newId,
-  saveLocation,
   setTimekeepingEnabled,
   subscribeToOrgWeek,
+  subscribeToOrgWeekEntries,
   subscribeToTimekeeping,
 } from '../../../src/services/timekeeping.service';
-import { LoadingSpinner, AppSnackbar } from '../../../src/components/common';
-import { LocationEditor } from '../../../src/components/timekeeping/LocationEditor';
-import type { OrgTeacher, TimekeepingLocation, TimekeepingSettings, WeekSchedule } from '../../../src/types';
-import { currentWeekStart, weekSummary } from '../../../src/utils/timekeeping';
+import { shareCsv } from '../../../src/services/export.service';
+import { AppSnackbar, Button, LoadingSpinner } from '../../../src/components/common';
+import type { OrgTeacher, TimeEntry, TimekeepingSettings, WeekSchedule } from '../../../src/types';
+import { currentWeekStart } from '../../../src/utils/timekeeping';
+import {
+  clockedInNow,
+  csvFileName,
+  timesheetCsv,
+  timesheetRows,
+  workedOfScheduled,
+} from '../../../src/utils/timesheet';
+
+function deviceTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
 
 /**
  * Timekeeping for the selected organization: the on/off switch, where
- * teachers may start shifts, and each teacher's hours this week.
+ * teachers may start shifts, who's on shift now, each teacher's hours this
+ * week (worked against scheduled), and the week's CSV export.
  */
 export default function TimekeepingScreen() {
   const { user } = useAuth();
@@ -37,7 +51,16 @@ export default function TimekeepingScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [editing, setEditing] = useState<{ location: TimekeepingLocation | null } | null>(null);
+  const [entries, setEntries] = useState<TimeEntry[]>([]);
+  // Which week each listener last delivered, or null after an error.
+  const [loaded, setLoaded] = useState<{ week: string | null; hours: string | null }>({ week: null, hours: null });
+  const [exporting, setExporting] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (!orgId) return;
@@ -60,20 +83,105 @@ export default function TimekeepingScreen() {
 
   useEffect(() => {
     if (!orgId || !enabled) return;
-    return subscribeToOrgWeek(orgId, thisWeek, setWeek, (err) =>
-      console.error('Error loading this week:', err)
+    return subscribeToOrgWeek(
+      orgId,
+      thisWeek,
+      (w) => {
+        setWeek(w);
+        setLoaded((l) => ({ ...l, week: thisWeek }));
+      },
+      (err) => {
+        console.error('Error loading this week:', err);
+        setLoaded((l) => ({ ...l, week: null }));
+        setMessage("Couldn't load this week's shifts.");
+      }
     );
   }, [orgId, enabled, thisWeek]);
 
+  useEffect(() => {
+    if (!orgId || !enabled) return;
+    return subscribeToOrgWeekEntries(
+      orgId,
+      thisWeek,
+      (e) => {
+        setEntries(e);
+        setLoaded((l) => ({ ...l, hours: thisWeek }));
+      },
+      (err) => {
+        console.error("Error loading this week's hours:", err);
+        setLoaded((l) => ({ ...l, hours: null }));
+        setMessage("Couldn't load this week's hours.");
+      }
+    );
+  }, [orgId, enabled, thisWeek]);
+  // The CSV is only offered once this week's shifts and hours have both
+  // loaded, so it can never report worked shifts as zero.
+  const exportReady = loaded.week === thisWeek && loaded.hours === thisWeek;
+
+  const timezone = settings?.timezone ?? deviceTimezone();
+  const locationNames = useMemo(
+    () => new Map((settings?.locations ?? []).map((l) => [l.id, l.name])),
+    [settings?.locations]
+  );
+  // Each teacher's rows, worked out once per change rather than per use.
+  const rowsByTeacher = useMemo(
+    () =>
+      new Map(
+        teachers.map((t) => [
+          t.uid,
+          timesheetRows(
+            week.get(t.uid)?.shifts ?? [],
+            entries.filter((e) => e.teacherId === t.uid),
+            locationNames,
+            timezone,
+            now
+          ),
+        ])
+      ),
+    [teachers, week, entries, locationNames, timezone, now]
+  );
+  const rowsFor = (uid: string) => rowsByTeacher.get(uid) ?? [];
+  const onShift = clockedInNow(entries, now);
+  const nameOf = (uid: string) => {
+    const t = teachers.find((x) => x.uid === uid);
+    return t ? `${t.firstName} ${t.lastName}` : 'Someone';
+  };
+
+  const exportWeek = async () => {
+    setExporting(true);
+    try {
+      const weeks = teachers.map((t) => ({
+        teacher: { uid: t.uid, name: `${t.firstName} ${t.lastName}`, email: t.email },
+        rows: rowsFor(t.uid),
+      }));
+      await shareCsv(csvFileName([selectedOrg?.name ?? ''], thisWeek), timesheetCsv(weeks));
+    } catch (err) {
+      console.error('Error exporting week:', err);
+      setMessage("Couldn't export this week.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Beyond the teachers of its classes: its admins, who can track their own
+  // time without teaching, and anyone scheduled or with hours this week (say,
+  // removed from their last class mid-week), so no one's hours are left out.
+  // A sorted string, so this reloads when that set changes, not on every
+  // snapshot.
+  const extraKey = [
+    ...new Set([...(selectedOrg?.memberUserIds ?? []), ...week.keys(), ...entries.map((e) => e.teacherId)]),
+  ]
+    .sort()
+    .join(',');
   const loadTeachers = useCallback(async () => {
     if (!orgId) return;
     try {
-      setTeachers(await getOrgTeachers(orgId));
+      setTeachers(await getOrgTeachers(orgId, extraKey ? extraKey.split(',') : []));
     } catch (err) {
       console.error('Error loading organization teachers:', err);
       setMessage("Couldn't load teachers. Pull down to try again.");
     }
-  }, [orgId]);
+  }, [orgId, extraKey]);
 
   useEffect(() => {
     if (enabled) loadTeachers();
@@ -132,20 +240,41 @@ export default function TimekeepingScreen() {
                   descriptionNumberOfLines={2}
                   left={(props) => <List.Icon {...props} icon="map-marker" />}
                   right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                  onPress={() => setEditing({ location: l })}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(teacher)/organization/location',
+                      params: { locationId: l.id },
+                    })
+                  }
                 />
               ))}
               <List.Item
                 title="Add location"
                 titleStyle={styles.addText}
                 left={(props) => <List.Icon {...props} icon="plus" color="#1a73e8" />}
-                onPress={() => setEditing({ location: null })}
+                onPress={() => router.push('/(teacher)/organization/location')}
               />
             </List.Section>
 
             <Divider />
+            <List.Item
+              title={onShift.length === 0 ? 'No one is clocked in' : `Clocked in now · ${onShift.length}`}
+              description={
+                onShift.length === 0
+                  ? undefined
+                  : onShift
+                      .map((e) => `${nameOf(e.teacherId)}${e.status === 'paused' ? ' (on break)' : ''}`)
+                      .join(', ')
+              }
+              descriptionNumberOfLines={3}
+              left={(props) => (
+                <List.Icon {...props} icon="account-clock" color={onShift.length ? '#1e7e34' : undefined} />
+              )}
+            />
+
+            <Divider />
             <List.Section>
-              <List.Subheader>Teachers · this week</List.Subheader>
+              <List.Subheader>Teachers · this week · worked / scheduled</List.Subheader>
               {locations.length === 0 ? (
                 <Text variant="bodyMedium" style={styles.hint}>
                   Add a location first, then set shifts for your teachers.
@@ -159,19 +288,36 @@ export default function TimekeepingScreen() {
                   <List.Item
                     key={t.uid}
                     title={`${t.firstName} ${t.lastName}`}
-                    description={weekSummary(week.get(t.uid)?.shifts ?? [])}
+                    description={
+                      rowsFor(t.uid).length === 0
+                        ? 'No shifts'
+                        : `${workedOfScheduled(rowsFor(t.uid))}${onShift.some((e) => e.teacherId === t.uid) ? ' · ● on shift' : ''}`
+                    }
                     left={(props) => <List.Icon {...props} icon="account" />}
                     right={(props) => <List.Icon {...props} icon="chevron-right" />}
                     onPress={() =>
                       router.push({
                         pathname: '/(teacher)/organization/teacher/[teacherId]',
-                        params: { teacherId: t.uid, name: `${t.firstName} ${t.lastName}` },
+                        params: { teacherId: t.uid, name: `${t.firstName} ${t.lastName}`, email: t.email },
                       })
                     }
                   />
                 ))
               )}
             </List.Section>
+            {teachers.length > 0 && (
+              <View style={styles.export}>
+                <Button
+                  mode="outlined"
+                  icon="file-delimited-outline"
+                  onPress={exportWeek}
+                  loading={exporting}
+                  disabled={exporting || !exportReady}
+                >
+                  Export this week (CSV)
+                </Button>
+              </View>
+            )}
           </>
         )}
 
@@ -185,16 +331,6 @@ export default function TimekeepingScreen() {
         )}
       </ScrollView>
 
-      {orgId && user && (
-        <LocationEditor
-          visible={editing !== null}
-          location={editing?.location ?? null}
-          newId={newId}
-          onSave={(l) => saveLocation(orgId, l, user.uid)}
-          onDelete={(l) => deleteLocation(orgId, l.id, user.uid)}
-          onDismiss={() => setEditing(null)}
-        />
-      )}
 
       <AppSnackbar message={message} onDismiss={() => setMessage(null)} />
     </SafeAreaView>
@@ -221,6 +357,10 @@ const styles = StyleSheet.create({
     color: '#666',
     paddingHorizontal: 16,
     paddingBottom: 8,
+  },
+  export: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
   },
   offNote: {
     paddingTop: 16,

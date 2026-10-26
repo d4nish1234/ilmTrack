@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+import { HelperText, Text } from 'react-native-paper';
 import { QURAN_SURAHS, Surah, getNextAyahPosition, composeSurahAyahTitle } from '../../data/quranSurahs';
 import { SurahPickerModal } from './SurahPickerModal';
 import { AyahPickerModal } from './AyahPickerModal';
@@ -16,11 +16,13 @@ interface SurahAyahInputProps {
   value: SurahAyahSelection;
   onChange: (selection: SurahAyahSelection) => void;
   onTitleChange: (title: string) => void;
+  /** Shown under the fields, like a text input's error. */
+  error?: string | null;
 }
 
 type PickerTarget = 'fromSurah' | 'fromAyah' | 'toSurah' | 'toAyah';
 
-export function SurahAyahInput({ value, onChange, onTitleChange }: SurahAyahInputProps) {
+export function SurahAyahInput({ value, onChange, onTitleChange, error }: SurahAyahInputProps) {
   const [surahPickerVisible, setSurahPickerVisible] = useState(false);
   const [ayahPickerVisible, setAyahPickerVisible] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>('fromSurah');
@@ -170,6 +172,12 @@ export function SurahAyahInput({ value, onChange, onTitleChange }: SurahAyahInpu
           </Text>
         </TouchableOpacity>
       </View>
+
+      {!!error && (
+        <HelperText type="error" visible>
+          {error}
+        </HelperText>
+      )}
 
       {/* Surah Picker Modal */}
       <SurahPickerModal

@@ -63,6 +63,8 @@ not because of any list-query limitation. See `todo.md` #1.
 | `organizations` | `name`, `members[]`, `memberUserIds[]` | Read: its admins (`memberUserIds`). Write: ilmtrack-admin only |
 | `timekeeping` | doc id = `orgId`; `enabled`, `timezone`, `locations[]` | Org admins (`isOrgAdmin`) |
 | `schedules` | doc id = `{orgId}_{teacherId}_{weekStart}`; `shifts[]` | Write: org admins. Read: org admins + that teacher |
+| `timeEntries` | doc id = `{orgId}_{teacherId}_{date}_{shiftId}`; `status`, `segments[]`, `locationName`, `workedMinutes` | Read: that teacher + org admins. Write: time-clock Cloud Functions only |
+| `activeShifts` | doc id = teacherId; the one open shift | Cloud Functions only |
 
 ## Organizations
 
@@ -88,6 +90,38 @@ teacher's shifts week by week (Organization tab → Timekeeping).
   also what authorizes reading a week that does not exist yet.
 - Rules can't check that a scheduled teacher teaches in the org — the Cloud
   Function that starts a shift must.
+- **Teachers record time** through the Time sheet (Classes screen bar). Every
+  action is a callable in `functions/src/timeclock.ts`; the server sets the
+  times and checks the shift, the 15-minute early-start window, membership
+  (teacher of an org class *or* org admin) and location. Clients never write
+  `timeEntries` — a client that could would award itself hours.
+- **Location is checked, never stored.** Start and Resume send the position;
+  the server measures it against the shift's location and allows or refuses.
+  Refused only when outside the radius even after allowing for the reading's
+  own error (`locationVerdict` in `timeclockCore.ts`), or a mock location. No
+  coordinates, distance or verdict are saved, and End sends no position. Keep
+  it that way: storing them would be a location history needing store
+  declarations. `timeclock.test.ts` asserts nothing location-related is stored.
+- **No copied fields** on shifts or entries beyond `timeEntries.locationName`,
+  which is history (survives a rename or delete). Shift location names come
+  from the settings via `getMyTimekeeping`; org names likewise.
+- **Hours are capped** to the scheduled shift on read and on close, so a shift
+  left running still counts exactly to its end. `closeFinishedShiftsJob`
+  (every 5 min) finalises them via `openUntil`, a field present only on open
+  entries — a single-field query, so no composite index.
+- **Admin corrections** (`correctTimeEntry`): within the scheduled shift (extend
+  the shift first to pay for longer), reason required, teacher's own record
+  kept in `original`. Teachers see "Edited by admin" and the reason.
+- **Teacher history** (Time sheet → Past weeks): one week at a time from
+  `getMyWeek` plus live entries; missed shifts show as "Not started".
+  `getMyWeek` still returns a week after timekeeping is turned off, but the
+  app only reaches history through the bar, which an org with timekeeping
+  off doesn't show.
+- **One open shift per teacher**, via `activeShifts/{uid}`. Release it only if
+  it still points at the entry being closed (back-to-back shifts).
+- Teachers can't read `timekeeping/{orgId}`; `getMyTimekeeping` returns their
+  week per org (org timezone, enabled orgs only, including orgs where they
+  have no shifts yet so the time clock is discoverable) instead.
 - Location is foreground-only (`expo-location` plugin in `app.config.js`, no
   background permission). Keep it that way unless the store listings are
   updated too.

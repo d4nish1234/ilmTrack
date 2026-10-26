@@ -1,19 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, Linking, StyleSheet, View } from 'react-native';
 import { SegmentedButtons, Text, TextInput } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import * as Location from 'expo-location';
-import { Button, KeyboardAwareModal } from '../common';
+import { Button } from '../common';
 import type { TimekeepingLocation } from '../../types';
 import { DEFAULT_RADIUS_M, RADIUS_OPTIONS_M, errorMessage } from '../../utils/timekeeping';
 
-interface LocationEditorProps {
+interface LocationFormProps {
   /** The location being edited, or null for a new one. */
   location: TimekeepingLocation | null;
-  visible: boolean;
   newId: () => string;
   onSave: (location: TimekeepingLocation) => Promise<void>;
   onDelete: (location: TimekeepingLocation) => Promise<void>;
-  onDismiss: () => void;
+  /** Called after a save or delete, and on Cancel. */
+  onDone: () => void;
 }
 
 type Pin = { latitude: number; longitude: number; address?: string };
@@ -28,33 +30,23 @@ function describePlace(place: Location.LocationGeocodedAddress | undefined): str
 /**
  * Pin a location by standing there ("Use my current location") or by typing
  * an address. The address it resolves to is shown so the admin can confirm
- * the pin landed in the right place.
+ * the pin landed in the right place. Rendered by the organization/location
+ * route as a sheet.
  */
-export function LocationEditor({
+export function LocationForm({
   location,
-  visible,
   newId,
   onSave,
   onDelete,
-  onDismiss,
-}: LocationEditorProps) {
-  const [name, setName] = useState('');
+  onDone,
+}: LocationFormProps) {
+  const [name, setName] = useState(location?.name ?? '');
   const [query, setQuery] = useState('');
-  const [pin, setPin] = useState<Pin | null>(null);
-  const [radiusM, setRadiusM] = useState(DEFAULT_RADIUS_M);
+  const [pin, setPin] = useState<Pin | null>(location ? { ...location } : null);
+  const [radiusM, setRadiusM] = useState(location?.radiusM ?? DEFAULT_RADIUS_M);
   const [busy, setBusy] = useState<'locating' | 'finding' | 'saving' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [needsSettings, setNeedsSettings] = useState(false);
-
-  useEffect(() => {
-    if (!visible) return;
-    setName(location?.name ?? '');
-    setQuery('');
-    setPin(location ? { ...location } : null);
-    setRadiusM(location?.radiusM ?? DEFAULT_RADIUS_M);
-    setError(null);
-    setNeedsSettings(false);
-  }, [visible, location]);
 
   /** Location permission is needed both to locate and (on Android) to look up addresses. */
   const ensurePermission = async (): Promise<boolean> => {
@@ -126,7 +118,7 @@ export function LocationEditor({
         longitude: pin.longitude,
         radiusM,
       });
-      onDismiss();
+      onDone();
     } catch (err) {
       setError(errorMessage(err, "Couldn't save. Check your connection and try again."));
     } finally {
@@ -139,7 +131,7 @@ export function LocationEditor({
     setBusy('saving');
     try {
       await onDelete(location);
-      onDismiss();
+      onDone();
     } catch (err) {
       setError(errorMessage(err, "Couldn't delete. Check your connection and try again."));
     } finally {
@@ -162,16 +154,12 @@ export function LocationEditor({
   };
 
   return (
-    <KeyboardAwareModal
-      visible={visible}
-      onDismiss={() => !busy && onDismiss()}
-      contentContainerStyle={styles.container}
-    >
-      <ScrollView keyboardShouldPersistTaps="handled">
-        <Text variant="titleLarge" style={styles.title}>
-          {location ? 'Edit location' : 'Add location'}
-        </Text>
-
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={16}
+      >
         <TextInput
           label="Name"
           placeholder="Main campus"
@@ -257,26 +245,22 @@ export function LocationEditor({
               Delete location
             </Button>
           )}
-          <Button mode="text" onPress={onDismiss} disabled={!!busy}>
+          <Button mode="text" onPress={onDone} disabled={!!busy}>
             Cancel
           </Button>
         </View>
-      </ScrollView>
-    </KeyboardAwareModal>
+      </KeyboardAwareScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     backgroundColor: '#fff',
-    margin: 20,
-    padding: 24,
-    borderRadius: 12,
-    maxHeight: '90%',
   },
-  title: {
-    fontWeight: '600',
-    marginBottom: 16,
+  content: {
+    padding: 16,
   },
   input: {
     marginBottom: 12,
