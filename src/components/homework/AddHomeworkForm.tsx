@@ -11,6 +11,7 @@ import { createHomework, getHomeworkAssignedToday } from '../../services/homewor
 import { getStudent, getInvitedTeacherIds, updateStudentSurahAyahMode } from '../../services/student.service';
 import { Button, Input, AppSnackbar } from '../common';
 import { SurahAyahInput, SurahAyahSelection } from './SurahAyahInput';
+import { surahAyahRangeProblem } from '../../data/quranSurahs';
 import { Student } from '../../types';
 
 const schema = yup.object({
@@ -58,6 +59,9 @@ export function AddHomeworkForm({ classId, studentId, onDone }: AddHomeworkFormP
     toSurah: null,
     toAyah: null,
   });
+  // Quran Mode has no Title field to show "Title is required" under, so the
+  // range is checked itself and its error shown under the pickers.
+  const [rangeError, setRangeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (studentId) {
@@ -110,6 +114,7 @@ export function AddHomeworkForm({ classId, studentId, onDone }: AddHomeworkFormP
 
     // If disabling, the composed title stays in the title field as free text
     // If enabling, reset surah/ayah selection
+    setRangeError(null);
     if (newMode) {
       setSurahAyah({
         fromSurah: null,
@@ -174,6 +179,19 @@ export function AddHomeworkForm({ classId, studentId, onDone }: AddHomeworkFormP
     );
   };
 
+  const submit = () => {
+    if (quranMode) {
+      // Checked even when a title is set: one typed before switching Quran
+      // Mode on would otherwise be saved in place of the range.
+      const problem = surahAyahRangeProblem(surahAyah);
+      if (problem) {
+        setRangeError(problem);
+        return;
+      }
+    }
+    handleSubmit(onSubmit)();
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <Stack.Screen
@@ -227,8 +245,12 @@ export function AddHomeworkForm({ classId, studentId, onDone }: AddHomeworkFormP
           {quranMode ? (
             <SurahAyahInput
               value={surahAyah}
-              onChange={setSurahAyah}
+              onChange={(range) => {
+                setSurahAyah(range);
+                setRangeError(null);
+              }}
               onTitleChange={handleSurahTitleChange}
+              error={rangeError}
             />
           ) : (
             <Input
@@ -258,7 +280,7 @@ export function AddHomeworkForm({ classId, studentId, onDone }: AddHomeworkFormP
           />
 
           <View style={styles.actions}>
-            <Button onPress={handleSubmit(onSubmit)} loading={loading}>
+            <Button onPress={submit} loading={loading}>
               Add Homework
             </Button>
 
