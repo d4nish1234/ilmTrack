@@ -75,6 +75,22 @@ export async function getOrgTeachers(orgId: string, alsoInclude: string[] = []):
   const classes = classSnap.docs.map((d) => ({ ...d.data(), id: d.id }) as Class);
 
   const uids = [...new Set([...orgTeacherIds(classes), ...alsoInclude])];
+  return toOrgTeachers(uids, await getUsers(uids), classes);
+}
+
+/**
+ * Just these people, for adding to a list already loaded with
+ * getOrgTeachers: the Timekeeping screen fetches only the people a new week
+ * brings in rather than the whole organization again. Reads one user document
+ * per person and no classes, so `classNames` is empty; anyone who teaches one
+ * of the organization's classes is already in the first load.
+ */
+export async function getPeople(uids: string[]): Promise<OrgTeacher[]> {
+  const unique = [...new Set(uids)];
+  return toOrgTeachers(unique, await getUsers(unique), []);
+}
+
+async function getUsers(uids: string[]): Promise<Map<string, User>> {
   const users = new Map<string, User>();
   for (let i = 0; i < uids.length; i += IN_LIMIT) {
     const snap = await getDocs(
@@ -82,7 +98,10 @@ export async function getOrgTeachers(orgId: string, alsoInclude: string[] = []):
     );
     for (const d of snap.docs) users.set(d.id, d.data() as User);
   }
+  return users;
+}
 
+function toOrgTeachers(uids: string[], users: Map<string, User>, classes: Class[]): OrgTeacher[] {
   return uids
     .filter((uid) => users.has(uid)) // a deleted account leaves nothing to show
     .map((uid) => {
@@ -98,7 +117,9 @@ export async function getOrgTeachers(orgId: string, alsoInclude: string[] = []):
           .sort((a, b) => a.localeCompare(b)),
       };
     })
-    .sort((a, b) =>
-      `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
-    );
+    .sort(byName);
 }
+
+/** By first then last name. */
+export const byName = (a: OrgTeacher, b: OrgTeacher) =>
+  `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);

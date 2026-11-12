@@ -1,11 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, ScrollView, RefreshControl, View } from 'react-native';
-import { router } from 'expo-router';
-import { List, Text, Divider, Switch } from 'react-native-paper';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { StyleSheet, ScrollView, RefreshControl, View, Pressable, type ScrollViewInstance } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Stack, router } from 'expo-router';
+import { Dialog, Divider, IconButton, List, Menu, Portal, SegmentedButtons, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { useOrganizations } from '../../../src/contexts/OrganizationContext';
-import { getOrgTeachers } from '../../../src/services/organization.service';
+import { byName, getOrgTeachers, getPeople } from '../../../src/services/organization.service';
 import {
   setTimekeepingEnabled,
   subscribeToOrgWeek,
@@ -15,9 +16,10 @@ import {
 } from '../../../src/services/timekeeping.service';
 import { shareCsv } from '../../../src/services/export.service';
 import { AppSnackbar, Button, LoadingSpinner } from '../../../src/components/common';
+import { WeekGrid, WeekGridHeader, useGridColumn } from '../../../src/components/timekeeping/WeekGrid';
 import type { OrgTeacher, ScheduleTemplate, TimeEntry, TimekeepingSettings, WeekSchedule } from '../../../src/types';
-import { hasEnded, templateDescription } from '../../../src/utils/scheduleTemplates';
-import { currentWeekStart, todayIn } from '../../../src/utils/timekeeping';
+import { hasEnded } from '../../../src/utils/scheduleTemplates';
+import { currentWeekStart, formatTime, shiftWeek, todayIn, weekDates } from '../../../src/utils/timekeeping';
 import {
   clockedInNow,
   csvFileName,
@@ -25,6 +27,7 @@ import {
   timesheetRows,
   workedOfScheduled,
 } from '../../../src/utils/timesheet';
+import { gridDates, weekRangeLabel, type GridCell } from '../../../src/utils/weekGrid';
 
 function deviceTimezone(): string {
   try {
@@ -34,10 +37,19 @@ function deviceTimezone(): string {
   }
 }
 
+const MENU_DEBOUNCE_MS = 300;
+/** Where this phone remembers List or Week. A convenience: losing it just shows the list. */
+const VIEW_KEY = 'timekeeping.view';
+type GridView = 'list' | 'week';
+/** Names in the on-shift strip before "+N". */
+const STRIP_NAMES = 2;
+
 /**
- * Timekeeping for the selected organization: the on/off switch, where
- * teachers may start shifts, who's on shift now, each teacher's hours this
- * week (worked against scheduled), and the week's CSV export.
+ * Timekeeping for the selected organization, built around the week: a pager,
+ * who's on shift now, and everyone's hours as a list (worked against
+ * scheduled) or a grid of people by day. Setup (on/off, locations) is under
+ * the ⋮ menu, which also exports the week; schedule templates have their own
+ * screen, linked at the bottom.
  */
 export default function TimekeepingScreen() {
   const { user } = useAuth();
@@ -48,10 +60,28 @@ export default function TimekeepingScreen() {
   // In the organization's timezone, so an admin in another zone sees the
   // same week as the school near the Sunday/Monday boundary.
   const thisWeek = currentWeekStart(settings?.timezone);
+  // The week being looked at; null follows the current one.
+  const [pickedWeek, setPickedWeek] = useState<string | null>(null);
+  const viewWeek = pickedWeek ?? thisWeek;
+  const isThisWeek = viewWeek === thisWeek;
+  const [view, setView] = useState<GridView>('list');
+  const headerScroll = useRef<ScrollViewInstance>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem(VIEW_KEY)
+      .then((saved) => {
+        if (saved === 'week' || saved === 'list') setView(saved);
+      })
+      .catch(() => {});
+  }, []);
+  const chooseView = (next: GridView) => {
+    setView(next);
+    AsyncStorage.setItem(VIEW_KEY, next).catch(() => {});
+  };
   const [teachers, setTeachers] = useState<OrgTeacher[]>([]);
   const [week, setWeek] = useState<Map<string, WeekSchedule>>(new Map());
   const [refreshing, setRefreshing] = useState(false);
-  const [toggling, setToggling] = useState(false);
+  const [turningOn, setTurningOn] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [templates, setTemplates] = useState<ScheduleTemplate[]>([]);
@@ -59,6 +89,24 @@ export default function TimekeepingScreen() {
   const [loaded, setLoaded] = useState<{ week: string | null; hours: string | null }>({ week: null, hours: null });
   const [exporting, setExporting] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [onShiftOpen, setOnShiftOpen] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuKey, setMenuKey] = useState(0);
+  const lastMenuAction = useRef(0);
+
+  // A fresh key on each open, debounced: the same workaround as the class
+  // screen's menu for react-native-paper's Menu not reopening.
+  const openMenu = useCallback(() => {
+    const t = Date.now();
+    if (t - lastMenuAction.current < MENU_DEBOUNCE_MS) return;
+    lastMenuAction.current = t;
+    setMenuKey((k) => k + 1);
+    setMenuVisible(true);
+  }, []);
+  const closeMenu = useCallback(() => {
+    lastMenuAction.current = Date.now();
+    setMenuVisible(false);
+  }, []);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30_000);
@@ -88,38 +136,38 @@ export default function TimekeepingScreen() {
     if (!orgId || !enabled) return;
     return subscribeToOrgWeek(
       orgId,
-      thisWeek,
+      viewWeek,
       (w) => {
         setWeek(w);
-        setLoaded((l) => ({ ...l, week: thisWeek }));
+        setLoaded((l) => ({ ...l, week: viewWeek }));
       },
       (err) => {
-        console.error('Error loading this week:', err);
+        console.error('Error loading the week:', err);
         setLoaded((l) => ({ ...l, week: null }));
         setMessage("Couldn't load this week's shifts.");
       }
     );
-  }, [orgId, enabled, thisWeek]);
+  }, [orgId, enabled, viewWeek]);
 
   useEffect(() => {
     if (!orgId || !enabled) return;
     return subscribeToOrgWeekEntries(
       orgId,
-      thisWeek,
+      viewWeek,
       (e) => {
         setEntries(e);
-        setLoaded((l) => ({ ...l, hours: thisWeek }));
+        setLoaded((l) => ({ ...l, hours: viewWeek }));
       },
       (err) => {
-        console.error("Error loading this week's hours:", err);
+        console.error("Error loading the week's hours:", err);
         setLoaded((l) => ({ ...l, hours: null }));
         setMessage("Couldn't load this week's hours.");
       }
     );
-  }, [orgId, enabled, thisWeek]);
-  // The CSV is only offered once this week's shifts and hours have both
-  // loaded, so it can never report worked shifts as zero.
-  const exportReady = loaded.week === thisWeek && loaded.hours === thisWeek;
+  }, [orgId, enabled, viewWeek]);
+  // Shown, and exported, only once the week's shifts and hours have both
+  // loaded, so worked shifts never read as zero or another week's.
+  const weekReady = loaded.week === viewWeek && loaded.hours === viewWeek;
 
   useEffect(() => {
     if (!orgId || !enabled) return;
@@ -151,30 +199,42 @@ export default function TimekeepingScreen() {
     [teachers, week, entries, locationNames, timezone, now]
   );
   const rowsFor = (uid: string) => rowsByTeacher.get(uid) ?? [];
-  const onShift = clockedInNow(entries, now);
-  // Ended schedules go in their own folded group, so the list stays short.
+  // Who's on shift is about now, so only for the current week.
+  const onShift = isThisWeek ? clockedInNow(entries, now) : [];
   const today = todayIn(timezone, new Date(now));
-  const current = templates.filter((t) => !hasEnded(t, today));
-  const ended = templates.filter((t) => hasEnded(t, today));
-  const templateRow = (t: ScheduleTemplate) => (
-    <List.Item
-      key={t.id}
-      title={t.name}
-      description={templateDescription(t, new Date(now).getFullYear())}
-      descriptionNumberOfLines={2}
-      left={(props) => <List.Icon {...props} icon="calendar-sync" />}
-      right={(props) => <List.Icon {...props} icon="chevron-right" />}
-      onPress={() =>
-        router.push({
-          pathname: '/(teacher)/organization/schedule',
-          params: { templateId: t.id },
-        })
-      }
-    />
-  );
+  const activeTemplates = templates.filter((t) => !hasEnded(t, today)).length;
   const nameOf = (uid: string) => {
     const t = teachers.find((x) => x.uid === uid);
     return t ? `${t.firstName} ${t.lastName}` : 'Someone';
+  };
+  const people = teachers.map((t) => ({ uid: t.uid, name: `${t.firstName} ${t.lastName}` }));
+  const columns = gridDates(weekDates(viewWeek), [...rowsByTeacher.values()].flat());
+  const column = useGridColumn(columns.length);
+
+  const openTeacher = (uid: string) => {
+    const t = teachers.find((x) => x.uid === uid);
+    router.push({
+      pathname: '/(teacher)/organization/teacher/[teacherId]',
+      params: { teacherId: uid, name: nameOf(uid), email: t?.email ?? '', weekStart: viewWeek },
+    });
+  };
+
+  // An empty day from today on adds a shift; a day with one opens it; a past
+  // empty day, a busier day, or a shift removed after it was worked opens the
+  // person's week (so a stray tap on the past adds nothing).
+  const openCell = (uid: string, cell: GridCell) => {
+    if (cell.rows.length === 0 && cell.date < today) {
+      openTeacher(uid);
+    } else if (cell.rows.length === 0) {
+      router.push({ pathname: '/(teacher)/organization/shift', params: { teacherId: uid, weekStart: viewWeek, date: cell.date } });
+    } else if (cell.rows.length === 1 && !cell.rows[0].removed) {
+      router.push({
+        pathname: '/(teacher)/organization/shift',
+        params: { teacherId: uid, weekStart: viewWeek, shiftId: cell.rows[0].shiftId },
+      });
+    } else {
+      openTeacher(uid);
+    }
   };
 
   const exportWeek = async () => {
@@ -184,7 +244,7 @@ export default function TimekeepingScreen() {
         teacher: { uid: t.uid, name: `${t.firstName} ${t.lastName}`, email: t.email },
         rows: rowsFor(t.uid),
       }));
-      await shareCsv(csvFileName([selectedOrg?.name ?? ''], thisWeek), timesheetCsv(weeks));
+      await shareCsv(csvFileName([selectedOrg?.name ?? ''], viewWeek), timesheetCsv(weeks));
     } catch (err) {
       console.error('Error exporting week:', err);
       setMessage("Couldn't export this week.");
@@ -194,204 +254,341 @@ export default function TimekeepingScreen() {
   };
 
   // Beyond the teachers of its classes: its admins, who can track their own
-  // time without teaching, and anyone scheduled or with hours this week (say,
-  // removed from their last class mid-week), so no one's hours are left out.
-  // A sorted string, so this reloads when that set changes, not on every
-  // snapshot.
+  // time without teaching, and anyone scheduled or with hours in the week
+  // shown (say, removed from their last class mid-week), so no one's hours
+  // are left out. A sorted string, so this changes with that set, not on
+  // every snapshot.
   const extraKey = [
     ...new Set([...(selectedOrg?.memberUserIds ?? []), ...week.keys(), ...entries.map((e) => e.teacherId)]),
   ]
     .sort()
     .join(',');
-  const loadTeachers = useCallback(async () => {
+  // Everyone already asked for, in which org: paging to another week fetches
+  // only the people it brings in, not the whole organization again.
+  const requested = useRef<{ orgId: string; uids: Set<string> } | null>(null);
+
+  /** Everyone, from scratch: the first load and pull-to-refresh. */
+  const loadAll = useCallback(async () => {
     if (!orgId) return;
+    const extras = extraKey ? extraKey.split(',') : [];
+    // Marked before the fetch, so a week arriving meanwhile only fetches who
+    // this doesn't cover, and its people are merged in below, not dropped.
+    const known = requested.current?.orgId === orgId ? requested.current.uids : new Set<string>();
+    if (requested.current?.orgId !== orgId) setTeachers([]);
+    extras.forEach((uid) => known.add(uid));
+    requested.current = { orgId, uids: known };
     try {
-      setTeachers(await getOrgTeachers(orgId, extraKey ? extraKey.split(',') : []));
+      const all = await getOrgTeachers(orgId, extras);
+      all.forEach((t) => known.add(t.uid));
+      setTeachers((current) =>
+        [...all, ...current.filter((c) => !all.some((t) => t.uid === c.uid) && known.has(c.uid))].sort(byName)
+      );
     } catch (err) {
+      requested.current = null; // the next change, or pull-to-refresh, tries everyone again
       console.error('Error loading organization teachers:', err);
       setMessage("Couldn't load teachers. Pull down to try again.");
     }
   }, [orgId, extraKey]);
 
   useEffect(() => {
-    if (enabled) loadTeachers();
-  }, [enabled, loadTeachers]);
+    if (!enabled || !orgId) return;
+    if (requested.current?.orgId !== orgId) {
+      loadAll();
+      return;
+    }
+    const known = requested.current.uids;
+    const missing = (extraKey ? extraKey.split(',') : []).filter((uid) => !known.has(uid));
+    if (missing.length === 0) return;
+    missing.forEach((uid) => known.add(uid));
+    getPeople(missing)
+      .then((more) =>
+        setTeachers((current) => [...current, ...more.filter((m) => !current.some((t) => t.uid === m.uid))].sort(byName))
+      )
+      .catch((err) => {
+        console.error('Error loading people:', err);
+        missing.forEach((uid) => known.delete(uid));
+      });
+  }, [enabled, orgId, extraKey, loadAll]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadTeachers();
+    await loadAll();
     setRefreshing(false);
   };
 
-  const toggle = async (value: boolean) => {
+  const turnOn = async () => {
     if (!orgId || !user) return;
-    setToggling(true);
+    setTurningOn(true);
     try {
-      await setTimekeepingEnabled(orgId, value, user.uid);
+      await setTimekeepingEnabled(orgId, true, user.uid);
     } catch (err) {
-      console.error('Error changing timekeeping:', err);
-      setMessage("Couldn't change timekeeping. Please try again.");
+      console.error('Error turning on timekeeping:', err);
+      setMessage("Couldn't turn on timekeeping. Please try again.");
     } finally {
-      setToggling(false);
+      setTurningOn(false);
     }
   };
 
-  if (!settingsLoaded) return <LoadingSpinner />;
+  const header = (
+    <Stack.Screen
+      options={{
+        headerRight: () => (
+          <Menu
+            key={menuKey}
+            visible={menuVisible}
+            onDismiss={closeMenu}
+            anchor={
+              <IconButton
+                icon="dots-vertical"
+                iconColor="#fff"
+                size={24}
+                style={{ margin: 0 }}
+                onPress={openMenu}
+                accessibilityLabel="More"
+              />
+            }
+          >
+            <Menu.Item
+              onPress={() => {
+                closeMenu();
+                router.push('/(teacher)/organization/timekeeping-settings');
+              }}
+              title="Settings"
+              leadingIcon="cog-outline"
+            />
+            {enabled && (
+              <Menu.Item
+                onPress={() => {
+                  closeMenu();
+                  exportWeek();
+                }}
+                title="Export week (CSV)"
+                leadingIcon="file-delimited-outline"
+                disabled={exporting || !weekReady || teachers.length === 0}
+              />
+            )}
+          </Menu>
+        ),
+      }}
+    />
+  );
+
+  if (!settingsLoaded) {
+    return (
+      <>
+        {header}
+        <LoadingSpinner />
+      </>
+    );
+  }
 
   const locations = settings?.locations ?? [];
+  const showGrid = locations.length > 0 && teachers.length > 0 && weekReady && view === 'week';
+
+  if (!enabled) {
+    return (
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        {header}
+        <View style={styles.off}>
+          <Text variant="titleMedium" style={styles.offTitle}>
+            Timekeeping is off
+          </Text>
+          <Text variant="bodyMedium" style={styles.muted}>
+            Turn it on to set weekly shifts for your teachers and let them start them at your school. You can turn it off
+            again from Settings; nothing is lost.
+          </Text>
+          <Button onPress={turnOn} loading={turningOn} disabled={turningOn} style={styles.offButton}>
+            Turn on timekeeping
+          </Button>
+        </View>
+        <AppSnackbar message={message} onDismiss={() => setMessage(null)} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      {header}
+      {/* Children are always the same five, so the grid's day header is
+          always child 2 for stickyHeaderIndices (the ScrollView drops null
+          children, which would shift the index). */}
       <ScrollView
-        refreshControl={
-          enabled ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        stickyHeaderIndices={showGrid ? [2] : undefined}
       >
-        <List.Item
-          title="Timekeeping"
-          titleStyle={styles.switchTitle}
-          description={
-            enabled ? 'Teachers with shifts can start them' : 'Off — teachers see nothing'
-          }
-          right={() => <Switch value={enabled} onValueChange={toggle} disabled={toggling} />}
-          style={styles.switchRow}
-        />
+        <View style={styles.pager}>
+          <IconButton
+            icon="chevron-left"
+            onPress={() => setPickedWeek(shiftWeek(viewWeek, -1))}
+            accessibilityLabel="Previous week"
+          />
+          <Pressable
+            onPress={() => setPickedWeek(null)}
+            style={styles.weekLabel}
+            accessibilityRole="button"
+            accessibilityLabel={`Week of ${weekRangeLabel(viewWeek, new Date(now).getFullYear())}${isThisWeek ? ', this week' : '. Go to this week'}`}
+          >
+            <Text variant="titleMedium">{weekRangeLabel(viewWeek, new Date(now).getFullYear())}</Text>
+            <Text variant="bodySmall" style={styles.muted}>
+              {isThisWeek ? 'This week' : 'Tap for this week'}
+            </Text>
+          </Pressable>
+          <IconButton
+            icon="chevron-right"
+            onPress={() => setPickedWeek(shiftWeek(viewWeek, 1))}
+            accessibilityLabel="Next week"
+          />
+        </View>
 
-        {enabled && (
-          <>
-            <Divider />
-            <List.Section>
-              <List.Subheader>Locations</List.Subheader>
-              {locations.map((l) => (
+        <View>
+          {locations.length === 0 ? (
+            <List.Item
+              title="Add your school's location"
+              description="Teachers have to be there to start a shift"
+              left={(props) => <List.Icon {...props} icon="map-marker-plus" color="#1a73e8" />}
+              right={(props) => <List.Icon {...props} icon="chevron-right" />}
+              onPress={() => router.push('/(teacher)/organization/location')}
+            />
+          ) : (
+            <>
+              <SegmentedButtons
+                value={view}
+                onValueChange={(v) => chooseView(v as GridView)}
+                buttons={[
+                  { value: 'list', label: 'List', icon: 'format-list-bulleted' },
+                  { value: 'week', label: 'Week', icon: 'calendar-week' },
+                ]}
+                style={styles.toggle}
+              />
+              {onShift.length > 0 && (
                 <List.Item
-                  key={l.id}
-                  title={l.name}
-                  description={[l.address, `within ${l.radiusM} m`].filter(Boolean).join(' · ')}
-                  descriptionNumberOfLines={2}
-                  left={(props) => <List.Icon {...props} icon="map-marker" />}
+                  title={`${onShift.length} on shift`}
+                  description={stripNames(onShift.map((e) => nameOf(e.teacherId)))}
+                  descriptionNumberOfLines={1}
+                  left={(props) => <List.Icon {...props} icon="account-clock" color="#1e7e34" />}
                   right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/(teacher)/organization/location',
-                      params: { locationId: l.id },
-                    })
+                  onPress={() => setOnShiftOpen(true)}
+                  style={styles.strip}
+                />
+              )}
+              <Divider />
+            </>
+          )}
+        </View>
+
+        <View>
+          {showGrid && <WeekGridHeader dates={columns} today={today} column={column} scrollRef={headerScroll} />}
+        </View>
+
+        <View>
+          {locations.length === 0 ? null : teachers.length === 0 ? (
+            <Text variant="bodyMedium" style={styles.hint}>
+              No classes are linked to {selectedOrg?.name ?? 'this organization'} yet.
+            </Text>
+          ) : !weekReady ? (
+            <LoadingSpinner />
+          ) : view === 'list' ? (
+            <List.Section>
+              <List.Subheader>Worked / scheduled</List.Subheader>
+              {teachers.map((t) => (
+                <List.Item
+                  key={t.uid}
+                  title={`${t.firstName} ${t.lastName}`}
+                  description={
+                    rowsFor(t.uid).length === 0
+                      ? 'No shifts'
+                      : `${workedOfScheduled(rowsFor(t.uid))}${onShift.some((e) => e.teacherId === t.uid) ? ' · ● on shift' : ''}`
                   }
+                  left={(props) => <List.Icon {...props} icon="account" />}
+                  right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                  onPress={() => openTeacher(t.uid)}
                 />
               ))}
-              <List.Item
-                title="Add location"
-                titleStyle={styles.addText}
-                left={(props) => <List.Icon {...props} icon="plus" color="#1a73e8" />}
-                onPress={() => router.push('/(teacher)/organization/location')}
+            </List.Section>
+          ) : (
+            <View style={styles.grid}>
+              <WeekGrid
+                people={people}
+                rowsFor={rowsFor}
+                dates={columns}
+                today={today}
+                column={column}
+                onScrollX={(x) => headerScroll.current?.scrollTo({ x, animated: false })}
+                onPressName={openTeacher}
+                onPressCell={openCell}
               />
-            </List.Section>
+            </View>
+          )}
+        </View>
 
-            {locations.length > 0 && (
-              <>
-                <Divider />
-                <List.Section>
-                  <List.Subheader>Schedules</List.Subheader>
-                  {current.map(templateRow)}
-                  <List.Item
-                    title="Add schedule"
-                    titleStyle={styles.addText}
-                    description={
-                      templates.length === 0 ? 'The same shifts for many people, for a term or any dates' : undefined
-                    }
-                    left={(props) => <List.Icon {...props} icon="plus" color="#1a73e8" />}
-                    onPress={() => router.push('/(teacher)/organization/schedule')}
-                  />
-                  {ended.length > 0 && (
-                    <List.Accordion
-                      title={`Ended · ${ended.length}`}
-                      left={(props) => <List.Icon {...props} icon="calendar-check" />}
-                    >
-                      {ended.map(templateRow)}
-                    </List.Accordion>
-                  )}
-                </List.Section>
-              </>
-            )}
-
-            <Divider />
-            <List.Item
-              title={onShift.length === 0 ? 'No one is clocked in' : `Clocked in now · ${onShift.length}`}
-              description={
-                onShift.length === 0
-                  ? undefined
-                  : onShift
-                      .map((e) => `${nameOf(e.teacherId)}${e.status === 'paused' ? ' (on break)' : ''}`)
-                      .join(', ')
-              }
-              descriptionNumberOfLines={3}
-              left={(props) => (
-                <List.Icon {...props} icon="account-clock" color={onShift.length ? '#1e7e34' : undefined} />
-              )}
-            />
-
-            <Divider />
-            <List.Section>
-              <List.Subheader>Teachers · this week · worked / scheduled</List.Subheader>
-              {locations.length === 0 ? (
-                <Text variant="bodyMedium" style={styles.hint}>
-                  Add a location first, then set shifts for your teachers.
-                </Text>
-              ) : teachers.length === 0 ? (
-                <Text variant="bodyMedium" style={styles.hint}>
-                  No classes are linked to {selectedOrg?.name ?? 'this organization'} yet.
-                </Text>
-              ) : (
-                teachers.map((t) => (
-                  <List.Item
-                    key={t.uid}
-                    title={`${t.firstName} ${t.lastName}`}
-                    description={
-                      rowsFor(t.uid).length === 0
-                        ? 'No shifts'
-                        : `${workedOfScheduled(rowsFor(t.uid))}${onShift.some((e) => e.teacherId === t.uid) ? ' · ● on shift' : ''}`
-                    }
-                    left={(props) => <List.Icon {...props} icon="account" />}
-                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/(teacher)/organization/teacher/[teacherId]',
-                        params: { teacherId: t.uid, name: `${t.firstName} ${t.lastName}`, email: t.email },
-                      })
-                    }
-                  />
-                ))
-              )}
-            </List.Section>
-            {teachers.length > 0 && (
-              <View style={styles.export}>
-                <Button
-                  mode="outlined"
-                  icon="file-delimited-outline"
-                  onPress={exportWeek}
-                  loading={exporting}
-                  disabled={exporting || !exportReady}
-                >
-                  Export this week (CSV)
-                </Button>
-              </View>
-            )}
-          </>
-        )}
-
-        {!enabled && (
-          <View style={styles.offNote}>
-            <Text variant="bodyMedium" style={styles.hint}>
-              Turn on to add your school’s location and set weekly shifts for each teacher.
-              Turning it off later hides it from teachers but keeps everything.
-            </Text>
-          </View>
-        )}
+        <View>
+          {locations.length > 0 && (
+            <>
+              <Divider />
+              <List.Item
+                title="Schedules"
+                description={
+                  activeTemplates === 0 ? 'The same shifts for many people, for a term' : `${activeTemplates} active`
+                }
+                left={(props) => <List.Icon {...props} icon="calendar-sync" />}
+                right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                onPress={() => router.push('/(teacher)/organization/schedules')}
+              />
+            </>
+          )}
+        </View>
       </ScrollView>
 
+      <Portal>
+        <Dialog visible={onShiftOpen} onDismiss={() => setOnShiftOpen(false)}>
+          <Dialog.Title>On shift now</Dialog.Title>
+          <Dialog.ScrollArea style={styles.dialogList}>
+            <ScrollView>
+              {onShift.map((e) => {
+                const since = rowsFor(e.teacherId).find((r) => r.shiftId === e.shiftId)?.workedFrom;
+                return (
+                  <List.Item
+                    key={e.id}
+                    title={nameOf(e.teacherId)}
+                    description={[
+                      e.status === 'paused' ? 'On break' : 'Working',
+                      since ? `since ${formatTime(since)}` : '',
+                      e.locationName,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                    onPress={() => {
+                      setOnShiftOpen(false);
+                      openTeacher(e.teacherId);
+                    }}
+                  />
+                );
+              })}
+              {onShift.length === 0 && (
+                <Text variant="bodyMedium" style={styles.hint}>
+                  No one is on shift now.
+                </Text>
+              )}
+            </ScrollView>
+          </Dialog.ScrollArea>
+          <Dialog.Actions>
+            <Button mode="text" onPress={() => setOnShiftOpen(false)}>
+              Close
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
 
       <AppSnackbar message={message} onDismiss={() => setMessage(null)} />
     </SafeAreaView>
   );
+}
+
+/** 'Sara Malik, Ali Khan +2' */
+function stripNames(names: string[]): string {
+  const shown = names.slice(0, STRIP_NAMES).join(', ');
+  return names.length > STRIP_NAMES ? `${shown} +${names.length - STRIP_NAMES}` : shown;
 }
 
 const styles = StyleSheet.create({
@@ -399,27 +596,49 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  switchRow: {
-    backgroundColor: '#f5f5f5',
-    paddingVertical: 12,
+  pager: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    paddingTop: 4,
   },
-  switchTitle: {
-    fontWeight: '600',
-    fontSize: 18,
+  weekLabel: {
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  addText: {
-    color: '#1a73e8',
+  toggle: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  strip: {
+    backgroundColor: '#f1f8f3',
+  },
+  grid: {
+    paddingTop: 8,
+    paddingBottom: 16,
   },
   hint: {
     color: '#666',
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingVertical: 12,
   },
-  export: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
+  muted: {
+    color: '#666',
   },
-  offNote: {
-    paddingTop: 16,
+  off: {
+    padding: 24,
+  },
+  offTitle: {
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  offButton: {
+    marginTop: 24,
+  },
+  dialogList: {
+    maxHeight: 360,
+    paddingHorizontal: 0,
   },
 });

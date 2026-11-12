@@ -62,7 +62,13 @@ function workedLabel(row: TimesheetRow): string {
  * after it was worked still shows, so its hours aren't lost.
  */
 export default function TeacherWeekScreen() {
-  const { teacherId, name, email } = useLocalSearchParams<{ teacherId: string; name?: string; email?: string }>();
+  const { teacherId, name, email, weekStart: openOn } = useLocalSearchParams<{
+    teacherId: string;
+    name?: string;
+    email?: string;
+    /** The week to open on (the Timekeeping screen's); otherwise the current one. */
+    weekStart?: string;
+  }>();
   const { user } = useAuth();
   const { selectedOrg } = useOrganizations();
   const orgId = selectedOrg?.id;
@@ -97,15 +103,15 @@ export default function TeacherWeekScreen() {
         setLocations(s?.locations ?? []);
         const zone = s?.timezone ?? null;
         setTimezone(zone);
-        setWeekStart((current) => current ?? currentWeekStart(zone));
+        setWeekStart((current) => current ?? openOn ?? currentWeekStart(zone));
       },
       (err) => {
         console.error('Error loading locations:', err);
         // Still show a week: the device's own, the explicit fallback.
-        setWeekStart((current) => current ?? currentWeekStart(null));
+        setWeekStart((current) => current ?? openOn ?? currentWeekStart(null));
       }
     );
-  }, [orgId]);
+  }, [orgId, openOn]);
 
   useEffect(() => {
     if (!orgId || !teacherId || !weekStart) return;

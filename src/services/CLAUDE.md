@@ -44,6 +44,7 @@ Read-only; organizations are written by ilmtrack-admin.
 - `subscribeToMyOrganizations(uid, ...)` — orgs this user administers, `where('memberUserIds', 'array-contains', uid)`
 - `orgTeacherIds(classes)` — owners + co-teachers of the given classes (pure helper)
 - `getOrgTeachers(orgId)` — classes `where('orgId', '==', orgId)`, then those teachers' user docs
+- `getPeople(uids)` — just those users' docs (no classes query), `classNames` empty; for adding people to a list already loaded with `getOrgTeachers` (the Timekeeping screen, when a week brings in someone new)
 
 ## timekeeping.service.ts
 Org admins' writes; each is a transaction setting absolute values.
