@@ -1013,6 +1013,48 @@ describe('Timekeeping', () => {
         })
       );
       await assertFails(setDoc(doc(db, 'schedules', SCHEDULE_ID), { ...schedule, shifts: 'all day' }));
+      await assertFails(
+        setDoc(doc(db, 'schedules', SCHEDULE_ID), { ...schedule, skippedTemplateShifts: 'all' })
+      );
+    });
+
+    it("an org admin can record a template's shift as deleted for one day", async () => {
+      const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+      await assertSucceeds(
+        setDoc(doc(db, 'schedules', SCHEDULE_ID), { ...schedule, skippedTemplateShifts: ['tpl-a-2026-10-12'] })
+      );
+    });
+  });
+
+  describe('schedule templates', () => {
+    const TEMPLATE = { orgId: ORG_ID, name: 'Term 1', startDate: WEEK, endDate: '2026-12-18', slots: [], teacherIds: [] };
+    const seedTemplate = () =>
+      testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'scheduleTemplates', 'tpl1'), TEMPLATE);
+      });
+
+    it("an org admin can read and list the org's templates", async () => {
+      await seedTemplate();
+      const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+      await assertSucceeds(getDoc(doc(db, 'scheduleTemplates', 'tpl1')));
+      await assertSucceeds(getDocs(query(collection(db, 'scheduleTemplates'), where('orgId', '==', ORG_ID))));
+    });
+
+    it('nobody can write one directly, not even an org admin (only the Cloud Functions do)', async () => {
+      await seedTemplate();
+      const db = testEnv.authenticatedContext(TEACHER_UID).firestore();
+      await assertFails(setDoc(doc(db, 'scheduleTemplates', 'tpl2'), TEMPLATE));
+      await assertFails(updateDoc(doc(db, 'scheduleTemplates', 'tpl1'), { name: 'Renamed' }));
+      await assertFails(deleteDoc(doc(db, 'scheduleTemplates', 'tpl1')));
+    });
+
+    it("teachers and other orgs' admins CANNOT read them", async () => {
+      await seedTemplate();
+      for (const uid of [INVITED_TEACHER_UID, OTHER_TEACHER_UID]) {
+        const db = testEnv.authenticatedContext(uid).firestore();
+        await assertFails(getDoc(doc(db, 'scheduleTemplates', 'tpl1')));
+        await assertFails(getDocs(query(collection(db, 'scheduleTemplates'), where('orgId', '==', ORG_ID))));
+      }
     });
   });
 });

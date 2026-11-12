@@ -127,6 +127,16 @@ describe('copyShiftsToWeek', () => {
     expect(copied[0].start).toBe('16:00');
   });
 
+  it("makes copies the admin's own: a schedule template's tag isn't carried over", () => {
+    const [copy] = copyShiftsToWeek(
+      [{ ...mkShift({ date: '2026-10-13' }), templateId: 'tpl' }],
+      '2026-10-12',
+      '2026-10-19',
+      () => 'x'
+    );
+    expect(copy).not.toHaveProperty('templateId');
+  });
+
   it('copies an empty week as empty', () => {
     expect(copyShiftsToWeek([], '2026-10-12', '2026-10-19', () => 'x')).toEqual([]);
   });

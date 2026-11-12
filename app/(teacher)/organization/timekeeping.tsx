@@ -10,12 +10,14 @@ import {
   setTimekeepingEnabled,
   subscribeToOrgWeek,
   subscribeToOrgWeekEntries,
+  subscribeToScheduleTemplates,
   subscribeToTimekeeping,
 } from '../../../src/services/timekeeping.service';
 import { shareCsv } from '../../../src/services/export.service';
 import { AppSnackbar, Button, LoadingSpinner } from '../../../src/components/common';
-import type { OrgTeacher, TimeEntry, TimekeepingSettings, WeekSchedule } from '../../../src/types';
-import { currentWeekStart } from '../../../src/utils/timekeeping';
+import type { OrgTeacher, ScheduleTemplate, TimeEntry, TimekeepingSettings, WeekSchedule } from '../../../src/types';
+import { hasEnded, templateDescription } from '../../../src/utils/scheduleTemplates';
+import { currentWeekStart, todayIn } from '../../../src/utils/timekeeping';
 import {
   clockedInNow,
   csvFileName,
@@ -52,6 +54,7 @@ export default function TimekeepingScreen() {
   const [toggling, setToggling] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [entries, setEntries] = useState<TimeEntry[]>([]);
+  const [templates, setTemplates] = useState<ScheduleTemplate[]>([]);
   // Which week each listener last delivered, or null after an error.
   const [loaded, setLoaded] = useState<{ week: string | null; hours: string | null }>({ week: null, hours: null });
   const [exporting, setExporting] = useState(false);
@@ -118,6 +121,13 @@ export default function TimekeepingScreen() {
   // loaded, so it can never report worked shifts as zero.
   const exportReady = loaded.week === thisWeek && loaded.hours === thisWeek;
 
+  useEffect(() => {
+    if (!orgId || !enabled) return;
+    return subscribeToScheduleTemplates(orgId, setTemplates, (err) =>
+      console.error('Error loading schedules:', err)
+    );
+  }, [orgId, enabled]);
+
   const timezone = settings?.timezone ?? deviceTimezone();
   const locationNames = useMemo(
     () => new Map((settings?.locations ?? []).map((l) => [l.id, l.name])),
@@ -142,6 +152,26 @@ export default function TimekeepingScreen() {
   );
   const rowsFor = (uid: string) => rowsByTeacher.get(uid) ?? [];
   const onShift = clockedInNow(entries, now);
+  // Ended schedules go in their own folded group, so the list stays short.
+  const today = todayIn(timezone, new Date(now));
+  const current = templates.filter((t) => !hasEnded(t, today));
+  const ended = templates.filter((t) => hasEnded(t, today));
+  const templateRow = (t: ScheduleTemplate) => (
+    <List.Item
+      key={t.id}
+      title={t.name}
+      description={templateDescription(t, new Date(now).getFullYear())}
+      descriptionNumberOfLines={2}
+      left={(props) => <List.Icon {...props} icon="calendar-sync" />}
+      right={(props) => <List.Icon {...props} icon="chevron-right" />}
+      onPress={() =>
+        router.push({
+          pathname: '/(teacher)/organization/schedule',
+          params: { templateId: t.id },
+        })
+      }
+    />
+  );
   const nameOf = (uid: string) => {
     const t = teachers.find((x) => x.uid === uid);
     return t ? `${t.firstName} ${t.lastName}` : 'Someone';
@@ -255,6 +285,33 @@ export default function TimekeepingScreen() {
                 onPress={() => router.push('/(teacher)/organization/location')}
               />
             </List.Section>
+
+            {locations.length > 0 && (
+              <>
+                <Divider />
+                <List.Section>
+                  <List.Subheader>Schedules</List.Subheader>
+                  {current.map(templateRow)}
+                  <List.Item
+                    title="Add schedule"
+                    titleStyle={styles.addText}
+                    description={
+                      templates.length === 0 ? 'The same shifts for many people, for a term or any dates' : undefined
+                    }
+                    left={(props) => <List.Icon {...props} icon="plus" color="#1a73e8" />}
+                    onPress={() => router.push('/(teacher)/organization/schedule')}
+                  />
+                  {ended.length > 0 && (
+                    <List.Accordion
+                      title={`Ended · ${ended.length}`}
+                      left={(props) => <List.Icon {...props} icon="calendar-check" />}
+                    >
+                      {ended.map(templateRow)}
+                    </List.Accordion>
+                  )}
+                </List.Section>
+              </>
+            )}
 
             <Divider />
             <List.Item

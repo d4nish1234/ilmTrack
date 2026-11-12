@@ -13,6 +13,7 @@ import {
   type WeekSnapshot,
   subscribeToOrgWeekEntries,
   subscribeToTeacherWeek,
+  subscribeToScheduleTemplates,
   subscribeToTimekeeping,
 } from '../../../../src/services/timekeeping.service';
 import { shareCsv } from '../../../../src/services/export.service';
@@ -66,6 +67,8 @@ export default function TeacherWeekScreen() {
   const { selectedOrg } = useOrganizations();
   const orgId = selectedOrg?.id;
   const [shifts, setShifts] = useState<Shift[]>([]);
+  // Template names, to label the shifts a schedule template wrote.
+  const [templateNames, setTemplateNames] = useState<Map<string, string>>(new Map());
   const [locations, setLocations] = useState<TimekeepingLocation[]>([]);
   const [timezone, setTimezone] = useState<string | null>(null);
   // Null until the settings (and so the organization's timezone) have loaded,
@@ -143,6 +146,19 @@ export default function TeacherWeekScreen() {
       teacherId
     );
   }, [orgId, teacherId, weekStart]);
+
+  useEffect(() => {
+    if (!orgId) return;
+    return subscribeToScheduleTemplates(
+      orgId,
+      (templates) => setTemplateNames(new Map(templates.map((t) => [t.id, t.name]))),
+      (err) => console.error('Error loading schedules:', err)
+    );
+  }, [orgId]);
+  const templateOf = (shiftId: string) => {
+    const id = shifts.find((s) => s.id === shiftId)?.templateId;
+    return id ? templateNames.get(id) : undefined;
+  };
 
   const rows = useMemo(
     () =>
@@ -288,9 +304,11 @@ export default function TeacherWeekScreen() {
                         {formatTime(r.start)}–{formatTime(r.end)}
                         {r.removed ? ' · removed' : ''}
                       </Text>
-                      {(locations.length > 1 || r.removed) && (
-                        <Text variant="bodySmall" style={styles.muted}>
-                          {r.locationName}
+                      {(locations.length > 1 || r.removed || !!templateOf(r.shiftId)) && (
+                        <Text variant="bodySmall" style={styles.muted} numberOfLines={1}>
+                          {[locations.length > 1 || r.removed ? r.locationName : '', templateOf(r.shiftId)]
+                            .filter(Boolean)
+                            .join(' · ')}
                         </Text>
                       )}
                       {!!workedLabel(r) && (

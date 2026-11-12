@@ -28,6 +28,12 @@ export default function OrganizationLayout() {
         }}
       />
       <Stack.Screen
+        name="schedule"
+        options={{
+          title: 'Schedule',
+        }}
+      />
+      <Stack.Screen
         name="teacher/[teacherId]"
         options={{
           title: 'Shifts',

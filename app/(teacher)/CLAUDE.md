@@ -4,9 +4,10 @@ Teacher screens. Bottom tab layout: Classes, Organization (only for org admins),
 
 ## organization/
 - **index.tsx** — Selected org (switcher when there are several) and its tools list.
-- **timekeeping.tsx** — On/off switch, locations, teachers with this week's summary. Tapping a location opens the **location.tsx** sheet.
+- **timekeeping.tsx** — On/off switch, locations, schedules, teachers with this week's summary. Tapping a location opens the **location.tsx** sheet; a schedule (or Add schedule) opens **schedule.tsx**.
+- **schedule.tsx** — Create or edit a schedule template (name, dates, times with weekdays and location, people). Save previews with a dry run of `saveScheduleTemplate`, then applies on confirm; Delete previews too. The form follows the stored template until the admin changes something, then keeps their edits and the version they started from (sent so the server can refuse a save over someone else's change). A new template's id is made when the screen opens. Moving Starts past Ends moves Ends along. The Timekeeping list folds ended schedules under "Ended". Full screen, not a sheet: it's long.
 - **shift.tsx** / **location.tsx** — Modal sheets wrapping `ShiftForm` / `LocationForm`. An existing shift's sheet also has `TimeWorkedPanel` (what was worked, Correct time / Add time); a shift removed after it was worked opens with only that panel. Each loads its own data from params (`teacherId`, `weekStart`, `shiftId` or `date`; `locationId`), so the screens that open them just push a route.
-- **teacher/[teacherId].tsx** — One teacher's week: + per day, tap a shift to edit (both open the **shift.tsx** sheet), "Copy to next week" (asks before replacing, then moves to the copied week).
+- **teacher/[teacherId].tsx** — One teacher's week: + per day, tap a shift to edit (both open the **shift.tsx** sheet), "Copy to next week" (asks before replacing, then moves to the copied week). Shifts from a schedule template show its name; their sheet says changes are for that day only.
 
 ## Top-level screens
 - **index.tsx** — Home dashboard. Shows class dropdown, today's attendance list (mark present/absent inline), recent homework, quick-assign homework. Uses `subscribeToStudents`, `getStudentAttendanceForDate`, `toggleAttendance`, `createHomework`.

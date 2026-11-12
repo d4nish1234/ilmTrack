@@ -17,7 +17,16 @@ import {
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { firestore, functions } from '../config/firebase';
-import type { Shift, TimeEntry, TimekeepingLocation, TimekeepingSettings, WeekSchedule } from '../types';
+import type {
+  ScheduleTemplate,
+  Shift,
+  TemplateApplyResult,
+  TemplateSlot,
+  TimeEntry,
+  TimekeepingLocation,
+  TimekeepingSettings,
+  WeekSchedule,
+} from '../types';
 import {
   TimekeepingError,
   copyShiftsToWeek,
@@ -157,22 +166,30 @@ export function subscribeToTeacherWeek(
   );
 }
 
+/** The most day-only deletions a week remembers (the schedules rule allows 100). */
+const SKIPPED_MAX = 100;
+
 async function updateWeek(
   orgId: string,
   teacherId: string,
   weekStart: string,
   uid: string,
-  change: (shifts: Shift[]) => Shift[]
+  change: (shifts: Shift[], skipped: string[]) => { shifts: Shift[]; skipped?: string[] }
 ): Promise<void> {
   const ref = doc(schedulesRef, scheduleId(orgId, teacherId, weekStart));
   await runTransaction(firestore, async (tx) => {
     const snap = await tx.get(ref);
-    const current = snap.exists() ? ((snap.data() as WeekSchedule).shifts ?? []) : [];
+    const week = snap.exists() ? (snap.data() as WeekSchedule) : null;
+    const skipped = week?.skippedTemplateShifts ?? [];
+    const next = change(week?.shifts ?? [], skipped);
+    const nextSkipped = (next.skipped ?? skipped).slice(-SKIPPED_MAX);
     tx.set(ref, {
       orgId,
       teacherId,
       weekStart,
-      shifts: sortShifts(change(current)),
+      shifts: sortShifts(next.shifts),
+      // Kept, so a schedule template doesn't bring back a day deleted by hand.
+      ...(nextSkipped.length ? { skippedTemplateShifts: nextSkipped } : {}),
       updatedAt: serverTimestamp(),
       updatedBy: uid,
     });
@@ -182,6 +199,11 @@ async function updateWeek(
 /**
  * Add a shift, or replace the one with the same id. Throws with a message fit
  * to show the admin when it would end before it starts or overlap another.
+ *
+ * Saving a shift a schedule template wrote makes it this day's own: its
+ * templateId is dropped, so applying the template again leaves it as edited.
+ * The day is also remembered as the template's no longer, so deleting the
+ * edited shift later doesn't let the template bring it back.
  */
 export function saveShift(
   orgId: string,
@@ -190,15 +212,23 @@ export function saveShift(
   shift: Shift,
   uid: string
 ) {
-  return updateWeek(orgId, teacherId, weekStart, uid, (shifts) => {
+  const { templateId, ...own } = shift;
+  return updateWeek(orgId, teacherId, weekStart, uid, (shifts, skipped) => {
     // Checked again here, against the stored week, in case another admin
     // added a shift since the editor opened.
-    const problem = shiftProblem(shift, shifts);
+    const problem = shiftProblem(own, shifts);
     if (problem) throw new TimekeepingError(problem);
-    return [...shifts.filter((s) => s.id !== shift.id), shift];
+    return {
+      shifts: [...shifts.filter((s) => s.id !== own.id), own],
+      skipped: templateId && !skipped.includes(own.id) ? [...skipped, own.id] : skipped,
+    };
   });
 }
 
+/**
+ * Delete a shift. One a schedule template wrote is remembered as deleted for
+ * that day, so applying the template again doesn't bring it back.
+ */
 export function deleteShift(
   orgId: string,
   teacherId: string,
@@ -206,9 +236,13 @@ export function deleteShift(
   shiftId: string,
   uid: string
 ) {
-  return updateWeek(orgId, teacherId, weekStart, uid, (shifts) =>
-    shifts.filter((s) => s.id !== shiftId)
-  );
+  return updateWeek(orgId, teacherId, weekStart, uid, (shifts, skipped) => {
+    const deleted = shifts.find((s) => s.id === shiftId);
+    return {
+      shifts: shifts.filter((s) => s.id !== shiftId),
+      skipped: deleted?.templateId && !skipped.includes(shiftId) ? [...skipped, shiftId] : skipped,
+    };
+  });
 }
 
 /**
@@ -271,11 +305,13 @@ export async function copyWeek(
 
     const shifts = source.exists() ? ((source.data() as WeekSchedule).shifts ?? []) : [];
     const copied = copyShiftsToWeek(shifts, fromWeekStart, toWeekStart, newId);
+    const skipped = target.exists() ? ((target.data() as WeekSchedule).skippedTemplateShifts ?? []) : [];
     tx.set(targetRef, {
       orgId,
       teacherId,
       weekStart: toWeekStart,
       shifts: copied,
+      ...(skipped.length ? { skippedTemplateShifts: skipped } : {}),
       updatedAt: serverTimestamp(),
       updatedBy: uid,
     });
@@ -328,8 +364,50 @@ export interface Correction {
  * the teacher's own record is kept.
  */
 export async function correctTimeEntry(correction: Correction): Promise<void> {
+  await callAdmin('correctTimeEntry', correction);
+}
+
+// ─── Schedule templates ──────────────────────────────────────────────────
+
+/** The organization's schedule templates, live, by name. Org admins only. */
+export function subscribeToScheduleTemplates(
+  orgId: string,
+  onUpdate: (templates: ScheduleTemplate[]) => void,
+  onError: (error: Error) => void
+): () => void {
+  return onSnapshot(
+    query(collection(firestore, 'scheduleTemplates'), where('orgId', '==', orgId)),
+    (snap) =>
+      onUpdate(
+        snap.docs
+          .map((d) => ({ ...(d.data() as Omit<ScheduleTemplate, 'id'>), id: d.id }))
+          .sort((a, b) => a.name.localeCompare(b.name))
+      ),
+    onError
+  );
+}
+
+/** A template as edited in the app. A new one gets its id when the editor opens. */
+export interface TemplateDraft {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  slots: TemplateSlot[];
+  teacherIds: string[];
+}
+
+/**
+ * Applying a template rewrites many weeks; the server allows it 300 seconds,
+ * so the app waits as long (the default is 70) rather than report a failure
+ * for a save that then succeeds.
+ */
+const TEMPLATE_CALL_TIMEOUT_MS = 300_000;
+
+/** Call an admin Cloud Function, turning its refusals into messages to show. */
+async function callAdmin<T>(name: string, data: object, timeout?: number): Promise<T> {
   try {
-    await httpsCallable<Correction, unknown>(functions, 'correctTimeEntry')(correction);
+    return (await httpsCallable<object, T>(functions, name, timeout ? { timeout } : undefined)(data)).data;
   } catch (error) {
     const e = error as { code?: string; message?: string };
     // The server's refusals are written to be shown; anything else isn't.
@@ -338,4 +416,36 @@ export async function correctTimeEntry(correction: Correction): Promise<void> {
     }
     throw error;
   }
+}
+
+/**
+ * Save a template and write it into every week it covers, for everyone on it
+ * (saveScheduleTemplate). With `dryRun`, nothing changes and the result says
+ * what would, for the preview.
+ *
+ * `version` says which template this is: a new one (`create`), or the
+ * version of an existing one the editor opened (`expectedUpdatedAt`, its
+ * updatedAt in milliseconds). The server refuses a save over someone else's
+ * newer change.
+ */
+export function saveScheduleTemplate(
+  orgId: string,
+  template: TemplateDraft,
+  dryRun: boolean,
+  version: { create: true } | { create: false; expectedUpdatedAt: number | null }
+) {
+  return callAdmin<TemplateApplyResult>(
+    'saveScheduleTemplate',
+    { orgId, template, dryRun, ...version },
+    TEMPLATE_CALL_TIMEOUT_MS
+  );
+}
+
+/** Delete a template and its future shifts (deleteScheduleTemplate); `dryRun` previews. */
+export function deleteScheduleTemplate(orgId: string, templateId: string, dryRun: boolean) {
+  return callAdmin<TemplateApplyResult>(
+    'deleteScheduleTemplate',
+    { orgId, templateId, dryRun },
+    TEMPLATE_CALL_TIMEOUT_MS
+  );
 }
