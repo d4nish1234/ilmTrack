@@ -16,7 +16,7 @@ vi.mock('firebase/firestore', () => ({
 }));
 
 import { getDocs } from 'firebase/firestore';
-import { getOrgTeachers, orgTeacherIds } from '../src/services/organization.service';
+import { getOrgTeachers, getPeople, orgTeacherIds } from '../src/services/organization.service';
 
 const snap = (docs: { id: string; data: object }[]) => ({ docs: docs.map((d) => ({ id: d.id, data: () => d.data })) });
 
@@ -56,5 +56,30 @@ describe('getOrgTeachers', () => {
       ['a1', []],
       ['t1', ['Hifz A']],
     ]);
+  });
+});
+
+describe('getPeople', () => {
+  it('reads only those users, no classes, skipping deleted accounts', async () => {
+    vi.mocked(getDocs).mockReset();
+    vi.mocked(getDocs).mockResolvedValueOnce(
+      snap([
+        { id: 'b', data: { firstName: 'Zara', lastName: 'Q', email: 'z@x.com' } },
+        { id: 'a', data: { firstName: 'Ali', lastName: 'K', email: 'a@x.com' } },
+      ]) as never
+    );
+    const people = await getPeople(['b', 'a', 'gone', 'a']);
+    expect(vi.mocked(getDocs)).toHaveBeenCalledTimes(1); // one users batch, no classes query
+    expect(people.map((p) => [p.uid, p.classNames])).toEqual([
+      ['a', []],
+      ['b', []],
+    ]);
+  });
+
+  it('batches more than 30 people', async () => {
+    vi.mocked(getDocs).mockReset();
+    vi.mocked(getDocs).mockResolvedValue(snap([]) as never);
+    await getPeople(Array.from({ length: 31 }, (_, i) => `u${i}`));
+    expect(vi.mocked(getDocs)).toHaveBeenCalledTimes(2);
   });
 });

@@ -11,6 +11,7 @@ import {
   newId,
   saveShift,
   subscribeToOrgWeekEntries,
+  subscribeToScheduleTemplates,
   subscribeToTeacherWeek,
   subscribeToTimekeeping,
 } from '../../../src/services/timekeeping.service';
@@ -56,6 +57,16 @@ export default function ShiftScreen() {
   // the admin is typing.
   const [draft, setDraft] = useState<Shift | null | 'missing'>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [templateNames, setTemplateNames] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    if (!orgId) return;
+    return subscribeToScheduleTemplates(
+      orgId,
+      (templates) => setTemplateNames(new Map(templates.map((t) => [t.id, t.name]))),
+      (err) => console.error('Error loading schedules:', err)
+    );
+  }, [orgId]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30_000);
@@ -173,6 +184,11 @@ export default function ShiftScreen() {
         onSave={(s) => saveShift(orgId, teacherId, weekStart, s, user.uid)}
         onDelete={(s) => deleteShift(orgId, teacherId, weekStart, s.id, user.uid)}
         onDone={() => router.back()}
+        notice={
+          draft.templateId
+            ? `From the “${templateNames.get(draft.templateId) ?? 'schedule'}” schedule. Changes here are for this day only; to change every week, edit the schedule in Timekeeping.`
+            : undefined
+        }
       >
         {row && <TimeWorkedPanel row={row} onCorrect={onCorrect} />}
       </ShiftForm>

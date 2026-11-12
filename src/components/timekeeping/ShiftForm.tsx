@@ -22,6 +22,8 @@ interface ShiftFormProps {
   onDone: () => void;
   /** Shown under the form: the Time worked panel. */
   children?: React.ReactNode;
+  /** A line under the date, e.g. that the shift came from a schedule template. */
+  notice?: string;
 }
 
 /**
@@ -37,6 +39,7 @@ export function ShiftForm({
   onDelete,
   onDone,
   children,
+  notice,
 }: ShiftFormProps) {
   const [draft, setDraft] = useState<Shift>(shift);
   const [saving, setSaving] = useState(false);
@@ -64,6 +67,11 @@ export function ShiftForm({
         <Text variant="titleLarge" style={styles.title}>
           {format(parseISO(draft.date), 'EEEE, MMM d')}
         </Text>
+        {!!notice && (
+          <Text variant="bodyMedium" style={styles.notice}>
+            {notice}
+          </Text>
+        )}
 
         <View style={styles.row}>
           <Text variant="bodyLarge">Start</Text>
@@ -147,6 +155,11 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: '600',
+    marginBottom: 16,
+  },
+  notice: {
+    color: '#666',
+    marginTop: -8,
     marginBottom: 16,
   },
   row: {

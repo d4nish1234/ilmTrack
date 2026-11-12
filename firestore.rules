@@ -154,11 +154,15 @@ service cloud.firestore {
       function idOrg() { return scheduleId.split('_')[0]; }
       function idTeacher() { return scheduleId.split('_')[1]; }
 
+      // skippedTemplateShifts: ids of a schedule template's shifts deleted
+      // for that day only, so applying the template again leaves them deleted.
       function validSchedule(data) {
         return scheduleId == data.orgId + '_' + data.teacherId + '_' + data.weekStart
           && data.weekStart.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
           && data.shifts is list
-          && data.shifts.size() <= 50;
+          && data.shifts.size() <= 50
+          && (!('skippedTemplateShifts' in data)
+              || (data.skippedTemplateShifts is list && data.skippedTemplateShifts.size() <= 100));
       }
 
       allow read: if isAuthenticated() && (
@@ -174,6 +178,16 @@ service cloud.firestore {
         && isOrgAdmin(resource.data.orgId)
         && validSchedule(request.resource.data);
       allow delete: if isAuthenticated() && isOrgAdmin(resource.data.orgId);
+    }
+
+    // Schedule templates: a weekly pattern between two dates for a list of
+    // teachers. Written only by the saveScheduleTemplate and
+    // deleteScheduleTemplate Cloud Functions, which also rewrite every week
+    // the template covers; a client writing one directly would leave the
+    // weeks out of step with it.
+    match /scheduleTemplates/{templateId} {
+      allow read: if isAuthenticated() && isOrgAdmin(resource.data.orgId);
+      allow write: if false;
     }
 
     // Hours worked: timeEntries/{orgId}_{teacherId}_{date}_{shiftId}.

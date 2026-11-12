@@ -117,6 +117,18 @@ teacher's shifts week by week (Organization tab → Timekeeping).
   `getMyWeek` still returns a week after timekeeping is turned off, but the
   app only reaches history through the bar, which an org with timekeeping
   off doesn't show.
+- **Schedule templates** (`scheduleTemplates/{id}`, Timekeeping → Schedules):
+  a weekly pattern between two dates for chosen people. Saving one runs
+  `saveScheduleTemplate`, which writes its shifts into each person's weekly
+  `schedules` docs, so nothing that reads schedules needs to know about
+  templates. Template shifts carry `templateId` and an id from template, slot
+  and date, so applying again is idempotent and worked hours stay linked.
+  Applying never touches the past, a shift that has started or can be
+  started, shifts added by hand, or a day edited or deleted by hand (both
+  record the id in the week's `skippedTemplateShifts`; editing also drops
+  `templateId`). If a new time has already passed today, today keeps its old
+  time. Only the Cloud Functions write templates; a template stores no
+  bookkeeping at rest (`pending` exists only while a save is applying).
 - **One open shift per teacher**, via `activeShifts/{uid}`. Release it only if
   it still points at the entry being closed (back-to-back shifts).
 - Teachers can't read `timekeeping/{orgId}`; `getMyTimekeeping` returns their

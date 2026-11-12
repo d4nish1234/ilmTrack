@@ -28,6 +28,24 @@ export default function OrganizationLayout() {
         }}
       />
       <Stack.Screen
+        name="timekeeping-settings"
+        options={{
+          title: 'Timekeeping Settings',
+        }}
+      />
+      <Stack.Screen
+        name="schedules"
+        options={{
+          title: 'Schedules',
+        }}
+      />
+      <Stack.Screen
+        name="schedule"
+        options={{
+          title: 'Schedule',
+        }}
+      />
+      <Stack.Screen
         name="teacher/[teacherId]"
         options={{
           title: 'Shifts',

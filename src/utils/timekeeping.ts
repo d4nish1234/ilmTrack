@@ -157,7 +157,9 @@ export function shiftProblem(shift: Shift, others: Shift[]): string | null {
 
 /**
  * This week's shifts moved to another week, same weekday and times. Ids are
- * regenerated so the copy and the original never share one.
+ * regenerated so the copy and the original never share one, and copies are the
+ * admin's own: a schedule template's tag isn't carried over, so the template
+ * never mistakes a copy for one of its shifts.
  */
 export function copyShiftsToWeek(
   shifts: Shift[],
@@ -169,7 +171,7 @@ export function copyShiftsToWeek(
     (parseISO(toWeekStart).getTime() - parseISO(fromWeekStart).getTime()) / 86_400_000
   );
   return sortShifts(
-    shifts.map((s) => ({
+      shifts.map(({ templateId, ...s }) => ({
       ...s,
       id: newId(),
       date: format(addDays(parseISO(s.date), days), DATE_FORMAT),
