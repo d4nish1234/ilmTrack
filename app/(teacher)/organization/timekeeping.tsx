@@ -11,14 +11,12 @@ import {
   setTimekeepingEnabled,
   subscribeToOrgWeek,
   subscribeToOrgWeekEntries,
-  subscribeToScheduleTemplates,
   subscribeToTimekeeping,
 } from '../../../src/services/timekeeping.service';
 import { shareCsv } from '../../../src/services/export.service';
 import { AppSnackbar, Button, LoadingSpinner } from '../../../src/components/common';
 import { WeekGrid, WeekGridHeader, useGridColumn } from '../../../src/components/timekeeping/WeekGrid';
-import type { OrgTeacher, ScheduleTemplate, TimeEntry, TimekeepingSettings, WeekSchedule } from '../../../src/types';
-import { hasEnded } from '../../../src/utils/scheduleTemplates';
+import type { OrgTeacher, TimeEntry, TimekeepingSettings, WeekSchedule } from '../../../src/types';
 import { currentWeekStart, formatTime, shiftWeek, todayIn, weekDates } from '../../../src/utils/timekeeping';
 import {
   clockedInNow,
@@ -47,9 +45,9 @@ const STRIP_NAMES = 2;
 /**
  * Timekeeping for the selected organization, built around the week: a pager,
  * who's on shift now, and everyone's hours as a list (worked against
- * scheduled) or a grid of people by day. Setup (on/off, locations) is under
- * the ⋮ menu, which also exports the week; schedule templates have their own
- * screen, linked at the bottom.
+ * scheduled) or a grid of people by day. Setup (on/off, locations,
+ * schedules) is in Settings, under the ⋮ menu, which also exports the week.
+ * Kept to the week so the people list, the most used part, comes first.
  */
 export default function TimekeepingScreen() {
   const { user } = useAuth();
@@ -84,7 +82,6 @@ export default function TimekeepingScreen() {
   const [turningOn, setTurningOn] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [entries, setEntries] = useState<TimeEntry[]>([]);
-  const [templates, setTemplates] = useState<ScheduleTemplate[]>([]);
   // Which week each listener last delivered, or null after an error.
   const [loaded, setLoaded] = useState<{ week: string | null; hours: string | null }>({ week: null, hours: null });
   const [exporting, setExporting] = useState(false);
@@ -169,13 +166,6 @@ export default function TimekeepingScreen() {
   // loaded, so worked shifts never read as zero or another week's.
   const weekReady = loaded.week === viewWeek && loaded.hours === viewWeek;
 
-  useEffect(() => {
-    if (!orgId || !enabled) return;
-    return subscribeToScheduleTemplates(orgId, setTemplates, (err) =>
-      console.error('Error loading schedules:', err)
-    );
-  }, [orgId, enabled]);
-
   const timezone = settings?.timezone ?? deviceTimezone();
   const locationNames = useMemo(
     () => new Map((settings?.locations ?? []).map((l) => [l.id, l.name])),
@@ -202,7 +192,6 @@ export default function TimekeepingScreen() {
   // Who's on shift is about now, so only for the current week.
   const onShift = isThisWeek ? clockedInNow(entries, now) : [];
   const today = todayIn(timezone, new Date(now));
-  const activeTemplates = templates.filter((t) => !hasEnded(t, today)).length;
   const nameOf = (uid: string) => {
     const t = teachers.find((x) => x.uid === uid);
     return t ? `${t.firstName} ${t.lastName}` : 'Someone';
@@ -409,7 +398,7 @@ export default function TimekeepingScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       {header}
-      {/* Children are always the same five, so the grid's day header is
+      {/* Children are always the same four, so the grid's day header is
           always child 2 for stickyHeaderIndices (the ScrollView drops null
           children, which would shift the index). */}
       <ScrollView
@@ -521,22 +510,6 @@ export default function TimekeepingScreen() {
           )}
         </View>
 
-        <View>
-          {locations.length > 0 && (
-            <>
-              <Divider />
-              <List.Item
-                title="Schedules"
-                description={
-                  activeTemplates === 0 ? 'The same shifts for many people, for a term' : `${activeTemplates} active`
-                }
-                left={(props) => <List.Icon {...props} icon="calendar-sync" />}
-                right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                onPress={() => router.push('/(teacher)/organization/schedules')}
-              />
-            </>
-          )}
-        </View>
       </ScrollView>
 
       <Portal>

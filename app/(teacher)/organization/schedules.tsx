@@ -72,7 +72,7 @@ export default function SchedulesScreen() {
             />
           ) : (
             <Text variant="bodyMedium" style={styles.intro}>
-              Add a location first, from Settings on the Timekeeping screen.
+              Add a location first, in Timekeeping Settings.
             </Text>
           )}
           {ended.length > 0 && (

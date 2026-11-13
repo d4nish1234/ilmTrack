@@ -5,13 +5,21 @@ import { Divider, List, Switch } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { useOrganizations } from '../../../src/contexts/OrganizationContext';
-import { setTimekeepingEnabled, subscribeToTimekeeping } from '../../../src/services/timekeeping.service';
+import {
+  setTimekeepingEnabled,
+  subscribeToScheduleTemplates,
+  subscribeToTimekeeping,
+} from '../../../src/services/timekeeping.service';
 import { AppSnackbar, LoadingSpinner } from '../../../src/components/common';
-import type { TimekeepingSettings } from '../../../src/types';
+import type { ScheduleTemplate, TimekeepingSettings } from '../../../src/types';
+import { hasEnded } from '../../../src/utils/scheduleTemplates';
+import { todayIn } from '../../../src/utils/timekeeping';
 
 /**
- * Timekeeping's setup, set once and rarely changed: the on/off switch and
- * where teachers may start shifts. Opened from the Timekeeping screen's menu.
+ * Timekeeping's setup, set up once and changed now and then: the on/off
+ * switch, where teachers may start shifts, and a link to the schedule
+ * templates. Opened from the Timekeeping screen's menu, so the main screen
+ * leads with its people list however long it is.
  */
 export default function TimekeepingSettingsScreen() {
   const { user } = useAuth();
@@ -21,6 +29,7 @@ export default function TimekeepingSettingsScreen() {
   const [loaded, setLoaded] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<ScheduleTemplate[]>([]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -39,6 +48,11 @@ export default function TimekeepingSettingsScreen() {
   }, [orgId]);
 
   const enabled = settings?.enabled === true;
+
+  useEffect(() => {
+    if (!orgId || !enabled) return;
+    return subscribeToScheduleTemplates(orgId, setTemplates, (err) => console.error('Error loading schedules:', err));
+  }, [orgId, enabled]);
 
   const setEnabled = async (value: boolean) => {
     if (!orgId || !user) return;
@@ -72,6 +86,7 @@ export default function TimekeepingSettingsScreen() {
   if (!loaded) return <LoadingSpinner />;
 
   const locations = settings?.locations ?? [];
+  const activeTemplates = templates.filter((t) => !hasEnded(t, todayIn(settings?.timezone))).length;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -113,6 +128,26 @@ export default function TimekeepingSettingsScreen() {
                 onPress={() => router.push('/(teacher)/organization/location')}
               />
             </List.Section>
+
+            {locations.length > 0 && (
+              <>
+                <Divider />
+                <List.Section>
+                  <List.Subheader>Schedules</List.Subheader>
+                  <List.Item
+                    title="Schedules"
+                    description={
+                      activeTemplates === 0
+                        ? 'The same shifts for many people, for a term or any dates'
+                        : `${activeTemplates} active`
+                    }
+                    left={(props) => <List.Icon {...props} icon="calendar-sync" />}
+                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                    onPress={() => router.push('/(teacher)/organization/schedules')}
+                  />
+                </List.Section>
+              </>
+            )}
           </>
         )}
       </ScrollView>
