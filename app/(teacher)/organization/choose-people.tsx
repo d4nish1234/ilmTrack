@@ -7,13 +7,10 @@ import { Button } from '../../../src/components/common';
 import { peoplePickerRequest } from '../../../src/components/timekeeping/peoplePicker';
 import { filterPeople, pickResult } from '../../../src/utils/peoplePicker';
 
-/** Show a search box once the list is longer than this. */
-const SEARCH_FROM = 8;
-
 /**
  * Choose People, shared by every screen that picks people (opened with
- * openPeoplePicker): tick boxes, Select all, search, and Continue to hand the
- * choice back. Back discards changes. The tab bar is hidden here
+ * openPeoplePicker): a filter box, tick boxes, Select all (of the people the
+ * filter shows), and Continue to hand the choice back. Back discards changes. The tab bar is hidden here
  * ((teacher)/_layout.tsx) so Continue sits at the bottom.
  */
 export default function ChoosePeopleScreen() {
@@ -28,6 +25,16 @@ export default function ChoosePeopleScreen() {
   const shown = filterPeople(people, search);
   const tickedCount = people.filter((p) => ticked.has(p.uid)).length;
   const allTicked = people.length > 0 && tickedCount === people.length;
+  const filtering = search.trim() !== '';
+  // Select all / Clear act on the people the filter shows, so typing a name
+  // and tapping Select all ticks just the matches.
+  const allShownTicked = shown.length > 0 && shown.every((p) => ticked.has(p.uid));
+  const setShown = (on: boolean) =>
+    setTicked((current) => {
+      const next = new Set(current);
+      shown.forEach((p) => (on ? next.add(p.uid) : next.delete(p.uid)));
+      return next;
+    });
 
   const toggle = (uid: string) =>
     setTicked((current) => {
@@ -49,14 +56,21 @@ export default function ChoosePeopleScreen() {
         <Text variant="titleSmall" style={styles.count}>
           {allTicked ? `Everyone · ${people.length}` : `${tickedCount} of ${people.length} chosen`}
         </Text>
-        {people.length > 1 && (
-          <Button mode="text" onPress={() => setTicked(allTicked ? new Set() : new Set(people.map((p) => p.uid)))}>
-            {allTicked ? 'Clear' : 'Select all'}
+        {shown.length > 1 && (
+          <Button mode="text" onPress={() => setShown(!allShownTicked)}>
+            {allShownTicked ? (filtering ? 'Clear these' : 'Clear') : filtering ? 'Select these' : 'Select all'}
           </Button>
         )}
       </View>
-      {people.length > SEARCH_FROM && (
-        <Searchbar placeholder="Search people" value={search} onChangeText={setSearch} style={styles.search} />
+      {people.length > 1 && (
+        <Searchbar
+          placeholder="Filter by name"
+          value={search}
+          onChangeText={setSearch}
+          style={styles.search}
+          autoCorrect={false}
+          autoCapitalize="none"
+        />
       )}
       <FlatList
         data={shown}

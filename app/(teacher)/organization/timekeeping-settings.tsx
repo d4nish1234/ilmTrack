@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import { Divider, List, Switch } from 'react-native-paper';
+import { Divider, List, Switch, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { useOrganizations } from '../../../src/contexts/OrganizationContext';
@@ -104,6 +104,10 @@ export default function TimekeepingSettingsScreen() {
             <Divider />
             <List.Section>
               <List.Subheader>Locations</List.Subheader>
+              <Text variant="bodySmall" style={styles.blurb}>
+                Where teachers work. They can only start a shift when they&apos;re within range of one of these, so
+                hours are recorded on site.
+              </Text>
               {locations.map((l) => (
                 <List.Item
                   key={l.id}
@@ -123,7 +127,6 @@ export default function TimekeepingSettingsScreen() {
               <List.Item
                 title="Add location"
                 titleStyle={styles.addText}
-                description={locations.length === 0 ? 'Where teachers have to be to start a shift' : undefined}
                 left={(props) => <List.Icon {...props} icon="plus" color="#1a73e8" />}
                 onPress={() => router.push('/(teacher)/organization/location')}
               />
@@ -134,13 +137,13 @@ export default function TimekeepingSettingsScreen() {
                 <Divider />
                 <List.Section>
                   <List.Subheader>Schedules</List.Subheader>
+                  <Text variant="bodySmall" style={styles.blurb}>
+                    The same shifts for many people at once, for a term or any dates. Saving one adds the shifts to
+                    everyone&apos;s weeks, from today on.
+                  </Text>
                   <List.Item
                     title="Schedules"
-                    description={
-                      activeTemplates === 0
-                        ? 'The same shifts for many people, for a term or any dates'
-                        : `${activeTemplates} active`
-                    }
+                    description={activeTemplates === 0 ? 'None yet' : `${activeTemplates} active`}
                     left={(props) => <List.Icon {...props} icon="calendar-sync" />}
                     right={(props) => <List.Icon {...props} icon="chevron-right" />}
                     onPress={() => router.push('/(teacher)/organization/schedules')}
@@ -172,5 +175,10 @@ const styles = StyleSheet.create({
   },
   addText: {
     color: '#1a73e8',
+  },
+  blurb: {
+    color: '#666',
+    paddingHorizontal: 16,
+    paddingBottom: 4,
   },
 });

@@ -71,6 +71,20 @@ export default function OrganizationLayout() {
           presentation: 'modal',
         }}
       />
+      {/* Feature help: a native bottom sheet, as tall as its content. Unlike
+          the editors, it can be swiped down or closed by tapping the dimmed
+          screen behind it (nothing to lose); each counts as dismissing it. */}
+      <Stack.Screen
+        name="timekeeping-help"
+        options={{
+          presentation: 'formSheet',
+          sheetAllowedDetents: 'fitToContents',
+          sheetGrabberVisible: true,
+          sheetLargestUndimmedDetentIndex: 'none',
+          gestureEnabled: true,
+          headerShown: false,
+        }}
+      />
       <Stack.Screen
         name="location"
         options={{

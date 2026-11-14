@@ -13,7 +13,8 @@ import {
   subscribeToOrgWeekEntries,
   subscribeToTimekeeping,
 } from '../../../src/services/timekeeping.service';
-import { AppSnackbar, Button, LoadingSpinner } from '../../../src/components/common';
+import { AppSnackbar, Button, HelpLink, LoadingSpinner } from '../../../src/components/common';
+import { hasSeenHelp } from '../../../src/utils/storage';
 import { WeekGrid, WeekGridHeader, useGridColumn } from '../../../src/components/timekeeping/WeekGrid';
 import type { OrgTeacher, TimeEntry, TimekeepingSettings, WeekSchedule } from '../../../src/types';
 import { currentWeekStart, formatTime, shiftWeek, todayIn, weekDates } from '../../../src/utils/timekeeping';
@@ -275,6 +276,18 @@ export default function TimekeepingScreen() {
       });
   }, [enabled, orgId, extraKey, loadAll]);
 
+  // What Timekeeping is for: a bottom sheet, by itself on this device's
+  // first visit (once timekeeping is on), then from the help link.
+  const openHelp = () => router.push('/(teacher)/organization/timekeeping-help');
+  const helpChecked = useRef(false);
+  useEffect(() => {
+    if (!enabled || helpChecked.current) return;
+    helpChecked.current = true;
+    hasSeenHelp('timekeeping').then((seen) => {
+      if (!seen) router.push('/(teacher)/organization/timekeeping-help');
+    });
+  }, [enabled]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadAll();
@@ -435,9 +448,10 @@ export default function TimekeepingScreen() {
                   style={styles.strip}
                 />
               )}
-              <Divider />
             </>
           )}
+          <HelpLink label="How timekeeping works" onPress={openHelp} />
+          {locations.length > 0 && <Divider />}
         </View>
 
         <View>
