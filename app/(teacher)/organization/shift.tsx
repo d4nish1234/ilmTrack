@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,8 +16,7 @@ import {
   subscribeToTimekeeping,
 } from '../../../src/services/timekeeping.service';
 import { Button, LoadingSpinner } from '../../../src/components/common';
-import { ShiftForm } from '../../../src/components/timekeeping/ShiftForm';
-import { TimeWorkedPanel } from '../../../src/components/timekeeping/TimeWorkedPanel';
+import { ShiftSheet } from '../../../src/components/timekeeping/ShiftSheet';
 import type { Shift, TimeEntry, TimekeepingLocation } from '../../../src/types';
 import { timesheetRows } from '../../../src/utils/timesheet';
 import { templateTitle } from '../../../src/utils/scheduleTemplates';
@@ -32,13 +31,11 @@ function deviceTimezone(): string {
 }
 
 /**
- * Add or edit one shift, as a sheet over the teacher's week. Pass `shiftId` to
- * edit, or `date` to add. A new shift is prefilled from the week's last shift
- * so repeats are quick.
- *
- * An existing shift also shows what was worked, with a way to correct it. A
- * shift deleted after it was worked opens with only that part, so its hours
- * can still be corrected.
+ * Add or edit one shift, as a sheet over the teacher's week (ShiftSheet:
+ * Scheduled and Worked, one Save). Pass `shiftId` to edit, or `date` to add.
+ * A new shift is prefilled from the week's last shift so repeats are quick.
+ * A shift deleted after it was worked opens with only Worked, so its hours
+ * can still be changed. This route loads the data and keeps it live.
  */
 export default function ShiftScreen() {
   const { teacherId, weekStart, shiftId, date } = useLocalSearchParams<{
@@ -158,46 +155,42 @@ export default function ShiftScreen() {
       reason,
     });
 
-  if (draft === 'missing') {
-    // Deleted from the schedule. If it was worked, its hours are still here.
+  if (draft === 'missing' && !row) {
+    // Gone, and never worked: nothing left to show.
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
-        <Stack.Screen options={{ title: row ? 'Removed Shift' : title }} />
-        <ScrollView contentContainerStyle={styles.content}>
+        <Stack.Screen options={{ title }} />
+        <View style={styles.content}>
           <Text variant={typography.bodyLarge} style={styles.missingText}>
-            {row
-              ? 'This shift was removed from the schedule after it was worked.'
-              : 'This shift no longer exists. Someone may have just removed it.'}
+            This shift no longer exists. Someone may have just removed it.
           </Text>
-          {row && <TimeWorkedPanel row={row} onCorrect={onCorrect} />}
           <Button mode="outlined" onPress={() => router.back()} style={styles.close}>
             Close
           </Button>
-        </ScrollView>
+        </View>
       </SafeAreaView>
     );
   }
 
+  const shift = draft === 'missing' ? null : draft;
   return (
-    <>
-      <Stack.Screen options={{ title }} />
-      <ShiftForm
-        shift={draft}
-        isNew={!shiftId}
-        otherShifts={shifts}
-        locations={locations}
-        onSave={(s) => saveShift(orgId, teacherId, weekStart, s, user.uid)}
-        onDelete={(s) => deleteShift(orgId, teacherId, weekStart, s.id, user.uid)}
-        onDone={() => router.back()}
-        notice={
-          draft.templateId
-            ? `From ${templateNames.has(draft.templateId) ? `the ${templateNames.get(draft.templateId)}` : 'a'} schedule. Changes here are for this day only; to change every week, edit the schedule in Timekeeping.`
-            : undefined
-        }
-      >
-        {row && <TimeWorkedPanel row={row} onCorrect={onCorrect} />}
-      </ShiftForm>
-    </>
+    <ShiftSheet
+      title={shift ? title : 'Removed Shift'}
+      shift={shift}
+      stored={shiftId ? (shifts.find((s) => s.id === shiftId) ?? null) : null}
+      isNew={!shiftId}
+      otherShifts={shifts}
+      locations={locations}
+      row={row}
+      notice={
+        shift?.templateId
+          ? `From ${templateNames.has(shift.templateId) ? `the ${templateNames.get(shift.templateId)}` : 'a'} schedule. Changes here are for this day only; to change every week, edit the schedule in Timekeeping.`
+          : undefined
+      }
+      onSaveShift={(s) => saveShift(orgId, teacherId, weekStart, s, user.uid)}
+      onDeleteShift={(s) => deleteShift(orgId, teacherId, weekStart, s.id, user.uid)}
+      onCorrect={onCorrect}
+    />
   );
 }
 
@@ -216,4 +209,3 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
 });
-

@@ -22,6 +22,7 @@
 ## timesheet.ts
 - Admin timesheets: `timesheetRows` (schedule + entries, removed-but-worked shifts kept), `totals` / `workedOfScheduled`, `clockedInNow`, and `STATUS_LABEL`. Tested in `tests/timesheet.test.ts`.
 - Choose People (`peoplePicker.ts`): `peopleSummary` (a row's 'Aisha Khan and Omar Ali' / 'All 12 people'), `pickResult`, `filterPeople`. Tested in `tests/peoplePicker.test.ts`.
+- Shift sheet (`shiftSheet.ts`): `shiftStatus` (the pill), `hasHappened` (lead with Worked), `canEditWorked`, `initialWorked`, `scheduleChanged`, `workedProblem` (the server's correction rules). Tested in `tests/shiftSheet.test.ts`.
 - Timesheet PDF (`timesheetExport.ts`): date ranges (`rangeProblem`, six months at most; `rangeWeeks`, the Mondays to read; presets), `readChosenOnly` (read just the chosen people's weeks or the whole organization's, whichever reads less), `rowsInRange`, `personTotals`, and `timesheetHtml` for expo-print, with every name, note and location HTML-escaped. Tested in `tests/timesheetExport.test.ts`.
 
 ## authErrors.ts
