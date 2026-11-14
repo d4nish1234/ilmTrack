@@ -17,6 +17,7 @@ import { Button, Input, AppSnackbar } from '../../src/components/common';
 import { UserRole } from '../../src/types';
 import { getAuthErrorMessage } from '../../src/utils/authErrors';
 import { getInvitedParentInfo } from '../../src/services/student.service';
+import { colors, fontSize, fontWeight, typography } from '../../src/constants/theme';
 
 const schema = yup.object({
   firstName: yup.string().required('First name is required'),
@@ -125,16 +126,16 @@ export default function SignupScreen() {
         keyboardDismissMode="on-drag"
       >
         <View style={styles.header}>
-          <Text variant="displaySmall" style={styles.title}>
+          <Text variant={typography.display} style={styles.title}>
             ilmTrack
           </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
+          <Text variant={typography.bodyLarge} style={styles.subtitle}>
             Create your account
           </Text>
         </View>
 
         <View style={styles.form}>
-          <Text variant="titleMedium" style={styles.roleLabel}>
+          <Text variant={typography.h4} style={styles.roleLabel}>
             I am a:
           </Text>
           <SegmentedButtons
@@ -208,7 +209,7 @@ export default function SignupScreen() {
         </View>
 
         <View style={styles.footer}>
-          <Text variant="bodyMedium">Already have an account?</Text>
+          <Text variant={typography.body}>Already have an account?</Text>
           <Link href="/(auth)/login" asChild>
             <Button mode="text">Sign In</Button>
           </Link>
@@ -223,7 +224,7 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -235,11 +236,11 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   title: {
-    fontWeight: 'bold',
-    color: '#1a73e8',
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
   },
   subtitle: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 8,
   },
   form: {
@@ -247,7 +248,7 @@ const styles = StyleSheet.create({
   },
   roleLabel: {
     marginBottom: 8,
-    color: '#333',
+    color: colors.text,
   },
   segmentedButtons: {
     marginBottom: 16,
@@ -260,8 +261,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inviteFound: {
-    color: '#4caf50',
-    fontSize: 13,
+    color: colors.success,
+    fontSize: fontSize.sm,
     marginTop: -8,
     marginBottom: 8,
   },

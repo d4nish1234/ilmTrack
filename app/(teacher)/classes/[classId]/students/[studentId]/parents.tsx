@@ -20,6 +20,7 @@ import { firestore } from '../../../../../../src/config/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Student, Parent } from '../../../../../../src/types';
 import { unlinkParentsFromStudent } from '../../../../../../src/utils/parentLinkCleanup';
+import { colors, fontSize, fontWeight, radius, typography } from '../../../../../../src/constants/theme';
 
 const parentSchema = yup.object({
   firstName: yup.string().required('First name is required'),
@@ -219,7 +220,7 @@ export default function EditParentsScreen() {
           headerLeft: () => (
             <IconButton
               icon="arrow-left"
-              iconColor="#fff"
+              iconColor={colors.onPrimary}
               size={24}
               style={{ margin: 0 }}
               onPress={() => router.back()}
@@ -237,12 +238,12 @@ export default function EditParentsScreen() {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
           >
-            <Text variant="bodyMedium" style={styles.studentName}>
+            <Text variant={typography.body} style={styles.studentName}>
               Student: {student.firstName} {student.lastName}
             </Text>
 
             <View style={styles.parentHeader}>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
+              <Text variant={typography.h4} style={styles.sectionTitle}>
                 Parents/Guardians
               </Text>
               {fields.length < 2 && (
@@ -271,7 +272,7 @@ export default function EditParentsScreen() {
                 <View key={field.id} style={styles.parentSection}>
                   <View style={styles.parentTitleRow}>
                     <View style={styles.parentTitleLeft}>
-                      <Text variant="titleSmall" style={styles.parentTitle}>
+                      <Text variant={typography.h5} style={styles.parentTitle}>
                         Parent {index + 1}
                       </Text>
                       {isExisting && (
@@ -330,12 +331,12 @@ export default function EditParentsScreen() {
                   />
 
                   {isSoleParentField && (
-                    <Text variant="bodySmall" style={styles.editEmailNote}>
+                    <Text variant={typography.caption} style={styles.editEmailNote}>
                       Changing the email will unlink the current parent and send a new invite
                     </Text>
                   )}
                   {!isExisting && (
-                    <Text variant="bodySmall" style={styles.newParentNote}>
+                    <Text variant={typography.caption} style={styles.newParentNote}>
                       An invitation will be sent to this email
                     </Text>
                   )}
@@ -365,7 +366,7 @@ export default function EditParentsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   keyboardView: {
     flex: 1,
@@ -379,11 +380,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   studentName: {
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 16,
   },
   sectionTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
   },
   parentHeader: {
     flexDirection: 'row',
@@ -394,8 +395,8 @@ const styles = StyleSheet.create({
   parentSection: {
     marginBottom: 16,
     padding: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
   },
   parentTitleRow: {
     flexDirection: 'row',
@@ -409,16 +410,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   parentTitle: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   statusChip: {
     marginLeft: 4,
   },
   acceptedChip: {
-    backgroundColor: '#e8f5e9',
+    backgroundColor: colors.successSoft,
   },
   statusText: {
-    fontSize: 11,
+    fontSize: fontSize.xs,
     textTransform: 'capitalize',
   },
   nameRow: {
@@ -429,12 +430,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   newParentNote: {
-    color: '#1a73e8',
+    color: colors.primary,
     fontStyle: 'italic',
     marginTop: -4,
   },
   editEmailNote: {
-    color: '#f57c00',
+    color: colors.warning,
     fontStyle: 'italic',
     marginTop: -4,
   },

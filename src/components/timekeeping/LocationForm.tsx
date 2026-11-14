@@ -7,6 +7,7 @@ import * as Location from 'expo-location';
 import { Button } from '../common';
 import type { TimekeepingLocation } from '../../types';
 import { DEFAULT_RADIUS_M, RADIUS_OPTIONS_M, errorMessage } from '../../utils/timekeeping';
+import { colors, radius, typography } from '../../constants/theme';
 
 interface LocationFormProps {
   /** The location being edited, or null for a new one. */
@@ -180,7 +181,7 @@ export function LocationForm({
           Use my current location
         </Button>
 
-        <Text variant="bodySmall" style={styles.or}>
+        <Text variant={typography.caption} style={styles.or}>
           or
         </Text>
 
@@ -203,16 +204,16 @@ export function LocationForm({
 
         {pin && (
           <View style={styles.pin}>
-            <Text variant="labelMedium" style={styles.pinLabel}>
+            <Text variant={typography.labelMedium} style={styles.pinLabel}>
               Pinned at
             </Text>
-            <Text variant="bodyMedium">
+            <Text variant={typography.body}>
               {pin.address ?? `${pin.latitude.toFixed(5)}, ${pin.longitude.toFixed(5)}`}
             </Text>
           </View>
         )}
 
-        <Text variant="bodyLarge" style={styles.radiusLabel}>
+        <Text variant={typography.bodyLarge} style={styles.radiusLabel}>
           How close teachers must be
         </Text>
         <SegmentedButtons
@@ -222,7 +223,7 @@ export function LocationForm({
         />
 
         {error && (
-          <Text variant="bodyMedium" style={styles.error}>
+          <Text variant={typography.body} style={styles.error}>
             {error}
           </Text>
         )}
@@ -241,7 +242,7 @@ export function LocationForm({
             Save
           </Button>
           {location && (
-            <Button mode="outlined" textColor="#d32f2f" onPress={confirmRemove} disabled={!!busy}>
+            <Button mode="outlined" textColor={colors.danger} onPress={confirmRemove} disabled={!!busy}>
               Delete location
             </Button>
           )}
@@ -257,28 +258,28 @@ export function LocationForm({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 16,
   },
   input: {
     marginBottom: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   or: {
     textAlign: 'center',
-    color: '#888',
+    color: colors.textDisabled,
     marginVertical: 8,
   },
   pin: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
     padding: 12,
     marginBottom: 12,
   },
   pinLabel: {
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 2,
   },
   radiusLabel: {
@@ -286,7 +287,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   error: {
-    color: '#d32f2f',
+    color: colors.danger,
     marginTop: 12,
   },
   actions: {

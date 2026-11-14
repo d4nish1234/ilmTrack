@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../../src/components/common';
 import { peoplePickerRequest } from '../../../src/components/timekeeping/peoplePicker';
 import { filterPeople, pickResult } from '../../../src/utils/peoplePicker';
+import { colors, typography } from '../../../src/constants/theme';
 
 /**
  * Choose People, shared by every screen that picks people (opened with
@@ -53,7 +54,7 @@ export default function ChoosePeopleScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <View style={styles.header}>
-        <Text variant="titleSmall" style={styles.count}>
+        <Text variant={typography.h5} style={styles.count}>
           {allTicked ? `Everyone · ${people.length}` : `${tickedCount} of ${people.length} chosen`}
         </Text>
         {shown.length > 1 && (
@@ -87,7 +88,7 @@ export default function ChoosePeopleScreen() {
           />
         )}
         ListEmptyComponent={
-          <Text variant="bodyMedium" style={styles.empty}>
+          <Text variant={typography.body} style={styles.empty}>
             {search.trim()
               ? 'No one matches.'
               : "No one to choose yet. People appear here once they teach one of the organization's classes."}
@@ -106,7 +107,7 @@ export default function ChoosePeopleScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -117,7 +118,7 @@ const styles = StyleSheet.create({
     minHeight: 52,
   },
   count: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   search: {
     marginHorizontal: 16,
@@ -127,12 +128,12 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   empty: {
-    color: '#666',
+    color: colors.textSecondary,
     padding: 16,
   },
   footer: {
     paddingHorizontal: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#ddd',
+    borderTopColor: colors.border,
   },
 });

@@ -7,6 +7,7 @@ import { subscribeToStudents, subscribeToStudentsAsAdmin } from '../../../../src
 import { LoadingSpinner } from '../../../../src/components/common';
 import { useAuth } from '../../../../src/contexts/AuthContext';
 import { Class, Student } from '../../../../src/types';
+import { colors, fontWeight, typography } from '../../../../src/constants/theme';
 
 export default function ClassDetailScreen() {
   const { classId } = useLocalSearchParams<{ classId: string }>();
@@ -82,10 +83,10 @@ export default function ClassDetailScreen() {
     <TouchableOpacity onPress={() => handleStudentPress(item)}>
       <Card style={styles.studentCard}>
         <Card.Content style={styles.cardContent}>
-          <Text variant="titleMedium" style={styles.studentName}>
+          <Text variant={typography.h4} style={styles.studentName}>
             {item.lastName}, {item.firstName}
           </Text>
-          <Text variant="bodySmall" style={styles.parentInfo}>
+          <Text variant={typography.caption} style={styles.parentInfo}>
             {item.parents.length} parent{item.parents.length !== 1 ? 's' : ''}
           </Text>
         </Card.Content>
@@ -110,7 +111,7 @@ export default function ClassDetailScreen() {
               anchor={
                 <IconButton
                   icon="dots-vertical"
-                  iconColor="#fff"
+                  iconColor={colors.onPrimary}
                   size={24}
                   style={{ margin: 0 }}
                   onPress={openMenu}
@@ -141,14 +142,14 @@ export default function ClassDetailScreen() {
       <View style={styles.container}>
         {classData?.description && (
           <View style={styles.descriptionContainer}>
-            <Text variant="bodyMedium" style={styles.description}>
+            <Text variant={typography.body} style={styles.description}>
               {classData.description}
             </Text>
           </View>
         )}
 
         <View style={styles.header}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
+          <Text variant={typography.h4} style={styles.sectionTitle}>
             Students ({students.length})
           </Text>
         </View>
@@ -162,7 +163,7 @@ export default function ClassDetailScreen() {
           />
         ) : (
           <View style={styles.emptyState}>
-            <Text variant="bodyMedium" style={styles.emptyMessage}>
+            <Text variant={typography.body} style={styles.emptyMessage}>
               No students in this class yet
             </Text>
           </View>
@@ -181,23 +182,23 @@ export default function ClassDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
   },
   descriptionContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   description: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   header: {
     padding: 16,
     paddingBottom: 8,
   },
   sectionTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
   },
   listContent: {
     paddingHorizontal: 16,
@@ -205,7 +206,7 @@ const styles = StyleSheet.create({
   },
   studentCard: {
     marginBottom: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   cardContent: {
     flexDirection: 'row',
@@ -213,10 +214,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   studentName: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
   },
   parentInfo: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   emptyState: {
     flex: 1,
@@ -225,12 +226,12 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   emptyMessage: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   fab: {
     position: 'absolute',
     right: 16,
     bottom: 16,
-    backgroundColor: '#1a73e8',
+    backgroundColor: colors.primary,
   },
 });

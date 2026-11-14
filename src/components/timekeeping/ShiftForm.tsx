@@ -8,6 +8,7 @@ import { Button } from '../common';
 import { TimeField } from './TimeField';
 import type { Shift, TimekeepingLocation } from '../../types';
 import { errorMessage, formatDuration, shiftMinutes, shiftProblem } from '../../utils/timekeeping';
+import { colors, fontWeight, typography } from '../../constants/theme';
 
 interface ShiftFormProps {
   /** The shift being edited, or a new one prefilled with a date and default times. */
@@ -64,35 +65,35 @@ export function ShiftForm({
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAwareScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" bottomOffset={16}>
-        <Text variant="titleLarge" style={styles.title}>
+        <Text variant={typography.h3} style={styles.title}>
           {format(parseISO(draft.date), 'EEEE, MMM d')}
         </Text>
         {!!notice && (
-          <Text variant="bodyMedium" style={styles.notice}>
+          <Text variant={typography.body} style={styles.notice}>
             {notice}
           </Text>
         )}
 
         <View style={styles.row}>
-          <Text variant="bodyLarge">Start</Text>
+          <Text variant={typography.bodyLarge}>Start</Text>
           <TimeField value={draft.start} onChange={(start) => setDraft({ ...draft, start })} />
         </View>
         <View style={styles.row}>
-          <Text variant="bodyLarge">End</Text>
+          <Text variant={typography.bodyLarge}>End</Text>
           <TimeField value={draft.end} onChange={(end) => setDraft({ ...draft, end })} />
         </View>
         <View style={styles.row}>
-          <Text variant="bodyLarge" style={styles.muted}>
+          <Text variant={typography.bodyLarge} style={styles.muted}>
             Total
           </Text>
-          <Text variant="bodyLarge" style={styles.muted}>
+          <Text variant={typography.bodyLarge} style={styles.muted}>
             {formatDuration(shiftMinutes(draft))}
           </Text>
         </View>
 
         {(locations.length > 1 || locationMissing) && (
           <View style={styles.locations}>
-            <Text variant="bodyLarge" style={styles.locationsLabel}>
+            <Text variant={typography.bodyLarge} style={styles.locationsLabel}>
               Location
             </Text>
             <View style={styles.chips}>
@@ -112,7 +113,7 @@ export function ShiftForm({
         )}
 
         {(error || problem || locationMissing) && (
-          <Text variant="bodyMedium" style={styles.error}>
+          <Text variant={typography.body} style={styles.error}>
             {error ?? problem ?? 'Choose a location.'}
           </Text>
         )}
@@ -128,7 +129,7 @@ export function ShiftForm({
           {!isNew && (
             <Button
               mode="outlined"
-              textColor="#d32f2f"
+              textColor={colors.danger}
               onPress={() => run(() => onDelete(draft))}
               disabled={saving}
             >
@@ -148,17 +149,17 @@ export function ShiftForm({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 16,
   },
   title: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 16,
   },
   notice: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: -8,
     marginBottom: 16,
   },
@@ -169,7 +170,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   muted: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   locations: {
     marginTop: 8,
@@ -186,7 +187,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   error: {
-    color: '#d32f2f',
+    color: colors.danger,
     marginTop: 12,
   },
   actions: {

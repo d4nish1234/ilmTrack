@@ -1,22 +1,17 @@
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ChildFilterProvider } from '../../src/contexts/ChildFilterContext';
+import { colors, headerOptions } from '../../src/constants/theme';
 
 export default function ParentLayout() {
   return (
     <ChildFilterProvider>
       <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#1a73e8',
-        tabBarInactiveTintColor: '#5f6368',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
         headerShown: true,
-        headerStyle: {
-          backgroundColor: '#1a73e8',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: '600',
-        },
+        ...headerOptions,
       }}
     >
       <Tabs.Screen

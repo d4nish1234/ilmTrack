@@ -10,6 +10,7 @@ import { firestore } from '../../src/config/firebase';
 import { doc, getDoc, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { getHomeworkPaginatedForParent } from '../../src/services/homework.service';
 import { format } from 'date-fns';
+import { colors, fontWeight, statusColor, typography } from '../../src/constants/theme';
 
 // Deduplicate students by name (same child in multiple classes)
 function deduplicateStudentsByName(students: Student[]): Student[] {
@@ -47,13 +48,13 @@ function EvaluationDisplay({ evaluation }: { evaluation: HomeworkEvaluation }) {
           <IconButton
             key={star}
             icon={star <= evaluation ? 'star' : 'star-outline'}
-            iconColor={star <= evaluation ? '#ffc107' : '#ddd'}
+            iconColor={star <= evaluation ? colors.star : colors.disabled}
             size={18}
             style={{ margin: 0, padding: 0 }}
           />
         ))}
       </View>
-      <Text variant="bodySmall" style={evaluationStyles.label}>
+      <Text variant={typography.caption} style={evaluationStyles.label}>
         {EVALUATION_LABELS[evaluation]}
       </Text>
     </View>
@@ -65,15 +66,15 @@ const evaluationStyles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: colors.divider,
   },
   starsRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   label: {
-    color: '#666',
-    fontWeight: '500',
+    color: colors.textSecondary,
+    fontWeight: fontWeight.medium,
     marginTop: 2,
   },
 });
@@ -168,7 +169,7 @@ export default function ParentHomeworkScreen() {
       headerRight: () => (
         <IconButton
           icon="refresh"
-          iconColor="#fff"
+          iconColor={colors.onPrimary}
           size={24}
           onPress={onRefresh}
           disabled={refreshing}
@@ -228,57 +229,45 @@ export default function ParentHomeworkScreen() {
     return student ? `${student.firstName} ${student.lastName}` : 'Unknown';
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return '#4caf50';
-      case 'incomplete':
-        return '#f44336';
-      case 'late':
-        return '#ff9800';
-      default:
-        return '#2196f3';
-    }
-  };
 
   const renderHomework = ({ item }: { item: Homework }) => (
     <Card style={styles.card}>
       <Card.Content>
         <View style={styles.header}>
           <View style={styles.titleContainer}>
-            <Text variant="titleMedium" style={styles.title}>
+            <Text variant={typography.h4} style={styles.title}>
               {item.title}
             </Text>
-            <Text variant="bodySmall" style={styles.studentName}>
+            <Text variant={typography.caption} style={styles.studentName}>
               {getStudentName(item.studentId)}
             </Text>
-            <Text variant="bodySmall" style={styles.date}>
+            <Text variant={typography.caption} style={styles.date}>
               {item.createdAt ? format(item.createdAt.toDate(), 'MMM d, yyyy') : 'Just now'}
             </Text>
           </View>
           <Chip
             compact
-            style={{ backgroundColor: getStatusColor(item.status) }}
-            textStyle={{ color: '#fff' }}
+            style={{ backgroundColor: statusColor(item.status) }}
+            textStyle={{ color: colors.onPrimary }}
           >
             {item.status}
           </Chip>
         </View>
 
         {item.description && (
-          <Text variant="bodyMedium" style={styles.description}>
+          <Text variant={typography.body} style={styles.description}>
             {item.description}
           </Text>
         )}
 
         {item.dueDate && (
-          <Text variant="bodySmall" style={styles.dueDate}>
+          <Text variant={typography.caption} style={styles.dueDate}>
             Due: {format(item.dueDate.toDate(), 'MMM d, yyyy')}
           </Text>
         )}
 
         {item.notes && (
-          <Text variant="bodySmall" style={styles.notes}>
+          <Text variant={typography.caption} style={styles.notes}>
             Note: {item.notes}
           </Text>
         )}
@@ -287,7 +276,7 @@ export default function ParentHomeworkScreen() {
           <>
             <EvaluationDisplay evaluation={item.evaluation} />
             {item.evaluationNotes && (
-              <Text variant="bodySmall" style={styles.evaluationNotes}>
+              <Text variant={typography.caption} style={styles.evaluationNotes}>
                 {item.evaluationNotes}
               </Text>
             )}
@@ -344,7 +333,7 @@ export default function ParentHomeworkScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text variant="bodyMedium" style={styles.emptyText}>
+            <Text variant={typography.body} style={styles.emptyText}>
               {emptyMessage}
             </Text>
           </View>
@@ -370,12 +359,12 @@ export default function ParentHomeworkScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
   },
   filterContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   filterScroll: {
     paddingHorizontal: 12,
@@ -394,7 +383,7 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -406,32 +395,32 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   title: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
   },
   studentName: {
-    color: '#1a73e8',
+    color: colors.primary,
     marginTop: 2,
   },
   date: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   description: {
     marginTop: 12,
-    color: '#444',
+    color: colors.text,
   },
   dueDate: {
     marginTop: 8,
-    color: '#666',
+    color: colors.textSecondary,
   },
   notes: {
     marginTop: 8,
-    color: '#666',
+    color: colors.textSecondary,
     fontStyle: 'italic',
   },
   evaluationNotes: {
     marginTop: 6,
-    color: '#666',
+    color: colors.textSecondary,
     fontStyle: 'italic',
   },
   emptyContainer: {
@@ -440,7 +429,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   loadMoreButton: {
     marginTop: 8,

@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { TextInput, HelperText } from 'react-native-paper';
 import { Control, Controller, FieldValues, Path } from 'react-hook-form';
+import { colors } from '../../constants/theme';
 
 interface InputProps<T extends FieldValues> {
   control: Control<T>;
@@ -98,7 +99,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   dismissContainer: {
     flex: 1,

@@ -15,7 +15,7 @@ import {
 import { countingFrom, formatClock, formatWorked, wallTime, workedMs } from '../../utils/timeclock';
 import { currentWeekStart, formatTime } from '../../utils/timekeeping';
 import type { ShiftView } from '../../types';
-import { useAppTheme } from '../../constants/theme';
+import { colors, fontWeight, typography, useAppTheme } from '../../constants/theme';
 import { WeekRow } from './WeekRow';
 import { TimeHistory } from './TimeHistory';
 import { useAuth } from '../../contexts/AuthContext';
@@ -148,7 +148,7 @@ export function TimeClockSheet({ onDone }: TimeClockSheetProps) {
               />
               {error && (
                 <View style={styles.errorBox}>
-                  <Text variant="bodyMedium" style={styles.error}>
+                  <Text variant={typography.body} style={styles.error}>
                     {error.message}
                   </Text>
                   {error.problem && NEEDS_SETTINGS.includes(error.problem) && (
@@ -163,7 +163,7 @@ export function TimeClockSheet({ onDone }: TimeClockSheetProps) {
         )}
 
         {shifts.length > 0 && (
-          <Text variant="titleMedium" style={styles.weekTitle}>
+          <Text variant={typography.h4} style={styles.weekTitle}>
             This week
           </Text>
         )}
@@ -219,26 +219,26 @@ function FocusCard({
       const startsLater = now < s.startAt;
       return (
         <>
-          <Text variant="labelLarge" style={[styles.status, { color: (running ? tone.running : tone.paused).fg }]}>
+          <Text variant={typography.label} style={[styles.status, { color: (running ? tone.running : tone.paused).fg }]}>
             {running ? 'ON SHIFT' : 'ON BREAK'}
           </Text>
-          <Text variant="displaySmall" style={styles.timer}>
+          <Text variant={typography.display} style={styles.timer}>
             {formatClock(workedMs(s.entry!, s.startAt, s.endAt, now))}
           </Text>
           {startsLater ? (
-            <Text variant="bodyMedium" style={styles.muted}>
+            <Text variant={typography.body} style={styles.muted}>
               Your time will start automatically at {formatTime(s.start)}.
             </Text>
           ) : (
-            <Text variant="bodyMedium" style={styles.muted}>
+            <Text variant={typography.body} style={styles.muted}>
               {counting ? `Started ${clockTime(counting, s.timezone)} · ` : ''}ends automatically at {formatTime(s.end)}
             </Text>
           )}
-          <Text variant="bodyMedium" style={styles.muted}>
+          <Text variant={typography.body} style={styles.muted}>
             {place(s)}
           </Text>
           {pendingEnd === s.entryId ? (
-            <Text variant="bodyMedium" style={[styles.pending, { color: tone.paused.fg }]}>
+            <Text variant={typography.body} style={[styles.pending, { color: tone.paused.fg }]}>
               Ended offline. It will be saved, with the time you tapped End, once you’re back online.
             </Text>
           ) : (
@@ -254,7 +254,7 @@ function FocusCard({
               )}
               <Button
                 mode="outlined"
-                textColor="#d32f2f"
+                textColor={colors.danger}
                 onPress={() => onEnd(s)}
                 disabled={busy}
                 style={styles.half}
@@ -270,13 +270,13 @@ function FocusCard({
       const s = focus.shift;
       return (
         <>
-          <Text variant="labelLarge" style={[styles.status, { color: tone.ready.fg }]}>
+          <Text variant={typography.label} style={[styles.status, { color: tone.ready.fg }]}>
             TODAY
           </Text>
-          <Text variant="headlineSmall" style={styles.heading}>
+          <Text variant={typography.h2} style={styles.heading}>
             {shiftTimes(s)}
           </Text>
-          <Text variant="bodyMedium" style={styles.muted}>
+          <Text variant={typography.body} style={styles.muted}>
             {place(s)}
           </Text>
           <Button onPress={() => onStart(s)} loading={busy} disabled={busy} icon="play" style={styles.primary}>
@@ -291,16 +291,16 @@ function FocusCard({
       const opens = s.startAt - earlyStartMs;
       return (
         <>
-          <Text variant="labelLarge" style={[styles.status, { color: tone.idle.fg }]}>
+          <Text variant={typography.label} style={[styles.status, { color: tone.idle.fg }]}>
             {focus.kind === 'later-today' ? 'LATER TODAY' : `NEXT · ${format(parseISO(s.date), 'EEEE').toUpperCase()}`}
           </Text>
-          <Text variant="headlineSmall" style={styles.heading}>
+          <Text variant={typography.h2} style={styles.heading}>
             {shiftTimes(s)}
           </Text>
-          <Text variant="bodyMedium" style={styles.muted}>
+          <Text variant={typography.body} style={styles.muted}>
             {place(s)}
           </Text>
-          <Text variant="bodyMedium" style={styles.hint}>
+          <Text variant={typography.body} style={styles.hint}>
             You can start from {clockTime(opens, s.timezone)}.
           </Text>
         </>
@@ -312,13 +312,13 @@ function FocusCard({
       // end before the server's close-out makes it final.
       return (
         <>
-          <Text variant="labelLarge" style={[styles.status, { color: tone.idle.fg }]}>
+          <Text variant={typography.label} style={[styles.status, { color: tone.idle.fg }]}>
             TODAY
           </Text>
-          <Text variant="headlineSmall" style={styles.heading}>
+          <Text variant={typography.h2} style={styles.heading}>
             {formatWorked(focus.workedTodayMs)} worked
           </Text>
-          <Text variant="bodyMedium" style={styles.muted}>
+          <Text variant={typography.body} style={styles.muted}>
             Your shift ended at {formatTime(focus.shift.end)}. It’s saved automatically.
           </Text>
         </>
@@ -326,13 +326,13 @@ function FocusCard({
     case 'week-over':
       return (
         <>
-          <Text variant="labelLarge" style={[styles.status, { color: tone.idle.fg }]}>
+          <Text variant={typography.label} style={[styles.status, { color: tone.idle.fg }]}>
             THIS WEEK
           </Text>
-          <Text variant="headlineSmall" style={styles.heading}>
+          <Text variant={typography.h2} style={styles.heading}>
             {formatWorked(focus.workedWeekMs)} worked
           </Text>
-          <Text variant="bodyMedium" style={styles.muted}>
+          <Text variant={typography.body} style={styles.muted}>
             No more shifts this week.
           </Text>
         </>
@@ -340,13 +340,13 @@ function FocusCard({
     default:
       return (
         <>
-          <Text variant="labelLarge" style={[styles.status, { color: tone.idle.fg }]}>
+          <Text variant={typography.label} style={[styles.status, { color: tone.idle.fg }]}>
             THIS WEEK
           </Text>
-          <Text variant="headlineSmall" style={styles.heading}>
+          <Text variant={typography.h2} style={styles.heading}>
             No shifts yet
           </Text>
-          <Text variant="bodyMedium" style={styles.hint}>
+          <Text variant={typography.body} style={styles.hint}>
             When an admin schedules you, your shifts appear here and you can start them from this
             sheet. Start is available {earlyStartMs / 60_000} minutes before each shift.
           </Text>
@@ -386,31 +386,31 @@ function ShiftSummary({ shift, now, showOrg, onDone }: { shift: ShiftView; now: 
   return (
     <Card style={styles.card} mode="contained">
       <Card.Content>
-        <Text variant="labelLarge" style={[styles.status, { color: tone.idle.fg }]}>
+        <Text variant={typography.label} style={[styles.status, { color: tone.idle.fg }]}>
           {entry.correction
             ? 'SHIFT EDITED BY ADMIN'
             : entry.endedBy === 'schedule'
               ? 'SHIFT ENDED AUTOMATICALLY'
               : 'SHIFT ENDED'}
         </Text>
-        <Text variant="titleMedium" style={styles.heading}>
+        <Text variant={typography.h4} style={styles.heading}>
           {format(parseISO(shift.date), 'EEEE, MMM d')}
         </Text>
-        <Text variant="bodyMedium" style={styles.muted}>
+        <Text variant={typography.body} style={styles.muted}>
           {[shift.locationName, showOrg ? shift.orgName : ''].filter(Boolean).join(' · ')}
         </Text>
 
         <View style={styles.summaryRow}>
-          <Text variant="titleMedium">
+          <Text variant={typography.h4}>
             {first ? clockTime(first, shift.timezone) : '—'} → {lastEnd ? clockTime(lastEnd, shift.timezone) : '—'}
           </Text>
-          <Text variant="titleMedium" style={styles.total}>
+          <Text variant={typography.h4} style={styles.total}>
             {formatWorked(worked)}
           </Text>
         </View>
 
         {entry.correction && (
-          <Text variant="bodyMedium" style={[styles.edited, { color: tone.paused.fg }]}>
+          <Text variant={typography.body} style={[styles.edited, { color: tone.paused.fg }]}>
             Your admin changed this shift’s time: {entry.correction.reason}
           </Text>
         )}
@@ -425,7 +425,7 @@ function ShiftSummary({ shift, now, showOrg, onDone }: { shift: ShiftView; now: 
           style={styles.note}
         />
         {message && (
-          <Text variant="bodyMedium" style={styles.error}>
+          <Text variant={typography.body} style={styles.error}>
             {message}
           </Text>
         )}
@@ -440,31 +440,31 @@ function ShiftSummary({ shift, now, showOrg, onDone }: { shift: ShiftView; now: 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 16,
   },
   card: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.surface,
   },
   status: {
-    fontWeight: '700',
+    fontWeight: fontWeight.bold,
   },
   timer: {
     fontVariant: ['tabular-nums'],
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginVertical: 4,
   },
   heading: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginTop: 4,
   },
   muted: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   hint: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 12,
   },
   pending: {
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   error: {
-    color: '#d32f2f',
+    color: colors.danger,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -495,10 +495,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   total: {
-    fontWeight: '700',
+    fontWeight: fontWeight.bold,
   },
   note: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   edited: {
     marginBottom: 12,
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
   },
 
   weekTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginTop: 24,
     marginBottom: 8,
   },

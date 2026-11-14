@@ -39,6 +39,7 @@ import {
   isSameDay,
   getDay,
 } from 'date-fns';
+import { colors, fontSize, fontWeight, radius, typography } from '../../constants/theme';
 
 const schema = yup.object({
   notes: yup.string(),
@@ -174,7 +175,7 @@ export function AddAttendanceForm({ classId, studentId, onDone }: AddAttendanceF
             icon="chevron-left"
             onPress={() => setCalendarMonth(subMonths(calendarMonth, 1))}
           />
-          <Text variant="titleMedium" style={styles.calendarTitle}>
+          <Text variant={typography.h4} style={styles.calendarTitle}>
             {format(calendarMonth, 'MMMM yyyy')}
           </Text>
           <IconButton
@@ -234,7 +235,7 @@ export function AddAttendanceForm({ classId, studentId, onDone }: AddAttendanceF
           keyboardDismissMode="on-drag"
         >
           <View style={styles.dateContainer}>
-            <Text variant="titleMedium">Date</Text>
+            <Text variant={typography.h4}>Date</Text>
             <TouchableOpacity
               style={styles.dateSelector}
               onPress={() => {
@@ -242,7 +243,7 @@ export function AddAttendanceForm({ classId, studentId, onDone }: AddAttendanceF
                 setShowDatePicker(true);
               }}
             >
-              <Text variant="bodyLarge" style={styles.dateText}>
+              <Text variant={typography.bodyLarge} style={styles.dateText}>
                 {format(date, 'EEEE, MMMM d, yyyy')}
               </Text>
               <IconButton icon="calendar" size={20} />
@@ -287,7 +288,7 @@ export function AddAttendanceForm({ classId, studentId, onDone }: AddAttendanceF
           </View>
 
           <View style={styles.statusContainer}>
-            <Text variant="titleMedium" style={styles.label}>
+            <Text variant={typography.h4} style={styles.label}>
               Attendance Status
             </Text>
             <SegmentedButtons
@@ -338,7 +339,7 @@ export function AddAttendanceForm({ classId, studentId, onDone }: AddAttendanceF
         >
           <TouchableOpacity activeOpacity={1} onPress={() => {}}>
             <View style={styles.modalContainer}>
-              <Text variant="titleLarge" style={styles.modalTitle}>
+              <Text variant={typography.h3} style={styles.modalTitle}>
                 Select Date
               </Text>
               {renderCalendar()}
@@ -358,7 +359,7 @@ export function AddAttendanceForm({ classId, studentId, onDone }: AddAttendanceF
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   keyboardView: {
     flex: 1,
@@ -369,8 +370,8 @@ const styles = StyleSheet.create({
   dateContainer: {
     marginBottom: 20,
     padding: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
   },
   dateSelector: {
     flexDirection: 'row',
@@ -379,7 +380,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   dateText: {
-    color: '#333',
+    color: colors.text,
     flex: 1,
   },
   quickDates: {
@@ -390,18 +391,18 @@ const styles = StyleSheet.create({
   quickDateButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#e0e0e0',
+    borderRadius: radius.xl,
+    backgroundColor: colors.border,
   },
   quickDateActive: {
-    backgroundColor: '#1a73e8',
+    backgroundColor: colors.primary,
   },
   quickDateText: {
-    fontSize: 13,
-    color: '#333',
+    fontSize: fontSize.sm,
+    color: colors.text,
   },
   quickDateActiveText: {
-    color: '#fff',
+    color: colors.onPrimary,
   },
   statusContainer: {
     marginBottom: 16,
@@ -417,19 +418,19 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: colors.scrim,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     margin: 20,
     padding: 20,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     width: '90%',
   },
   modalTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -443,7 +444,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   calendarTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
   },
   weekDays: {
     flexDirection: 'row',
@@ -453,9 +454,9 @@ const styles = StyleSheet.create({
   weekDay: {
     width: 36,
     textAlign: 'center',
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '500',
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: fontWeight.medium,
   },
   weekRow: {
     flexDirection: 'row',
@@ -470,18 +471,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   selectedDay: {
-    backgroundColor: '#1a73e8',
+    backgroundColor: colors.primary,
   },
   today: {
     borderWidth: 1,
-    borderColor: '#1a73e8',
+    borderColor: colors.primary,
   },
   dayText: {
-    fontSize: 14,
-    color: '#333',
+    fontSize: fontSize.md,
+    color: colors.text,
   },
   selectedDayText: {
-    color: '#fff',
-    fontWeight: '600',
+    color: colors.onPrimary,
+    fontWeight: fontWeight.semibold,
   },
 });

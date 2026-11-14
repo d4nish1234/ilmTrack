@@ -1,17 +1,12 @@
 import { Stack, router } from 'expo-router';
 import { IconButton } from 'react-native-paper';
+import { colors, headerOptions } from '../../../../../../../src/constants/theme';
 
 export default function HomeworkLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: {
-          backgroundColor: '#1a73e8',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: '600',
-        },
+        ...headerOptions,
         gestureEnabled: false,
       }}
     >
@@ -22,7 +17,7 @@ export default function HomeworkLayout() {
           headerLeft: () => (
             <IconButton
               icon="arrow-left"
-              iconColor="#fff"
+              iconColor={colors.onPrimary}
               size={24}
               style={{ margin: 0 }}
               onPress={() => router.back()}

@@ -9,6 +9,7 @@ import { useAuth } from '../../../../../../src/contexts/AuthContext';
 import { LoadingSpinner, Button } from '../../../../../../src/components/common';
 import { Student, Homework, Attendance, Parent } from '../../../../../../src/types';
 import { format } from 'date-fns';
+import { colors, fontSize, statusColor, typography } from '../../../../../../src/constants/theme';
 
 interface ParentDisplayInfo {
   firstName: string;
@@ -127,20 +128,6 @@ export default function StudentDetailScreen() {
     setMenuVisible(false);
   }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'present':
-        return '#4caf50';
-      case 'absent':
-        return '#f44336';
-      case 'late':
-        return '#ff9800';
-      case 'excused':
-        return '#2196f3';
-      default:
-        return '#666';
-    }
-  };
 
   if (loading) {
     return <LoadingSpinner message="Loading student..." />;
@@ -162,7 +149,7 @@ export default function StudentDetailScreen() {
           headerLeft: () => (
             <IconButton
               icon="arrow-left"
-              iconColor="#fff"
+              iconColor={colors.onPrimary}
               size={24}
               onPress={() => router.back()}
               style={styles.headerButton}
@@ -176,7 +163,7 @@ export default function StudentDetailScreen() {
               anchor={
                 <IconButton
                   icon="dots-vertical"
-                  iconColor="#fff"
+                  iconColor={colors.onPrimary}
                   size={24}
                   onPress={openMenu}
                   style={styles.headerButton}
@@ -249,10 +236,10 @@ export default function StudentDetailScreen() {
             {parentDisplayInfo.map((parent, index) => (
               <View key={index} style={styles.parentItem}>
                 <View style={styles.parentInfo}>
-                  <Text variant="titleSmall">
+                  <Text variant={typography.h5}>
                     {parent.firstName} {parent.lastName}
                   </Text>
-                  <Text variant="bodySmall" style={styles.email}>
+                  <Text variant={typography.caption} style={styles.email}>
                     {parent.email}
                   </Text>
                 </View>
@@ -293,13 +280,13 @@ export default function StudentDetailScreen() {
             {recentAttendance.length > 0 ? (
               recentAttendance.map((record) => (
                 <View key={record.id} style={styles.recordItem}>
-                  <Text variant="bodyMedium">
+                  <Text variant={typography.body}>
                     {record.date ? format(record.date.toDate(), 'MMM d, yyyy') : 'Today'}
                   </Text>
                   <Chip
                     compact
-                    style={{ backgroundColor: getStatusColor(record.status) }}
-                    textStyle={{ color: '#fff' }}
+                    style={{ backgroundColor: statusColor(record.status) }}
+                    textStyle={{ color: colors.onPrimary }}
                   >
                     {record.status}
                   </Chip>
@@ -333,8 +320,8 @@ export default function StudentDetailScreen() {
               recentHomework.map((hw) => (
                 <View key={hw.id} style={styles.homeworkItem}>
                   <View style={styles.homeworkInfo}>
-                    <Text variant="titleSmall">{hw.title}</Text>
-                    <Text variant="bodySmall" style={styles.date}>
+                    <Text variant={typography.h5}>{hw.title}</Text>
+                    <Text variant={typography.caption} style={styles.date}>
                       {hw.createdAt ? format(hw.createdAt.toDate(), 'MMM d, yyyy') : 'Just now'}
                     </Text>
                   </View>
@@ -356,7 +343,7 @@ export default function StudentDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
   },
   errorContainer: {
     flex: 1,
@@ -374,7 +361,7 @@ const styles = StyleSheet.create({
   card: {
     marginHorizontal: 16,
     marginBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   parentItem: {
     flexDirection: 'row',
@@ -382,23 +369,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.divider,
   },
   parentInfo: {
     flex: 1,
   },
   email: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   statusChip: {
     marginLeft: 8,
   },
   acceptedChip: {
-    backgroundColor: '#e8f5e9',
+    backgroundColor: colors.successSoft,
   },
   inviteStatus: {
-    fontSize: 11,
+    fontSize: fontSize.xs,
     textTransform: 'capitalize',
   },
   recordItem: {
@@ -407,7 +394,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.divider,
   },
   homeworkItem: {
     flexDirection: 'row',
@@ -415,21 +402,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.divider,
   },
   homeworkInfo: {
     flex: 1,
   },
   date: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   emptyText: {
-    color: '#666',
+    color: colors.textSecondary,
     fontStyle: 'italic',
   },
   menuContent: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   headerButton: {
     margin: 0,

@@ -13,6 +13,7 @@ import { Button, Input, AppSnackbar } from '../common';
 import { SurahAyahInput, SurahAyahSelection } from './SurahAyahInput';
 import { surahAyahRangeProblem } from '../../data/quranSurahs';
 import { Student } from '../../types';
+import { colors, fontSize, radius, typography } from '../../constants/theme';
 
 const schema = yup.object({
   title: yup.string().required('Title is required'),
@@ -200,7 +201,7 @@ export function AddHomeworkForm({ classId, studentId, onDone }: AddHomeworkFormP
             <View ref={menuAnchorRef}>
               <IconButton
                 icon="dots-vertical"
-                iconColor="#fff"
+                iconColor={colors.onPrimary}
                 size={24}
                 onPress={openMenu}
                 style={styles.headerButton}
@@ -224,7 +225,7 @@ export function AddHomeworkForm({ classId, studentId, onDone }: AddHomeworkFormP
                   {quranMode && (
                     <IconButton icon="check" size={20} style={styles.menuIcon} />
                   )}
-                  <Text variant="bodyLarge" style={[styles.menuText, !quranMode && styles.menuTextNoIcon]}>
+                  <Text variant={typography.bodyLarge} style={[styles.menuText, !quranMode && styles.menuTextNoIcon]}>
                     Quran Mode
                   </Text>
                 </TouchableOpacity>
@@ -299,7 +300,7 @@ export function AddHomeworkForm({ classId, studentId, onDone }: AddHomeworkFormP
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   keyboardView: {
     flex: 1,
@@ -315,15 +316,15 @@ const styles = StyleSheet.create({
   },
   menuBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: colors.scrim,
   },
   menuContent: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
+    backgroundColor: colors.background,
+    borderRadius: radius.md,
     paddingVertical: 4,
     minWidth: 180,
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -339,7 +340,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   menuText: {
-    fontSize: 16,
+    fontSize: fontSize.lg,
   },
   menuTextNoIcon: {
     paddingLeft: 8,

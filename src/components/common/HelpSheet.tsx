@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from './Button';
+import { colors, fontWeight, typography } from '../../constants/theme';
 
 export interface HelpItem {
   /** A MaterialCommunityIcons name. */
@@ -30,11 +31,11 @@ interface HelpSheetProps {
 export function HelpSheet({ title, intro, items, onDone }: HelpSheetProps) {
   return (
     <SafeAreaView edges={['bottom']} style={styles.container}>
-      <Text variant="titleLarge" style={styles.title}>
+      <Text variant={typography.h3} style={styles.title}>
         {title}
       </Text>
       {intro && (
-        <Text variant="bodyMedium" style={styles.intro}>
+        <Text variant={typography.body} style={styles.intro}>
           {intro}
         </Text>
       )}
@@ -43,14 +44,14 @@ export function HelpSheet({ title, intro, items, onDone }: HelpSheetProps) {
           <MaterialCommunityIcons
             name={item.icon as keyof typeof MaterialCommunityIcons.glyphMap}
             size={24}
-            color="#1a73e8"
+            color={colors.primary}
             style={styles.icon}
           />
           <View style={styles.itemText}>
-            <Text variant="titleSmall" style={styles.itemTitle}>
+            <Text variant={typography.h5} style={styles.itemTitle}>
               {item.title}
             </Text>
-            <Text variant="bodyMedium" style={styles.muted}>
+            <Text variant={typography.body} style={styles.muted}>
               {item.text}
             </Text>
           </View>
@@ -77,8 +78,8 @@ export function HelpLink({ label, onPress }: HelpLinkProps) {
       accessibilityRole="button"
       hitSlop={8}
     >
-      <MaterialCommunityIcons name="alert-circle-outline" size={18} color="#1557b0" />
-      <Text variant="labelLarge" style={styles.linkText}>
+      <MaterialCommunityIcons name="alert-circle-outline" size={18} color={colors.primaryDark} />
+      <Text variant={typography.label} style={styles.linkText}>
         {label}
       </Text>
     </Pressable>
@@ -87,16 +88,16 @@ export function HelpLink({ label, onPress }: HelpLinkProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     paddingHorizontal: 24,
     paddingTop: 28,
   },
   title: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 6,
   },
   intro: {
-    color: '#555',
+    color: colors.textSecondary,
     marginBottom: 12,
   },
   item: {
@@ -111,11 +112,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 2,
   },
   muted: {
-    color: '#555',
+    color: colors.textSecondary,
   },
   done: {
     marginTop: 16,
@@ -133,7 +134,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   linkText: {
-    color: '#1557b0',
-    fontWeight: '700',
+    color: colors.primaryDark,
+    fontWeight: fontWeight.bold,
   },
 });

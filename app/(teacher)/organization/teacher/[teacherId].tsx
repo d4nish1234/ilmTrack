@@ -28,6 +28,7 @@ import {
 } from '../../../../src/utils/timekeeping';
 import { templateTitle } from '../../../../src/utils/scheduleTemplates';
 import { timesheetRows, totals, type TimesheetRow } from '../../../../src/utils/timesheet';
+import { colors, fontWeight, radius, typography } from '../../../../src/constants/theme';
 
 function deviceTimezone(): string {
   try {
@@ -250,8 +251,8 @@ export default function TeacherWeekScreen() {
           accessibilityLabel="Previous week"
         />
         <Pressable onPress={() => setWeekStart(thisWeek)} style={styles.weekLabel}>
-          <Text variant="titleMedium">Week of {format(parseISO(weekStart), 'MMM d')}</Text>
-          <Text variant="bodySmall" style={styles.muted}>
+          <Text variant={typography.h4}>Week of {format(parseISO(weekStart), 'MMM d')}</Text>
+          <Text variant={typography.caption} style={styles.muted}>
             {weekStart === thisWeek ? 'This week' : 'Tap for this week'}
           </Text>
         </Pressable>
@@ -270,14 +271,14 @@ export default function TeacherWeekScreen() {
             <View key={date}>
               <View style={styles.day}>
                 <View style={styles.dayLabel}>
-                  <Text variant="titleSmall">{format(parseISO(date), 'EEE')}</Text>
-                  <Text variant="bodySmall" style={styles.muted}>
+                  <Text variant={typography.h5}>{format(parseISO(date), 'EEE')}</Text>
+                  <Text variant={typography.caption} style={styles.muted}>
                     {format(parseISO(date), 'd')}
                   </Text>
                 </View>
                 <View style={styles.dayShifts}>
                   {dayRows.length === 0 && (
-                    <Text variant="bodyMedium" style={styles.none}>
+                    <Text variant={typography.body} style={styles.none}>
                       —
                     </Text>
                   )}
@@ -288,19 +289,19 @@ export default function TeacherWeekScreen() {
                       onPress={() => openShift({ shiftId: r.shiftId, date: r.date })}
                       accessibilityRole="button"
                     >
-                      <Text variant="bodyMedium" style={[styles.shiftTime, r.removed && styles.removedText]}>
+                      <Text variant={typography.body} style={[styles.shiftTime, r.removed && styles.removedText]}>
                         {formatTime(r.start)}–{formatTime(r.end)}
                         {r.removed ? ' · removed' : ''}
                       </Text>
                       {(locations.length > 1 || r.removed || !!templateOf(r.shiftId)) && (
-                        <Text variant="bodySmall" style={styles.muted} numberOfLines={1}>
+                        <Text variant={typography.caption} style={styles.muted} numberOfLines={1}>
                           {[locations.length > 1 || r.removed ? r.locationName : '', templateOf(r.shiftId)]
                             .filter(Boolean)
                             .join(' · ')}
                         </Text>
                       )}
                       {!!workedLabel(r) && (
-                        <Text variant="bodySmall" style={styles.worked}>
+                        <Text variant={typography.caption} style={styles.worked}>
                           {workedLabel(r)}
                         </Text>
                       )}
@@ -309,7 +310,7 @@ export default function TeacherWeekScreen() {
                 </View>
                 <IconButton
                   icon="plus"
-                  iconColor="#1a73e8"
+                  iconColor={colors.primary}
                   onPress={() => openShift({ date })}
                   disabled={locations.length === 0}
                   accessibilityLabel={`Add shift on ${format(parseISO(date), 'EEEE')}`}
@@ -322,7 +323,7 @@ export default function TeacherWeekScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Text variant="bodyMedium" style={styles.total}>
+        <Text variant={typography.body} style={styles.total}>
           {weekSummary(shifts)} · worked {formatDuration(worked.workedMinutes)}
         </Text>
         <View style={styles.footerButtons}>
@@ -360,7 +361,7 @@ export default function TeacherWeekScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   weekBar: {
     flexDirection: 'row',
@@ -372,17 +373,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   muted: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   worked: {
-    color: '#444',
+    color: colors.text,
     marginTop: 2,
   },
   removedShift: {
-    backgroundColor: '#f1f3f4',
+    backgroundColor: colors.surface,
   },
   removedText: {
-    color: '#5f6368',
+    color: colors.textSecondary,
   },
   footerButtons: {
     flexDirection: 'row',
@@ -405,28 +406,28 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   none: {
-    color: '#bbb',
+    color: colors.disabled,
   },
   shift: {
     alignSelf: 'flex-start',
-    backgroundColor: '#eef3fd',
-    borderRadius: 8,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.md,
     paddingHorizontal: 12,
     paddingVertical: 6,
     marginVertical: 3,
   },
   shiftTime: {
-    color: '#1a73e8',
-    fontWeight: '600',
+    color: colors.primary,
+    fontWeight: fontWeight.semibold,
   },
   footer: {
     padding: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#ddd',
+    borderTopColor: colors.border,
   },
   total: {
     textAlign: 'center',
     marginBottom: 8,
-    color: '#444',
+    color: colors.text,
   },
 });

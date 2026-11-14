@@ -8,6 +8,7 @@ import { LoadingSpinner } from '../../../../../../../src/components/common';
 import { Homework, HomeworkStatus, HomeworkEvaluation, EVALUATION_LABELS } from '../../../../../../../src/types';
 import { format } from 'date-fns';
 import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { colors, fontSize, fontWeight, radius, statusColor, typography } from '../../../../../../../src/constants/theme';
 
 // Star rating component
 function StarRating({
@@ -33,7 +34,7 @@ function StarRating({
           >
             <IconButton
               icon={rating && star <= rating ? 'star' : 'star-outline'}
-              iconColor={rating && star <= rating ? '#ffc107' : '#ccc'}
+              iconColor={rating && star <= rating ? colors.star : colors.disabled}
               size={readonly ? 16 : 32}
               style={{ margin: 0 }}
             />
@@ -65,12 +66,12 @@ const starStyles = StyleSheet.create({
   },
   label: {
     marginTop: 8,
-    color: '#666',
-    fontWeight: '500',
+    color: colors.textSecondary,
+    fontWeight: fontWeight.medium,
   },
   labelSmall: {
     marginTop: 2,
-    fontSize: 11,
+    fontSize: fontSize.xs,
   },
 });
 
@@ -216,28 +217,16 @@ export default function HomeworkListScreen() {
     setEvaluationComment('');
   };
 
-  const getStatusColor = (status: HomeworkStatus) => {
-    switch (status) {
-      case 'completed':
-        return '#4caf50';
-      case 'incomplete':
-        return '#f44336';
-      case 'late':
-        return '#ff9800';
-      default:
-        return '#2196f3';
-    }
-  };
 
   const renderHomework = ({ item }: { item: Homework }) => (
     <Card style={styles.card}>
       <Card.Content>
         <View style={styles.header}>
           <View style={styles.titleContainer}>
-            <Text variant="titleMedium" style={styles.title}>
+            <Text variant={typography.h4} style={styles.title}>
               {item.title}
             </Text>
-            <Text variant="bodySmall" style={styles.date}>
+            <Text variant={typography.caption} style={styles.date}>
               {item.createdAt ? format(item.createdAt.toDate(), 'MMM d, yyyy') : 'Just now'}
             </Text>
           </View>
@@ -283,13 +272,13 @@ export default function HomeworkListScreen() {
               title="Delete"
               onPress={() => handleDelete(item.id)}
               leadingIcon="delete"
-              titleStyle={{ color: '#d32f2f' }}
+              titleStyle={{ color: colors.danger }}
             />
           </Menu>
         </View>
 
         {item.description && (
-          <Text variant="bodyMedium" style={styles.description}>
+          <Text variant={typography.body} style={styles.description}>
             {item.description}
           </Text>
         )}
@@ -297,20 +286,20 @@ export default function HomeworkListScreen() {
         <View style={styles.footer}>
           <Chip
             compact
-            style={{ backgroundColor: getStatusColor(item.status) }}
-            textStyle={{ color: '#fff' }}
+            style={{ backgroundColor: statusColor(item.status) }}
+            textStyle={{ color: colors.onPrimary }}
           >
             {item.status}
           </Chip>
           {item.dueDate && (
-            <Text variant="bodySmall" style={styles.dueDate}>
+            <Text variant={typography.caption} style={styles.dueDate}>
               Due: {format(item.dueDate.toDate(), 'MMM d, yyyy')}
             </Text>
           )}
         </View>
 
         {item.notes && (
-          <Text variant="bodySmall" style={styles.notes}>
+          <Text variant={typography.caption} style={styles.notes}>
             Note: {item.notes}
           </Text>
         )}
@@ -319,7 +308,7 @@ export default function HomeworkListScreen() {
           <View style={styles.evaluationContainer}>
             <StarRating rating={item.evaluation} readonly />
             {item.evaluationNotes && (
-              <Text variant="bodySmall" style={styles.evaluationNotes}>
+              <Text variant={typography.caption} style={styles.evaluationNotes}>
                 {item.evaluationNotes}
               </Text>
             )}
@@ -357,7 +346,7 @@ export default function HomeworkListScreen() {
         />
       ) : (
         <View style={styles.emptyState}>
-          <Text variant="bodyMedium" style={styles.emptyText}>
+          <Text variant={typography.body} style={styles.emptyText}>
             No homework assigned yet
           </Text>
         </View>
@@ -384,10 +373,10 @@ export default function HomeworkListScreen() {
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View>
-              <Text variant="titleLarge" style={styles.modalTitle}>
+              <Text variant={typography.h3} style={styles.modalTitle}>
                 Evaluate Homework
               </Text>
-              <Text variant="bodyMedium" style={styles.modalSubtitle}>
+              <Text variant={typography.body} style={styles.modalSubtitle}>
                 How did the student do?
               </Text>
 
@@ -433,7 +422,7 @@ export default function HomeworkListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
   },
   listContent: {
     padding: 16,
@@ -441,7 +430,7 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -452,15 +441,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
   },
   date: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   description: {
     marginTop: 8,
-    color: '#444',
+    color: colors.text,
   },
   footer: {
     flexDirection: 'row',
@@ -469,22 +458,22 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   dueDate: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   evaluationContainer: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: colors.divider,
   },
   evaluationNotes: {
     marginTop: 6,
-    color: '#666',
+    color: colors.textSecondary,
     fontStyle: 'italic',
   },
   notes: {
     marginTop: 8,
-    color: '#666',
+    color: colors.textSecondary,
     fontStyle: 'italic',
   },
   emptyState: {
@@ -493,7 +482,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   loadMoreButton: {
     marginTop: 8,
@@ -503,27 +492,27 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 16,
     bottom: 16,
-    backgroundColor: '#1a73e8',
+    backgroundColor: colors.primary,
   },
   modalContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     margin: 20,
     padding: 24,
-    borderRadius: 12,
+    borderRadius: radius.lg,
   },
   modalTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     textAlign: 'center',
     marginBottom: 4,
   },
   modalSubtitle: {
-    color: '#666',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
   },
   commentInput: {
     marginTop: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   modalActions: {
     marginTop: 24,
@@ -532,23 +521,23 @@ const styles = StyleSheet.create({
   modalButton: {
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    borderRadius: radius.md,
     alignItems: 'center',
   },
   saveButton: {
-    backgroundColor: '#1a73e8',
+    backgroundColor: colors.primary,
   },
   disabledButton: {
-    backgroundColor: '#ccc',
+    backgroundColor: colors.border,
   },
   saveButtonText: {
-    color: '#fff',
-    fontWeight: '600',
+    color: colors.onPrimary,
+    fontWeight: fontWeight.semibold,
   },
   cancelButton: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
   },
   cancelButtonText: {
-    color: '#666',
+    color: colors.textSecondary,
   },
 });

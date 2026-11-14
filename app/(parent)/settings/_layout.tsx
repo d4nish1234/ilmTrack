@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { colors, headerOptions } from '../../../src/constants/theme';
 
 /**
  * Settings and the pages it opens. Help lives here as a pushed screen rather
@@ -9,13 +10,7 @@ export default function SettingsLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: {
-          backgroundColor: '#1a73e8',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: '600',
-        },
+        ...headerOptions,
       }}
     >
       <Stack.Screen

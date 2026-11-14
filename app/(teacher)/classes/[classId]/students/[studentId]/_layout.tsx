@@ -1,16 +1,11 @@
 import { Stack } from 'expo-router';
+import { colors, headerOptions } from '../../../../../../src/constants/theme';
 
 export default function StudentDetailLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: {
-          backgroundColor: '#1a73e8',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: '600',
-        },
+        ...headerOptions,
         gestureEnabled: false,
       }}
     >

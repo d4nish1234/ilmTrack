@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Text, IconButton } from 'react-native-paper';
 import { Button } from '../common';
+import { colors, fontWeight, radius, typography } from '../../constants/theme';
 
 export interface ReportColumn {
   key: string;
@@ -71,10 +72,10 @@ export default function ReportModal({
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerText}>
-            <Text variant="titleMedium" style={styles.title}>
+            <Text variant={typography.h4} style={styles.title}>
               {title}
             </Text>
-            <Text variant="bodySmall" style={styles.subtitle}>
+            <Text variant={typography.caption} style={styles.subtitle}>
               {dateRange}
             </Text>
           </View>
@@ -94,7 +95,7 @@ export default function ReportModal({
               onPress={() => setSelectedStudent(null)}
             >
               <Text
-                variant="labelSmall"
+                variant={typography.labelSmall}
                 style={selectedStudent === null ? styles.chipTextActive : styles.chipText}
               >
                 All Students
@@ -107,7 +108,7 @@ export default function ReportModal({
                 onPress={() => setSelectedStudent(name)}
               >
                 <Text
-                  variant="labelSmall"
+                  variant={typography.labelSmall}
                   style={selectedStudent === name ? styles.chipTextActive : styles.chipText}
                 >
                   {name}
@@ -120,7 +121,7 @@ export default function ReportModal({
         {/* Table */}
         {displayedRows.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text variant="bodyMedium" style={styles.emptyText}>
+            <Text variant={typography.body} style={styles.emptyText}>
               No data found for the selected date range.
             </Text>
           </View>
@@ -132,7 +133,7 @@ export default function ReportModal({
                 <View style={styles.headerRow}>
                   {columns.map((col) => (
                     <View key={col.key} style={[styles.cell, { width: col.width }]}>
-                      <Text variant="labelSmall" style={styles.headerCell}>
+                      <Text variant={typography.labelSmall} style={styles.headerCell}>
                         {col.label}
                       </Text>
                     </View>
@@ -148,7 +149,7 @@ export default function ReportModal({
                     {columns.map((col) => (
                       <View key={col.key} style={[styles.cell, { width: col.width }]}>
                         <Text
-                          variant="bodySmall"
+                          variant={typography.caption}
                           style={[
                             styles.cellText,
                             col.align === 'left' && styles.leftAlignCell,
@@ -194,7 +195,7 @@ export default function ReportModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -204,21 +205,21 @@ const styles = StyleSheet.create({
     paddingTop: 48,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   headerText: {
     flex: 1,
   },
   title: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
   },
   subtitle: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   filterScroll: {
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
     flexGrow: 0,
   },
   filterContent: {
@@ -230,20 +231,20 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: '#c0c0c0',
-    backgroundColor: '#fff',
+    borderColor: colors.border,
+    backgroundColor: colors.background,
   },
   chipActive: {
-    backgroundColor: '#1a73e8',
-    borderColor: '#1a73e8',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   chipText: {
-    color: '#444',
+    color: colors.text,
   },
   chipTextActive: {
-    color: '#fff',
+    color: colors.onPrimary,
   },
   emptyContainer: {
     flex: 1,
@@ -252,7 +253,7 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   emptyText: {
-    color: '#666',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   tableScroll: {
@@ -260,41 +261,41 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    backgroundColor: '#1a73e8',
+    backgroundColor: colors.primary,
     paddingVertical: 10,
   },
   row: {
     flexDirection: 'row',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.divider,
   },
   evenRow: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: colors.surface,
   },
   cell: {
     paddingHorizontal: 6,
     justifyContent: 'center',
   },
   headerCell: {
-    color: '#fff',
-    fontWeight: '600',
+    color: colors.onPrimary,
+    fontWeight: fontWeight.semibold,
     textAlign: 'center',
   },
   cellText: {
     textAlign: 'center',
-    color: '#333',
+    color: colors.text,
   },
   leftAlignCell: {
     textAlign: 'left',
-    fontWeight: '500',
+    fontWeight: fontWeight.medium,
   },
   bottomBar: {
     flexDirection: 'row',
     padding: 16,
     gap: 12,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: colors.border,
   },
   bottomButton: {
     flex: 1,

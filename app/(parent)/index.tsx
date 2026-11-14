@@ -9,6 +9,7 @@ import { Student, Homework, Attendance } from '../../src/types';
 import { firestore } from '../../src/config/firebase';
 import { collection, doc, getDoc, getDocs, query, where, limit } from 'firebase/firestore';
 import { format } from 'date-fns';
+import { colors, fontSize, fontWeight, radius, statusColor, typography } from '../../src/constants/theme';
 
 // Deduplicate students by name (same child in multiple classes)
 function deduplicateStudentsByName(students: Student[]): Student[] {
@@ -165,7 +166,7 @@ export default function ParentHomeScreen() {
       headerRight: () => (
         <IconButton
           icon="refresh"
-          iconColor="#fff"
+          iconColor={colors.onPrimary}
           size={24}
           onPress={onRefresh}
           disabled={refreshing}
@@ -179,23 +180,6 @@ export default function ParentHomeScreen() {
     return student ? `${student.firstName} ${student.lastName}` : 'Unknown';
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'present':
-      case 'completed':
-        return '#4caf50';
-      case 'absent':
-      case 'incomplete':
-        return '#f44336';
-      case 'late':
-        return '#ff9800';
-      case 'excused':
-      case 'assigned':
-        return '#2196f3';
-      default:
-        return '#666';
-    }
-  };
 
   if (loading) {
     return <LoadingSpinner message="Loading..." />;
@@ -209,10 +193,10 @@ export default function ParentHomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <Text variant="titleMedium" style={styles.emptyTitle}>
+        <Text variant={typography.h4} style={styles.emptyTitle}>
           Welcome, {user?.firstName}!
         </Text>
-        <Text variant="bodyMedium" style={styles.emptyMessage}>
+        <Text variant={typography.body} style={styles.emptyMessage}>
           You&apos;re not linked to any students yet. Please wait for a teacher to
           send you an invitation.
         </Text>
@@ -229,7 +213,7 @@ export default function ParentHomeScreen() {
       }
     >
       <View style={styles.header}>
-        <Text variant="headlineSmall" style={styles.greeting}>
+        <Text variant={typography.h2} style={styles.greeting}>
           Welcome, {user?.firstName}!
         </Text>
       </View>
@@ -238,11 +222,11 @@ export default function ParentHomeScreen() {
       {showSystemBanner && (
         <View style={styles.notificationBanner}>
           <View style={styles.bannerContent}>
-            <Text variant="bodySmall" style={styles.bannerText}>
+            <Text variant={typography.caption} style={styles.bannerText}>
               Notifications are disabled. You won&apos;t receive homework alerts.
             </Text>
             <Text
-              variant="labelSmall"
+              variant={typography.labelSmall}
               style={styles.bannerLink}
               onPress={openSystemSettings}
             >
@@ -262,11 +246,11 @@ export default function ParentHomeScreen() {
       {showAppBanner && (
         <View style={styles.notificationBanner}>
           <View style={styles.bannerContent}>
-            <Text variant="bodySmall" style={styles.bannerText}>
+            <Text variant={typography.caption} style={styles.bannerText}>
               Notifications are turned off. You won&apos;t receive homework alerts.
             </Text>
             <Text
-              variant="labelSmall"
+              variant={typography.labelSmall}
               style={styles.bannerLink}
               onPress={openAppSettings}
             >
@@ -288,7 +272,7 @@ export default function ParentHomeScreen() {
         <Card.Content>
           {deduplicateStudentsByName(students).map((student) => (
             <View key={student.id} style={styles.studentItem}>
-              <Text variant="titleMedium">
+              <Text variant={typography.h4}>
                 {student.firstName} {student.lastName}
               </Text>
             </View>
@@ -304,16 +288,16 @@ export default function ParentHomeScreen() {
             recentHomework.map((hw) => (
               <View key={hw.id} style={styles.listItem}>
                 <View style={styles.itemInfo}>
-                  <Text variant="titleSmall">{hw.title}</Text>
-                  <Text variant="bodySmall" style={styles.subtext}>
+                  <Text variant={typography.h5}>{hw.title}</Text>
+                  <Text variant={typography.caption} style={styles.subtext}>
                     {getStudentName(hw.studentId)} -{' '}
                     {hw.createdAt ? format(hw.createdAt.toDate(), 'MMM d') : 'Just now'}
                   </Text>
                 </View>
                 <Chip
                   compact
-                  style={{ backgroundColor: getStatusColor(hw.status) }}
-                  textStyle={{ color: '#fff', fontSize: 10 }}
+                  style={{ backgroundColor: statusColor(hw.status) }}
+                  textStyle={{ color: colors.onPrimary, fontSize: fontSize.xs }}
                 >
                   {hw.status}
                 </Chip>
@@ -333,17 +317,17 @@ export default function ParentHomeScreen() {
             recentAttendance.map((att) => (
               <View key={att.id} style={styles.listItem}>
                 <View style={styles.itemInfo}>
-                  <Text variant="titleSmall">
+                  <Text variant={typography.h5}>
                     {att.date ? format(att.date.toDate(), 'EEEE, MMM d') : 'Today'}
                   </Text>
-                  <Text variant="bodySmall" style={styles.subtext}>
+                  <Text variant={typography.caption} style={styles.subtext}>
                     {getStudentName(att.studentId)}
                   </Text>
                 </View>
                 <Chip
                   compact
-                  style={{ backgroundColor: getStatusColor(att.status) }}
-                  textStyle={{ color: '#fff', fontSize: 10 }}
+                  style={{ backgroundColor: statusColor(att.status) }}
+                  textStyle={{ color: colors.onPrimary, fontSize: fontSize.xs }}
                 >
                   {att.status}
                 </Chip>
@@ -361,7 +345,7 @@ export default function ParentHomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
   },
   scrollContent: {
     flexGrow: 1,
@@ -369,22 +353,22 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   greeting: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
   },
   card: {
     margin: 16,
     marginBottom: 0,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   studentItem: {
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.divider,
   },
   listItem: {
     flexDirection: 'row',
@@ -392,17 +376,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.divider,
   },
   itemInfo: {
     flex: 1,
   },
   subtext: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   noData: {
-    color: '#666',
+    color: colors.textSecondary,
     fontStyle: 'italic',
   },
   emptyContainer: {
@@ -412,33 +396,33 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   emptyTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 16,
   },
   emptyMessage: {
-    color: '#666',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   notificationBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff3cd',
+    backgroundColor: colors.warningSoft,
     marginHorizontal: 16,
     marginTop: 12,
     paddingLeft: 12,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderLeftWidth: 3,
-    borderLeftColor: '#ffc107',
+    borderLeftColor: colors.star,
   },
   bannerContent: {
     flex: 1,
   },
   bannerText: {
-    color: '#856404',
+    color: colors.warning,
   },
   bannerLink: {
-    color: '#1a73e8',
+    color: colors.primary,
     marginTop: 4,
     textDecorationLine: 'underline',
   },

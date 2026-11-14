@@ -54,6 +54,7 @@ import {
   buildHomeworkRows,
   generateHomeworkHtml,
 } from '../../../../src/utils/reportUtils';
+import { colors, fontSize, fontWeight, radius, typography } from '../../../../src/constants/theme';
 
 const ATTENDANCE_COLUMNS: ReportColumn[] = [
   { key: 'date', label: 'Date', width: 100, align: 'left' },
@@ -320,7 +321,7 @@ export default function ReportsScreen() {
             icon="chevron-left"
             onPress={() => setCalendarMonth(subMonths(calendarMonth, 1))}
           />
-          <Text variant="titleMedium" style={styles.calendarTitle}>
+          <Text variant={typography.h4} style={styles.calendarTitle}>
             {format(calendarMonth, 'MMMM yyyy')}
           </Text>
           <IconButton
@@ -376,7 +377,7 @@ export default function ReportsScreen() {
           headerLeft: () => (
             <IconButton
               icon="close"
-              iconColor="#fff"
+              iconColor={colors.onPrimary}
               size={24}
               style={{ margin: 0 }}
               onPress={() => router.back()}
@@ -386,10 +387,10 @@ export default function ReportsScreen() {
       />
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
+          <Text variant={typography.h4} style={styles.sectionTitle}>
             Date Range
           </Text>
-          <Text variant="bodySmall" style={styles.hint}>
+          <Text variant={typography.caption} style={styles.hint}>
             Select the date range for your report
           </Text>
 
@@ -401,10 +402,10 @@ export default function ReportsScreen() {
                 setShowStartPicker(true);
               }}
             >
-              <Text variant="bodySmall" style={styles.dateLabel}>
+              <Text variant={typography.caption} style={styles.dateLabel}>
                 Start Date
               </Text>
-              <Text variant="bodyLarge" style={styles.dateValue}>
+              <Text variant={typography.bodyLarge} style={styles.dateValue}>
                 {format(startDate, 'MMM d, yyyy')}
               </Text>
             </TouchableOpacity>
@@ -418,10 +419,10 @@ export default function ReportsScreen() {
                 setShowEndPicker(true);
               }}
             >
-              <Text variant="bodySmall" style={styles.dateLabel}>
+              <Text variant={typography.caption} style={styles.dateLabel}>
                 End Date
               </Text>
-              <Text variant="bodyLarge" style={styles.dateValue}>
+              <Text variant={typography.bodyLarge} style={styles.dateValue}>
                 {format(endDate, 'MMM d, yyyy')}
               </Text>
             </TouchableOpacity>
@@ -429,10 +430,10 @@ export default function ReportsScreen() {
 
           <Divider style={styles.divider} />
 
-          <Text variant="titleMedium" style={styles.sectionTitle}>
+          <Text variant={typography.h4} style={styles.sectionTitle}>
             Export Data
           </Text>
-          <Text variant="bodySmall" style={styles.hint}>
+          <Text variant={typography.caption} style={styles.hint}>
             Download attendance or homework records as CSV
           </Text>
 
@@ -443,10 +444,10 @@ export default function ReportsScreen() {
               disabled={exporting}
             >
               <IconButton icon="calendar-check" size={32} />
-              <Text variant="titleSmall" style={styles.exportTitle}>
+              <Text variant={typography.h5} style={styles.exportTitle}>
                 Attendance Report
               </Text>
-              <Text variant="bodySmall" style={styles.exportDescription}>
+              <Text variant={typography.caption} style={styles.exportDescription}>
                 Export all attendance records for this class
               </Text>
             </TouchableOpacity>
@@ -457,10 +458,10 @@ export default function ReportsScreen() {
               disabled={exporting}
             >
               <IconButton icon="book-open-variant" size={32} />
-              <Text variant="titleSmall" style={styles.exportTitle}>
+              <Text variant={typography.h5} style={styles.exportTitle}>
                 Homework Report
               </Text>
-              <Text variant="bodySmall" style={styles.exportDescription}>
+              <Text variant={typography.caption} style={styles.exportDescription}>
                 Export all homework records with evaluations
               </Text>
             </TouchableOpacity>
@@ -471,10 +472,10 @@ export default function ReportsScreen() {
               disabled={exporting}
             >
               <IconButton icon="clipboard-text-outline" size={32} />
-              <Text variant="titleSmall" style={styles.exportTitle}>
+              <Text variant={typography.h5} style={styles.exportTitle}>
                 Class Summary
               </Text>
-              <Text variant="bodySmall" style={styles.exportDescription}>
+              <Text variant={typography.caption} style={styles.exportDescription}>
                 Per-student stats: stars, attendance, homework
               </Text>
             </TouchableOpacity>
@@ -483,7 +484,7 @@ export default function ReportsScreen() {
           {exporting && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" />
-              <Text variant="bodySmall" style={styles.loadingText}>
+              <Text variant={typography.caption} style={styles.loadingText}>
                 Preparing report...
               </Text>
             </View>
@@ -504,7 +505,7 @@ export default function ReportsScreen() {
           onPress={() => setShowStartPicker(false)}
         >
           <TouchableOpacity activeOpacity={1} style={styles.modalContainer}>
-            <Text variant="titleLarge" style={styles.modalTitle}>
+            <Text variant={typography.h3} style={styles.modalTitle}>
               Select Start Date
             </Text>
             {renderCalendar(true)}
@@ -528,7 +529,7 @@ export default function ReportsScreen() {
           onPress={() => setShowEndPicker(false)}
         >
           <TouchableOpacity activeOpacity={1} style={styles.modalContainer}>
-            <Text variant="titleLarge" style={styles.modalTitle}>
+            <Text variant={typography.h3} style={styles.modalTitle}>
               Select End Date
             </Text>
             {renderCalendar(false)}
@@ -557,17 +558,17 @@ export default function ReportsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     padding: 16,
   },
   sectionTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 4,
   },
   hint: {
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 16,
   },
   dateRow: {
@@ -578,18 +579,18 @@ const styles = StyleSheet.create({
   dateButton: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
   },
   dateLabel: {
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   dateValue: {
-    fontWeight: '500',
+    fontWeight: fontWeight.medium,
   },
   dateSeparator: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   divider: {
     marginVertical: 24,
@@ -599,16 +600,16 @@ const styles = StyleSheet.create({
   },
   exportCard: {
     padding: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     alignItems: 'center',
   },
   exportTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginTop: 4,
   },
   exportDescription: {
-    color: '#666',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 4,
   },
@@ -620,24 +621,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   loadingText: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.scrim,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     margin: 20,
     padding: 20,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     width: '90%',
     maxWidth: 400,
   },
   modalTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -651,7 +652,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   calendarTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
   },
   weekDays: {
     flexDirection: 'row',
@@ -661,9 +662,9 @@ const styles = StyleSheet.create({
   weekDay: {
     width: 36,
     textAlign: 'center',
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '500',
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: fontWeight.medium,
   },
   weekRow: {
     flexDirection: 'row',
@@ -678,18 +679,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   selectedDay: {
-    backgroundColor: '#1a73e8',
+    backgroundColor: colors.primary,
   },
   today: {
     borderWidth: 1,
-    borderColor: '#1a73e8',
+    borderColor: colors.primary,
   },
   dayText: {
-    fontSize: 14,
-    color: '#333',
+    fontSize: fontSize.md,
+    color: colors.text,
   },
   selectedDayText: {
-    color: '#fff',
-    fontWeight: '600',
+    color: colors.onPrimary,
+    fontWeight: fontWeight.semibold,
   },
 });

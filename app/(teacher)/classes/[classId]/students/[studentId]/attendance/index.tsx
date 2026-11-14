@@ -8,6 +8,7 @@ import { LoadingSpinner } from '../../../../../../../src/components/common';
 import { Attendance, AttendanceStatus } from '../../../../../../../src/types';
 import { format } from 'date-fns';
 import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { colors, statusColor, typography } from '../../../../../../../src/constants/theme';
 
 export default function AttendanceListScreen() {
   const { classId, studentId } = useLocalSearchParams<{
@@ -114,31 +115,17 @@ export default function AttendanceListScreen() {
     }
   };
 
-  const getStatusColor = (status: AttendanceStatus) => {
-    switch (status) {
-      case 'present':
-        return '#4caf50';
-      case 'absent':
-        return '#f44336';
-      case 'late':
-        return '#ff9800';
-      case 'excused':
-        return '#2196f3';
-      default:
-        return '#666';
-    }
-  };
 
   const renderAttendance = ({ item }: { item: Attendance }) => (
     <Card style={styles.card}>
       <Card.Content>
         <View style={styles.row}>
           <View style={styles.info}>
-            <Text variant="titleMedium">
+            <Text variant={typography.h4}>
               {item.date ? format(item.date.toDate(), 'EEEE, MMMM d, yyyy') : 'Today'}
             </Text>
             {item.notes && (
-              <Text variant="bodySmall" style={styles.notes}>
+              <Text variant={typography.caption} style={styles.notes}>
                 {item.notes}
               </Text>
             )}
@@ -147,8 +134,8 @@ export default function AttendanceListScreen() {
           <View style={styles.actions}>
             <Chip
               compact
-              style={{ backgroundColor: getStatusColor(item.status) }}
-              textStyle={{ color: '#fff' }}
+              style={{ backgroundColor: statusColor(item.status) }}
+              textStyle={{ color: colors.onPrimary }}
             >
               {item.status}
             </Chip>
@@ -190,7 +177,7 @@ export default function AttendanceListScreen() {
                 title="Delete"
                 onPress={() => handleDelete(item.id)}
                 leadingIcon="delete"
-                titleStyle={{ color: '#d32f2f' }}
+                titleStyle={{ color: colors.danger }}
               />
             </Menu>
           </View>
@@ -227,7 +214,7 @@ export default function AttendanceListScreen() {
         />
       ) : (
         <View style={styles.emptyState}>
-          <Text variant="bodyMedium" style={styles.emptyText}>
+          <Text variant={typography.body} style={styles.emptyText}>
             No attendance records yet
           </Text>
         </View>
@@ -250,7 +237,7 @@ export default function AttendanceListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
   },
   listContent: {
     padding: 16,
@@ -258,7 +245,7 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   row: {
     flexDirection: 'row',
@@ -269,7 +256,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notes: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   actions: {
@@ -282,7 +269,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   loadMoreButton: {
     marginTop: 8,
@@ -292,6 +279,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 16,
     bottom: 16,
-    backgroundColor: '#1a73e8',
+    backgroundColor: colors.primary,
   },
 });

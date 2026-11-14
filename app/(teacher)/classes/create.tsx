@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { createClass } from '../../../src/services/class.service';
 import { Button, Input, AppSnackbar } from '../../../src/components/common';
+import { colors } from '../../../src/constants/theme';
 
 const schema = yup.object({
   name: yup.string().required('Class name is required'),
@@ -90,7 +91,7 @@ export default function CreateClassScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   keyboardView: {
     flex: 1,

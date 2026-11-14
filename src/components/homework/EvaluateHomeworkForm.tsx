@@ -9,6 +9,7 @@ import { getRecentPendingHomeworkAsTeacher, updateHomework } from '../../service
 import { getStudent } from '../../services/student.service';
 import { AppSnackbar, Button } from '../common';
 import type { Homework, HomeworkEvaluation, HomeworkStatus, Student } from '../../types';
+import { colors, fontSize, fontWeight, radius, typography } from '../../constants/theme';
 
 interface EvaluateHomeworkFormProps {
   studentId: string | undefined;
@@ -109,7 +110,7 @@ export function EvaluateHomeworkForm({ studentId, onDone }: EvaluateHomeworkForm
           >
             <IconButton
               icon={star <= currentRating ? 'star' : 'star-outline'}
-              iconColor={star <= currentRating ? '#ffc107' : '#ccc'}
+              iconColor={star <= currentRating ? colors.star : colors.disabled}
               size={28}
               style={styles.noMargin}
             />
@@ -131,7 +132,7 @@ export function EvaluateHomeworkForm({ studentId, onDone }: EvaluateHomeworkForm
       onPress={() => handleQuickStatusUpdate(hw.id, status)}
       disabled={updatingHomeworkId === hw.id}
     >
-      <IconButton icon={icon} iconColor="#fff" size={24} style={styles.noMargin} />
+      <IconButton icon={icon} iconColor={colors.onPrimary} size={24} style={styles.noMargin} />
       <Text style={styles.statusButtonText}>{label}</Text>
     </TouchableOpacity>
   );
@@ -144,18 +145,18 @@ export function EvaluateHomeworkForm({ studentId, onDone }: EvaluateHomeworkForm
         bottomOffset={16}
       >
         {student && (
-          <Text variant="titleMedium" style={styles.studentName}>
+          <Text variant={typography.h4} style={styles.studentName}>
             {student.firstName} {student.lastName}
           </Text>
         )}
 
         {loading ? (
           <View style={styles.placeholder}>
-            <Text variant="bodyMedium" style={styles.muted}>Loading...</Text>
+            <Text variant={typography.body} style={styles.muted}>Loading...</Text>
           </View>
         ) : pendingHomework.length === 0 ? (
           <View style={styles.placeholder}>
-            <Text variant="bodyMedium" style={styles.muted}>
+            <Text variant={typography.body} style={styles.muted}>
               No pending homework to evaluate
             </Text>
           </View>
@@ -165,10 +166,10 @@ export function EvaluateHomeworkForm({ studentId, onDone }: EvaluateHomeworkForm
               <Card key={hw.id} style={styles.homeworkCard}>
                 <Card.Content style={styles.homeworkCardContent}>
                   <View style={styles.homeworkHeader}>
-                    <Text variant="titleMedium" style={styles.homeworkTitleText}>
+                    <Text variant={typography.h4} style={styles.homeworkTitleText}>
                       {hw.title}
                     </Text>
-                    <Text variant="bodySmall" style={styles.homeworkDate}>
+                    <Text variant={typography.caption} style={styles.homeworkDate}>
                       {hw.createdAt ? format(hw.createdAt.toDate(), 'MMM d') : 'Today'}
                     </Text>
                   </View>
@@ -214,13 +215,13 @@ export function EvaluateHomeworkForm({ studentId, onDone }: EvaluateHomeworkForm
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 16,
   },
   studentName: {
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 12,
   },
   placeholder: {
@@ -228,14 +229,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   muted: {
-    color: '#666',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   homeworkList: {
     gap: 12,
   },
   homeworkCard: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: colors.surface,
   },
   homeworkCardContent: {
     flexDirection: 'column',
@@ -248,11 +249,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   homeworkTitleText: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     flex: 1,
   },
   homeworkDate: {
-    color: '#666',
+    color: colors.textSecondary,
     marginLeft: 8,
   },
   starsContainer: {
@@ -267,8 +268,8 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   commentInput: {
-    backgroundColor: '#fff',
-    fontSize: 14,
+    backgroundColor: colors.background,
+    fontSize: fontSize.md,
   },
   statusButtons: {
     flexDirection: 'row',
@@ -278,27 +279,27 @@ const styles = StyleSheet.create({
   statusButton: {
     flex: 1,
     height: 56,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
   },
   statusComplete: {
-    backgroundColor: '#4caf50',
+    backgroundColor: colors.success,
   },
   statusLate: {
-    backgroundColor: '#ff9800',
+    backgroundColor: colors.warning,
   },
   statusIncomplete: {
-    backgroundColor: '#f44336',
+    backgroundColor: colors.danger,
   },
   statusButtonDisabled: {
     opacity: 0.5,
   },
   statusButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 12,
+    color: colors.onPrimary,
+    fontWeight: fontWeight.semibold,
+    fontSize: fontSize.sm,
     marginTop: -4,
   },
   closeButton: {

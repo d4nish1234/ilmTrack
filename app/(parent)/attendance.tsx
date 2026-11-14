@@ -10,6 +10,7 @@ import { firestore } from '../../src/config/firebase';
 import { doc, getDoc, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { getAttendancePaginatedForParent } from '../../src/services/attendance.service';
 import { format } from 'date-fns';
+import { colors, statusColor, typography } from '../../src/constants/theme';
 
 // Deduplicate students by name (same child in multiple classes)
 function deduplicateStudentsByName(students: Student[]): Student[] {
@@ -126,7 +127,7 @@ export default function ParentAttendanceScreen() {
       headerRight: () => (
         <IconButton
           icon="refresh"
-          iconColor="#fff"
+          iconColor={colors.onPrimary}
           size={24}
           onPress={onRefresh}
           disabled={refreshing}
@@ -186,42 +187,28 @@ export default function ParentAttendanceScreen() {
     return student ? `${student.firstName} ${student.lastName}` : 'Unknown';
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'present':
-        return '#4caf50';
-      case 'absent':
-        return '#f44336';
-      case 'late':
-        return '#ff9800';
-      case 'excused':
-        return '#2196f3';
-      default:
-        return '#666';
-    }
-  };
 
   const renderAttendance = ({ item }: { item: Attendance }) => (
     <Card style={styles.card}>
       <Card.Content>
         <View style={styles.row}>
           <View style={styles.info}>
-            <Text variant="titleMedium">
+            <Text variant={typography.h4}>
               {item.date ? format(item.date.toDate(), 'EEEE, MMMM d, yyyy') : 'Today'}
             </Text>
-            <Text variant="bodySmall" style={styles.studentName}>
+            <Text variant={typography.caption} style={styles.studentName}>
               {getStudentName(item.studentId)}
             </Text>
             {item.notes && (
-              <Text variant="bodySmall" style={styles.notes}>
+              <Text variant={typography.caption} style={styles.notes}>
                 {item.notes}
               </Text>
             )}
           </View>
           <Chip
             compact
-            style={{ backgroundColor: getStatusColor(item.status) }}
-            textStyle={{ color: '#fff' }}
+            style={{ backgroundColor: statusColor(item.status) }}
+            textStyle={{ color: colors.onPrimary }}
           >
             {item.status}
           </Chip>
@@ -277,7 +264,7 @@ export default function ParentAttendanceScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text variant="bodyMedium" style={styles.emptyText}>
+            <Text variant={typography.body} style={styles.emptyText}>
               {emptyMessage}
             </Text>
           </View>
@@ -303,12 +290,12 @@ export default function ParentAttendanceScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
   },
   filterContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   filterScroll: {
     paddingHorizontal: 12,
@@ -327,7 +314,7 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   row: {
     flexDirection: 'row',
@@ -339,11 +326,11 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   studentName: {
-    color: '#1a73e8',
+    color: colors.primary,
     marginTop: 4,
   },
   notes: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 4,
     fontStyle: 'italic',
   },
@@ -353,7 +340,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   loadMoreButton: {
     marginTop: 8,

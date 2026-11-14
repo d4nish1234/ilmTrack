@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { MINUTE_STEP, formatTime, fromMinutes, snapToStep } from '../../utils/timekeeping';
+import { colors, radius, typography } from '../../constants/theme';
 
 interface TimeFieldProps {
   /** 'HH:mm' */
@@ -63,7 +64,7 @@ export function TimeField({ value, onChange }: TimeFieldProps) {
         })
       }
     >
-      <Text variant="titleMedium" style={styles.androidText}>
+      <Text variant={typography.h4} style={styles.androidText}>
         {formatTime(value)}
       </Text>
     </Pressable>
@@ -74,10 +75,10 @@ const styles = StyleSheet.create({
   androidButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#eef3fd',
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
   },
   androidText: {
-    color: '#1a73e8',
+    color: colors.primary,
   },
 });

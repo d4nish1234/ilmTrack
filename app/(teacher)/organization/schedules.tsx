@@ -9,6 +9,7 @@ import { AppSnackbar, LoadingSpinner } from '../../../src/components/common';
 import type { ScheduleTemplate, TimekeepingSettings } from '../../../src/types';
 import { hasEnded, templateDescription, templateTitle } from '../../../src/utils/scheduleTemplates';
 import { todayIn } from '../../../src/utils/timekeeping';
+import { colors, typography } from '../../../src/constants/theme';
 
 /**
  * The organization's schedule templates: current and upcoming ones, Add
@@ -58,7 +59,7 @@ export default function SchedulesScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView>
-        <Text variant="bodyMedium" style={styles.intro}>
+        <Text variant={typography.body} style={styles.intro}>
           The same shifts for many people, for a term or any dates. Changes apply to everyone&apos;s weeks straight away.
         </Text>
         <List.Section>
@@ -67,11 +68,11 @@ export default function SchedulesScreen() {
             <List.Item
               title="Add schedule"
               titleStyle={styles.addText}
-              left={(props) => <List.Icon {...props} icon="plus" color="#1a73e8" />}
+              left={(props) => <List.Icon {...props} icon="plus" color={colors.primary} />}
               onPress={() => router.push('/(teacher)/organization/schedule')}
             />
           ) : (
-            <Text variant="bodyMedium" style={styles.intro}>
+            <Text variant={typography.body} style={styles.intro}>
               Add a location first, in Timekeeping Settings.
             </Text>
           )}
@@ -90,14 +91,14 @@ export default function SchedulesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   intro: {
-    color: '#666',
+    color: colors.textSecondary,
     paddingHorizontal: 16,
     paddingTop: 16,
   },
   addText: {
-    color: '#1a73e8',
+    color: colors.primary,
   },
 });

@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getStudent, updateStudent, deleteStudent } from '../../../../../../src/services/student.service';
 import { Button, Input, LoadingSpinner, AppSnackbar } from '../../../../../../src/components/common';
 import { Student } from '../../../../../../src/types';
+import { colors, fontWeight, radius, typography } from '../../../../../../src/constants/theme';
 
 const schema = yup.object({
   firstName: yup.string().required('First name is required'),
@@ -136,7 +137,7 @@ export default function EditStudentScreen() {
           headerLeft: () => (
             <IconButton
               icon="arrow-left"
-              iconColor="#fff"
+              iconColor={colors.onPrimary}
               size={24}
               style={{ margin: 0 }}
               onPress={() => router.back()}
@@ -155,7 +156,7 @@ export default function EditStudentScreen() {
             keyboardDismissMode="on-drag"
           >
             <View style={styles.section}>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
+              <Text variant={typography.h4} style={styles.sectionTitle}>
                 Student Details
               </Text>
 
@@ -188,17 +189,17 @@ export default function EditStudentScreen() {
 
             <Divider style={styles.dangerDivider} />
             <View style={styles.dangerZone}>
-              <Text variant="titleMedium" style={styles.dangerTitle}>
+              <Text variant={typography.h4} style={styles.dangerTitle}>
                 Danger Zone
               </Text>
-              <Text variant="bodySmall" style={styles.dangerNote}>
+              <Text variant={typography.caption} style={styles.dangerNote}>
                 Deleting this student will permanently remove all their homework and attendance records.
               </Text>
               <Button
                 mode="outlined"
                 onPress={handleDeleteStudent}
                 loading={deleting}
-                textColor="#d32f2f"
+                textColor={colors.danger}
                 style={styles.deleteButton}
               >
                 Delete Student
@@ -216,7 +217,7 @@ export default function EditStudentScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   keyboardView: {
     flex: 1,
@@ -233,7 +234,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 12,
   },
   actions: {
@@ -245,22 +246,22 @@ const styles = StyleSheet.create({
   },
   dangerZone: {
     padding: 16,
-    backgroundColor: '#fff5f5',
-    borderRadius: 8,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#ffcdd2',
+    borderColor: colors.dangerBorder,
     marginBottom: 32,
   },
   dangerTitle: {
-    fontWeight: '600',
-    color: '#d32f2f',
+    fontWeight: fontWeight.semibold,
+    color: colors.danger,
     marginBottom: 8,
   },
   dangerNote: {
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 16,
   },
   deleteButton: {
-    borderColor: '#d32f2f',
+    borderColor: colors.danger,
   },
 });

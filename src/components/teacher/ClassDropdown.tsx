@@ -4,6 +4,7 @@ import DropDownPicker from 'react-native-dropdown-picker';
 import { router } from 'expo-router';
 import { useClasses } from '../../hooks/useClasses';
 import { useSelectedClass } from '../../hooks/useSelectedClass';
+import { colors, fontSize, fontWeight, radius } from '../../constants/theme';
 
 const CREATE_CLASS_VALUE = '__CREATE_NEW_CLASS__';
 
@@ -99,29 +100,29 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
     zIndex: 1000,
   },
   dropdown: {
-    backgroundColor: '#f5f5f5',
-    borderColor: '#ddd',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.md,
   },
   dropdownContainer: {
-    backgroundColor: '#fff',
-    borderColor: '#ddd',
-    borderRadius: 8,
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: radius.md,
   },
   text: {
-    fontSize: 16,
+    fontSize: fontSize.lg,
   },
   placeholder: {
-    color: '#999',
+    color: colors.textDisabled,
   },
   createNewLabel: {
-    color: '#1a73e8',
-    fontWeight: '600',
+    color: colors.primary,
+    fontWeight: fontWeight.semibold,
   },
 });

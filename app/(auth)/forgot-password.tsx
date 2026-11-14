@@ -15,6 +15,7 @@ import * as yup from 'yup';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { Button, Input, AppSnackbar } from '../../src/components/common';
 import { getAuthErrorMessage } from '../../src/utils/authErrors';
+import { colors, fontWeight, typography } from '../../src/constants/theme';
 
 const schema = yup.object({
   email: yup
@@ -59,10 +60,10 @@ export default function ForgotPasswordScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.successContent}>
-          <Text variant="headlineMedium" style={styles.successTitle}>
+          <Text variant={typography.h1} style={styles.successTitle}>
             Check your email
           </Text>
-          <Text variant="bodyLarge" style={styles.successMessage}>
+          <Text variant={typography.bodyLarge} style={styles.successMessage}>
             We&apos;ve sent a password reset link to your email address. Please check
             your inbox and follow the instructions.
           </Text>
@@ -85,10 +86,10 @@ export default function ForgotPasswordScreen() {
         keyboardDismissMode="on-drag"
       >
         <View style={styles.header}>
-          <Text variant="headlineMedium" style={styles.title}>
+          <Text variant={typography.h1} style={styles.title}>
             Reset Password
           </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
+          <Text variant={typography.bodyLarge} style={styles.subtitle}>
             Enter your email address and we&apos;ll send you a link to reset your
             password.
           </Text>
@@ -127,7 +128,7 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -138,12 +139,12 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   title: {
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: fontWeight.bold,
+    color: colors.text,
     marginBottom: 8,
   },
   subtitle: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   form: {
     marginBottom: 24,
@@ -158,13 +159,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   successTitle: {
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: fontWeight.bold,
+    color: colors.text,
     marginBottom: 16,
     textAlign: 'center',
   },
   successMessage: {
-    color: '#666',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 32,
   },

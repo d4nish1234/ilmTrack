@@ -41,6 +41,7 @@ import {
   toggleAttendance,
 } from '../../../src/services/attendance.service';
 import { getInvitedTeacherIds } from '../../../src/services/student.service';
+import { colors, fontSize, fontWeight, radius, statusColor, statusSoftColor, typography } from '../../../src/constants/theme';
 
 interface TodayAttendance {
   [studentId: string]: AttendanceStatus | null;
@@ -267,13 +268,13 @@ export default function ClassesScreen() {
         hiddenOffset={100}
         style={[styles.swipeAction, styles.swipeActionRight]}
       >
-        <View style={[styles.swipeContent, { backgroundColor: isPresent ? '#ff5722' : '#4caf50' }]}>
+        <View style={[styles.swipeContent, { backgroundColor: isPresent ? colors.danger : colors.success }]}>
           <Text style={styles.swipeText}>
             {isPresent ? 'Mark Absent' : isAbsent ? 'Mark Present' : 'Mark Present'}
           </Text>
           <IconButton
             icon={isPresent ? 'close' : 'check'}
-            iconColor="#fff"
+            iconColor={colors.onPrimary}
             size={24}
           />
         </View>
@@ -290,17 +291,17 @@ export default function ClassesScreen() {
       >
         <View style={styles.swipeActionsRow}>
           <TouchableOpacity
-            style={[styles.swipeActionButton, { backgroundColor: '#2196f3' }]}
+            style={[styles.swipeActionButton, { backgroundColor: colors.primary }]}
             onPress={() => handleOpenNewHomework(student)}
           >
-            <IconButton icon="plus" iconColor="#fff" size={20} style={{ margin: 0 }} />
+            <IconButton icon="plus" iconColor={colors.onPrimary} size={20} style={{ margin: 0 }} />
             <Text style={styles.swipeButtonText}>New</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.swipeActionButton, { backgroundColor: '#ff9800' }]}
+            style={[styles.swipeActionButton, { backgroundColor: colors.warning }]}
             onPress={() => handleOpenEvaluate(student)}
           >
-            <IconButton icon="clipboard-check" iconColor="#fff" size={20} style={{ margin: 0 }} />
+            <IconButton icon="clipboard-check" iconColor={colors.onPrimary} size={20} style={{ margin: 0 }} />
             <Text style={styles.swipeButtonText}>Evaluate</Text>
           </TouchableOpacity>
         </View>
@@ -308,20 +309,10 @@ export default function ClassesScreen() {
     );
   };
 
-  const getAttendanceChipStyle = (status: AttendanceStatus | null) => {
-    switch (status) {
-      case 'present':
-        return { backgroundColor: '#e8f5e9', borderColor: '#4caf50' };
-      case 'absent':
-        return { backgroundColor: '#ffebee', borderColor: '#f44336' };
-      case 'late':
-        return { backgroundColor: '#fff3e0', borderColor: '#ff9800' };
-      case 'excused':
-        return { backgroundColor: '#e3f2fd', borderColor: '#2196f3' };
-      default:
-        return { backgroundColor: '#f5f5f5', borderColor: '#9e9e9e' };
-    }
-  };
+  const getAttendanceChipStyle = (status: AttendanceStatus | null) => ({
+    backgroundColor: statusSoftColor(status),
+    borderColor: status ? statusColor(status) : colors.textDisabled,
+  });
 
   const getAttendanceLabel = (status: AttendanceStatus | null) => {
     switch (status) {
@@ -364,7 +355,7 @@ export default function ClassesScreen() {
           <Card style={styles.studentCard}>
             <Card.Content style={styles.cardContent}>
               <View style={styles.studentInfo}>
-                <Text variant="titleMedium" style={styles.studentName}>
+                <Text variant={typography.h4} style={styles.studentName}>
                   {item.lastName}, {item.firstName}
                 </Text>
                 <View style={styles.statusRow}>
@@ -394,7 +385,7 @@ export default function ClassesScreen() {
           headerRight: () => (
             <IconButton
               icon="refresh"
-              iconColor="#fff"
+              iconColor={colors.onPrimary}
               size={24}
               onPress={handleRefresh}
               disabled={refreshing}
@@ -458,7 +449,7 @@ export default function ClassesScreen() {
           </View>
 
           <View style={styles.header}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
+            <Text variant={typography.h4} style={styles.sectionTitle}>
               Students ({filteredStudents.length})
             </Text>
           </View>
@@ -475,16 +466,16 @@ export default function ClassesScreen() {
             />
           ) : students.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text variant="titleMedium" style={styles.emptyTitle}>
+              <Text variant={typography.h4} style={styles.emptyTitle}>
                 No students yet
               </Text>
-              <Text variant="bodyMedium" style={styles.emptyMessage}>
+              <Text variant={typography.body} style={styles.emptyMessage}>
                 Add students to this class to get started
               </Text>
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <Text variant="bodyMedium" style={styles.emptyMessage}>
+              <Text variant={typography.body} style={styles.emptyMessage}>
                 No students match your search
               </Text>
             </View>
@@ -500,10 +491,10 @@ export default function ClassesScreen() {
         </>
       ) : classes.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text variant="titleMedium" style={styles.emptyTitle}>
+          <Text variant={typography.h4} style={styles.emptyTitle}>
             Welcome, {user?.firstName}!
           </Text>
-          <Text variant="bodyMedium" style={styles.emptyMessage}>
+          <Text variant={typography.body} style={styles.emptyMessage}>
             Create your first class to get started, or if you are waiting to be invited to a class, please reach out to the other teacher.
           </Text>
           <FAB
@@ -515,10 +506,10 @@ export default function ClassesScreen() {
         </View>
       ) : (
         <View style={styles.emptyState}>
-          <Text variant="titleMedium" style={styles.emptyTitle}>
+          <Text variant={typography.h4} style={styles.emptyTitle}>
             Select a class
           </Text>
-          <Text variant="bodyMedium" style={styles.emptyMessage}>
+          <Text variant={typography.body} style={styles.emptyMessage}>
             Use the dropdown above to select a class
           </Text>
         </View>
@@ -564,12 +555,12 @@ function SwipeActionPanel({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     zIndex: 1000,
   },
   dropdownContainer: {
@@ -582,17 +573,17 @@ const styles = StyleSheet.create({
   searchContainer: {
     padding: 16,
     paddingTop: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   searchbar: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
   },
   header: {
     padding: 16,
     paddingBottom: 8,
   },
   sectionTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
   },
   listContent: {
     paddingHorizontal: 16,
@@ -600,7 +591,7 @@ const styles = StyleSheet.create({
   },
   studentCard: {
     marginBottom: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   cardContent: {
     flexDirection: 'column',
@@ -610,7 +601,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   studentName: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
   },
   statusRow: {
     flexDirection: 'row',
@@ -620,16 +611,16 @@ const styles = StyleSheet.create({
   attendanceChip: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     borderWidth: 1,
   },
   attendanceText: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
   },
   swipeHint: {
-    fontSize: 11,
-    color: '#999',
+    fontSize: fontSize.xs,
+    color: colors.textDisabled,
     textAlign: 'center',
   },
   swipeAction: {
@@ -652,13 +643,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: '100%',
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: radius.md,
     minWidth: 70,
   },
   swipeButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 11,
+    color: colors.onPrimary,
+    fontWeight: fontWeight.semibold,
+    fontSize: fontSize.xs,
     marginTop: -4,
   },
   swipeContent: {
@@ -667,13 +658,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: '100%',
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: radius.md,
     minWidth: 100,
   },
   swipeText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
+    color: colors.onPrimary,
+    fontWeight: fontWeight.semibold,
+    fontSize: fontSize.md,
   },
   emptyState: {
     flex: 1,
@@ -682,21 +673,21 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   emptyTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 8,
   },
   emptyMessage: {
-    color: '#666',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   fab: {
     position: 'absolute',
     right: 16,
     bottom: 16,
-    backgroundColor: '#1a73e8',
+    backgroundColor: colors.primary,
   },
   createClassFab: {
     marginTop: 24,
-    backgroundColor: '#1a73e8',
+    backgroundColor: colors.primary,
   },
 });

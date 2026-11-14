@@ -1,14 +1,17 @@
+// The brand blue, shared with the app's theme (src/constants/theme.ts).
+const brand = require('./src/constants/brand.json');
+
 module.exports = {
   expo: {
     name: 'ilmTrack',
     slug: 'ilmtrack',
-    version: '1.8',
+    version: '1.9',
     orientation: 'portrait',
     scheme: 'ilmtrack',
     userInterfaceStyle: 'light',
     icon: './assets/icon.png',
     splash: {
-      backgroundColor: '#1a73e8',
+      backgroundColor: brand.primary,
     },
     ios: {
       icon: './assets/icon.png',
@@ -21,7 +24,7 @@ module.exports = {
     android: {
       adaptiveIcon: {
         foregroundImage: './assets/icon.png',
-        backgroundColor: '#1a73e8',
+        backgroundColor: brand.primary,
       },
       package: 'com.danishmahboob.ilmtrack',
       googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json',
@@ -36,7 +39,7 @@ module.exports = {
         'expo-splash-screen',
         {
           image: './assets/icon.png',
-          backgroundColor: '#1a73e8',
+          backgroundColor: brand.primary,
           imageWidth: 200,
         },
       ],

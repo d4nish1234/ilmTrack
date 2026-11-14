@@ -4,6 +4,7 @@ import { Text, List, Divider, Card } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import Constants from 'expo-constants';
+import { colors, fontWeight, headerOptions, typography } from '../../../src/constants/theme';
 
 const FAQ_ITEMS = [
   {
@@ -61,8 +62,7 @@ export default function TeacherHelpScreen() {
         options={{
           title: 'Help & Support',
           headerShown: true,
-          headerStyle: { backgroundColor: '#1a73e8' },
-          headerTintColor: '#fff',
+          ...headerOptions,
         }}
       />
       <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -70,32 +70,32 @@ export default function TeacherHelpScreen() {
           {/* Quick Start Guide */}
           <Card style={styles.card}>
             <Card.Content>
-              <Text variant="titleMedium" style={styles.cardTitle}>
+              <Text variant={typography.h4} style={styles.cardTitle}>
                 Quick Start Guide
               </Text>
               <View style={styles.step}>
-                <Text variant="titleSmall" style={styles.stepNumber}>1</Text>
+                <Text variant={typography.h5} style={styles.stepNumber}>1</Text>
                 <View style={styles.stepContent}>
-                  <Text variant="bodyMedium" style={styles.stepTitle}>Create a Class</Text>
-                  <Text variant="bodySmall" style={styles.stepDescription}>
+                  <Text variant={typography.body} style={styles.stepTitle}>Create a Class</Text>
+                  <Text variant={typography.caption} style={styles.stepDescription}>
                     Tap the Classes tab and create your first class
                   </Text>
                 </View>
               </View>
               <View style={styles.step}>
-                <Text variant="titleSmall" style={styles.stepNumber}>2</Text>
+                <Text variant={typography.h5} style={styles.stepNumber}>2</Text>
                 <View style={styles.stepContent}>
-                  <Text variant="bodyMedium" style={styles.stepTitle}>Add Students</Text>
-                  <Text variant="bodySmall" style={styles.stepDescription}>
+                  <Text variant={typography.body} style={styles.stepTitle}>Add Students</Text>
+                  <Text variant={typography.caption} style={styles.stepDescription}>
                     Add students with their parent&apos;s email for notifications
                   </Text>
                 </View>
               </View>
               <View style={styles.step}>
-                <Text variant="titleSmall" style={styles.stepNumber}>3</Text>
+                <Text variant={typography.h5} style={styles.stepNumber}>3</Text>
                 <View style={styles.stepContent}>
-                  <Text variant="bodyMedium" style={styles.stepTitle}>Track Daily</Text>
-                  <Text variant="bodySmall" style={styles.stepDescription}>
+                  <Text variant={typography.body} style={styles.stepTitle}>Track Daily</Text>
+                  <Text variant={typography.caption} style={styles.stepDescription}>
                     Use swipe gestures to mark attendance and assign homework
                   </Text>
                 </View>
@@ -104,7 +104,7 @@ export default function TeacherHelpScreen() {
           </Card>
 
           {/* FAQ Section */}
-          <Text variant="titleMedium" style={styles.sectionTitle}>
+          <Text variant={typography.h4} style={styles.sectionTitle}>
             Frequently Asked Questions
           </Text>
 
@@ -118,7 +118,7 @@ export default function TeacherHelpScreen() {
                 style={styles.accordion}
               >
                 <View style={styles.answerContainer}>
-                  <Text variant="bodyMedium" style={styles.answer}>
+                  <Text variant={typography.body} style={styles.answer}>
                     {item.answer}
                   </Text>
                 </View>
@@ -129,13 +129,13 @@ export default function TeacherHelpScreen() {
           <Divider style={styles.divider} />
 
           {/* Contact Support */}
-          <Text variant="titleMedium" style={styles.sectionTitle}>
+          <Text variant={typography.h4} style={styles.sectionTitle}>
             Need More Help?
           </Text>
 
           <Card style={styles.card}>
             <Card.Content>
-              <Text variant="bodyMedium" style={styles.supportText}>
+              <Text variant={typography.body} style={styles.supportText}>
                 If you have questions or issues not covered here, please reach out to our support team.
               </Text>
               <List.Item
@@ -151,7 +151,7 @@ export default function TeacherHelpScreen() {
 
           {/* App Info */}
           <View style={styles.appInfo}>
-            <Text variant="bodySmall" style={styles.appVersion}>
+            <Text variant={typography.caption} style={styles.appVersion}>
               ilmTrack v{Constants.expoConfig?.version ?? ''}
             </Text>
           </View>
@@ -165,17 +165,17 @@ export default function TeacherHelpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
   },
   scrollContent: {
     padding: 16,
   },
   card: {
     marginBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   cardTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 16,
   },
   step: {
@@ -187,45 +187,45 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#1a73e8',
-    color: '#fff',
+    backgroundColor: colors.primary,
+    color: colors.onPrimary,
     textAlign: 'center',
     lineHeight: 28,
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginRight: 12,
   },
   stepContent: {
     flex: 1,
   },
   stepTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
   },
   stepDescription: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   sectionTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 12,
     marginTop: 8,
   },
   accordion: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   answerContainer: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: colors.surface,
     padding: 16,
     paddingTop: 0,
   },
   answer: {
-    color: '#444',
+    color: colors.text,
     lineHeight: 22,
   },
   divider: {
     marginVertical: 24,
   },
   supportText: {
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 12,
   },
   contactItem: {
@@ -237,6 +237,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   appVersion: {
-    color: '#999',
+    color: colors.textDisabled,
   },
 });

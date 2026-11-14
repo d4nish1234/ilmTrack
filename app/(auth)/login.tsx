@@ -16,6 +16,7 @@ import * as yup from 'yup';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { Button, Input, AppSnackbar } from '../../src/components/common';
 import { getAuthErrorMessage } from '../../src/utils/authErrors';
+import { colors, fontWeight, typography } from '../../src/constants/theme';
 
 const schema = yup.object({
   email: yup
@@ -71,10 +72,10 @@ export default function LoginScreen() {
         keyboardDismissMode="on-drag"
       >
         <View style={styles.header}>
-          <Text variant="displaySmall" style={styles.title}>
+          <Text variant={typography.display} style={styles.title}>
             ilmTrack
           </Text>
-          <Text variant="bodySmall" style={styles.byLine}>
+          <Text variant={typography.caption} style={styles.byLine}>
             by{' '}
             <Text
               style={styles.byLineLink}
@@ -83,7 +84,7 @@ export default function LoginScreen() {
               Young Momins
             </Text>
           </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
+          <Text variant={typography.bodyLarge} style={styles.subtitle}>
             Sign in to continue
           </Text>
         </View>
@@ -118,7 +119,7 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.footer}>
-          <Text variant="bodyMedium">Don&apos;t have an account?</Text>
+          <Text variant={typography.body}>Don&apos;t have an account?</Text>
           <Link href="/(auth)/signup" asChild>
             <Button mode="text">Sign Up</Button>
           </Link>
@@ -133,7 +134,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -145,19 +146,19 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   title: {
-    fontWeight: 'bold',
-    color: '#1a73e8',
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
   },
   byLine: {
-    color: '#999',
+    color: colors.textDisabled,
     marginTop: 2,
   },
   byLineLink: {
-    color: '#1a73e8',
+    color: colors.primary,
     textDecorationLine: 'underline',
   },
   subtitle: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 8,
   },
   form: {

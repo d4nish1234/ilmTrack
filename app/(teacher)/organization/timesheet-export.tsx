@@ -30,6 +30,7 @@ import {
   type DateRange,
   type ExportPerson,
 } from '../../../src/utils/timesheetExport';
+import { colors, typography } from '../../../src/constants/theme';
 
 const WEEK_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -228,18 +229,18 @@ export default function TimesheetExportScreen() {
               ))}
             </View>
             <View style={styles.row}>
-              <Text variant="bodyLarge">From</Text>
+              <Text variant={typography.bodyLarge}>From</Text>
               <DateField
                 value={range.from}
                 onChange={(from) => setRange({ from, to: endAfterStartMoves(range.from, from, range.to) })}
               />
             </View>
             <View style={styles.row}>
-              <Text variant="bodyLarge">To</Text>
+              <Text variant={typography.bodyLarge}>To</Text>
               <DateField value={range.to} onChange={(to) => setRange({ ...range, to })} minimumDate={range.from} />
             </View>
             {problem && (
-              <Text variant="bodyMedium" style={styles.error}>
+              <Text variant={typography.body} style={styles.error}>
                 {problem}
               </Text>
             )}
@@ -247,7 +248,7 @@ export default function TimesheetExportScreen() {
         </List.Section>
         <Divider />
 
-        <Text variant="bodySmall" style={styles.hint}>
+        <Text variant={typography.caption} style={styles.hint}>
           A PDF with everyone&apos;s hours at the top, then each person&apos;s shifts: scheduled and worked times, and
           any notes or admin edits. Times are in {timezone}.
         </Text>
@@ -267,7 +268,7 @@ export default function TimesheetExportScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   content: {
     paddingBottom: 24,
@@ -291,17 +292,17 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   error: {
-    color: '#d32f2f',
+    color: colors.danger,
     marginTop: 8,
   },
   hint: {
-    color: '#666',
+    color: colors.textSecondary,
     paddingHorizontal: 16,
     paddingTop: 16,
   },
   footer: {
     paddingHorizontal: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#ddd',
+    borderTopColor: colors.border,
   },
 });

@@ -4,11 +4,15 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { firestore } from '../config/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
+import { colors } from '../constants/theme';
 
-// Configure how notifications appear when app is in foreground
+// Show notifications that arrive while the app is open: as a banner and in
+// Notification Centre. (This used shouldShowAlert, which expo-notifications
+// has deprecated in favour of these two.)
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
@@ -80,7 +84,7 @@ export async function setupNotificationChannel(): Promise<void> {
       // eslint-disable-next-line import/namespace
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#1a73e8',
+      lightColor: colors.primary,
     });
   }
 }

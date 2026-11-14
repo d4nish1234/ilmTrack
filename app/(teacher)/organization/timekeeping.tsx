@@ -20,6 +20,7 @@ import type { OrgTeacher, TimeEntry, TimekeepingSettings, WeekSchedule } from '.
 import { currentWeekStart, formatTime, shiftWeek, todayIn, weekDates } from '../../../src/utils/timekeeping';
 import { clockedInNow, timesheetRows, workedOfScheduled } from '../../../src/utils/timesheet';
 import { gridDates, weekRangeLabel, type GridCell } from '../../../src/utils/weekGrid';
+import { colors, fontWeight, typography } from '../../../src/constants/theme';
 
 function deviceTimezone(): string {
   try {
@@ -318,7 +319,7 @@ export default function TimekeepingScreen() {
             anchor={
               <IconButton
                 icon="dots-vertical"
-                iconColor="#fff"
+                iconColor={colors.onPrimary}
                 size={24}
                 style={{ margin: 0 }}
                 onPress={openMenu}
@@ -367,10 +368,10 @@ export default function TimekeepingScreen() {
       <SafeAreaView style={styles.container} edges={['bottom']}>
         {header}
         <View style={styles.off}>
-          <Text variant="titleMedium" style={styles.offTitle}>
+          <Text variant={typography.h4} style={styles.offTitle}>
             Timekeeping is off
           </Text>
-          <Text variant="bodyMedium" style={styles.muted}>
+          <Text variant={typography.body} style={styles.muted}>
             Turn it on to set weekly shifts for your teachers and let them start them at your school. You can turn it off
             again from Settings; nothing is lost.
           </Text>
@@ -405,8 +406,8 @@ export default function TimekeepingScreen() {
             accessibilityRole="button"
             accessibilityLabel={`Week of ${weekRangeLabel(viewWeek, new Date(now).getFullYear())}${isThisWeek ? ', this week' : '. Go to this week'}`}
           >
-            <Text variant="titleMedium">{weekRangeLabel(viewWeek, new Date(now).getFullYear())}</Text>
-            <Text variant="bodySmall" style={styles.muted}>
+            <Text variant={typography.h4}>{weekRangeLabel(viewWeek, new Date(now).getFullYear())}</Text>
+            <Text variant={typography.caption} style={styles.muted}>
               {isThisWeek ? 'This week' : 'Tap for this week'}
             </Text>
           </Pressable>
@@ -422,7 +423,7 @@ export default function TimekeepingScreen() {
             <List.Item
               title="Add your school's location"
               description="Teachers have to be there to start a shift"
-              left={(props) => <List.Icon {...props} icon="map-marker-plus" color="#1a73e8" />}
+              left={(props) => <List.Icon {...props} icon="map-marker-plus" color={colors.primary} />}
               right={(props) => <List.Icon {...props} icon="chevron-right" />}
               onPress={() => router.push('/(teacher)/organization/location')}
             />
@@ -442,7 +443,7 @@ export default function TimekeepingScreen() {
                   title={`${onShift.length} on shift`}
                   description={stripNames(onShift.map((e) => nameOf(e.teacherId)))}
                   descriptionNumberOfLines={1}
-                  left={(props) => <List.Icon {...props} icon="account-clock" color="#1e7e34" />}
+                  left={(props) => <List.Icon {...props} icon="account-clock" color={colors.success} />}
                   right={(props) => <List.Icon {...props} icon="chevron-right" />}
                   onPress={() => setOnShiftOpen(true)}
                   style={styles.strip}
@@ -460,7 +461,7 @@ export default function TimekeepingScreen() {
 
         <View>
           {locations.length === 0 ? null : teachers.length === 0 ? (
-            <Text variant="bodyMedium" style={styles.hint}>
+            <Text variant={typography.body} style={styles.hint}>
               No classes are linked to {selectedOrg?.name ?? 'this organization'} yet.
             </Text>
           ) : !weekReady ? (
@@ -528,7 +529,7 @@ export default function TimekeepingScreen() {
                 );
               })}
               {onShift.length === 0 && (
-                <Text variant="bodyMedium" style={styles.hint}>
+                <Text variant={typography.body} style={styles.hint}>
                   No one is on shift now.
                 </Text>
               )}
@@ -556,7 +557,7 @@ function stripNames(names: string[]): string {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   pager: {
     flexDirection: 'row',
@@ -575,25 +576,25 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   strip: {
-    backgroundColor: '#f1f8f3',
+    backgroundColor: colors.successSoft,
   },
   grid: {
     paddingTop: 8,
     paddingBottom: 16,
   },
   hint: {
-    color: '#666',
+    color: colors.textSecondary,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   muted: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   off: {
     padding: 24,
   },
   offTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 8,
   },
   offButton: {

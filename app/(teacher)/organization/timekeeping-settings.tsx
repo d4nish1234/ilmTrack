@@ -14,6 +14,7 @@ import { AppSnackbar, LoadingSpinner } from '../../../src/components/common';
 import type { ScheduleTemplate, TimekeepingSettings } from '../../../src/types';
 import { hasEnded } from '../../../src/utils/scheduleTemplates';
 import { todayIn } from '../../../src/utils/timekeeping';
+import { colors, fontSize, fontWeight, typography } from '../../../src/constants/theme';
 
 /**
  * Timekeeping's setup, set up once and changed now and then: the on/off
@@ -104,7 +105,7 @@ export default function TimekeepingSettingsScreen() {
             <Divider />
             <List.Section>
               <List.Subheader>Locations</List.Subheader>
-              <Text variant="bodySmall" style={styles.blurb}>
+              <Text variant={typography.caption} style={styles.blurb}>
                 Where teachers work. They can only start a shift when they&apos;re within range of one of these, so
                 hours are recorded on site.
               </Text>
@@ -127,7 +128,7 @@ export default function TimekeepingSettingsScreen() {
               <List.Item
                 title="Add location"
                 titleStyle={styles.addText}
-                left={(props) => <List.Icon {...props} icon="plus" color="#1a73e8" />}
+                left={(props) => <List.Icon {...props} icon="plus" color={colors.primary} />}
                 onPress={() => router.push('/(teacher)/organization/location')}
               />
             </List.Section>
@@ -137,7 +138,7 @@ export default function TimekeepingSettingsScreen() {
                 <Divider />
                 <List.Section>
                   <List.Subheader>Schedules</List.Subheader>
-                  <Text variant="bodySmall" style={styles.blurb}>
+                  <Text variant={typography.caption} style={styles.blurb}>
                     The same shifts for many people at once, for a term or any dates. Saving one adds the shifts to
                     everyone&apos;s weeks, from today on.
                   </Text>
@@ -163,21 +164,21 @@ export default function TimekeepingSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   switchRow: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
     paddingVertical: 12,
   },
   switchTitle: {
-    fontWeight: '600',
-    fontSize: 18,
+    fontWeight: fontWeight.semibold,
+    fontSize: fontSize.xl,
   },
   addText: {
-    color: '#1a73e8',
+    color: colors.primary,
   },
   blurb: {
-    color: '#666',
+    color: colors.textSecondary,
     paddingHorizontal: 16,
     paddingBottom: 4,
   },

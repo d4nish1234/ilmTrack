@@ -4,6 +4,7 @@ import { Button, Text } from 'react-native-paper';
 import Constants from 'expo-constants';
 import { fetchAppConfig, type AppConfig } from '../services/appConfig.service';
 import { isUpdateRequired, resolveStoreUrl } from '../utils/appVersion';
+import { colors, fontWeight, typography } from '../constants/theme';
 
 /**
  * Blocks builds older than config/app.minSupportedVersion in Firestore.
@@ -50,17 +51,17 @@ export default function VersionGate({ children }: { children: React.ReactNode })
 
   return (
     <View style={styles.container}>
-      <Text variant="headlineSmall" style={styles.title}>
+      <Text variant={typography.h2} style={styles.title}>
         Update required
       </Text>
-      <Text variant="bodyMedium" style={styles.body}>
+      <Text variant={typography.body} style={styles.body}>
         {config?.updateMessage ??
           'This version of IlmTrack is no longer supported. Please update to continue.'}
       </Text>
       <Button mode="contained" style={styles.button} onPress={() => Linking.openURL(storeUrl)}>
         Update now
       </Button>
-      <Text variant="bodySmall" style={styles.version}>
+      <Text variant={typography.caption} style={styles.version}>
         Installed {currentVersion ?? 'unknown'} · requires {config?.minSupportedVersion}
       </Text>
     </View>
@@ -68,9 +69,9 @@ export default function VersionGate({ children }: { children: React.ReactNode })
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, backgroundColor: '#fff' },
-  title: { fontWeight: '600', marginBottom: 12, textAlign: 'center' },
-  body: { color: '#666', textAlign: 'center', marginBottom: 24 },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, backgroundColor: colors.background },
+  title: { fontWeight: fontWeight.semibold, marginBottom: 12, textAlign: 'center' },
+  body: { color: colors.textSecondary, textAlign: 'center', marginBottom: 24 },
   button: { minWidth: 200 },
-  version: { color: '#999', marginTop: 24 },
+  version: { color: colors.textDisabled, marginTop: 24 },
 });

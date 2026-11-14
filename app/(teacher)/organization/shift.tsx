@@ -21,6 +21,7 @@ import { TimeWorkedPanel } from '../../../src/components/timekeeping/TimeWorkedP
 import type { Shift, TimeEntry, TimekeepingLocation } from '../../../src/types';
 import { timesheetRows } from '../../../src/utils/timesheet';
 import { templateTitle } from '../../../src/utils/scheduleTemplates';
+import { colors, typography } from '../../../src/constants/theme';
 
 function deviceTimezone(): string {
   try {
@@ -163,7 +164,7 @@ export default function ShiftScreen() {
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <Stack.Screen options={{ title: row ? 'Removed Shift' : title }} />
         <ScrollView contentContainerStyle={styles.content}>
-          <Text variant="bodyLarge" style={styles.missingText}>
+          <Text variant={typography.bodyLarge} style={styles.missingText}>
             {row
               ? 'This shift was removed from the schedule after it was worked.'
               : 'This shift no longer exists. Someone may have just removed it.'}
@@ -203,13 +204,13 @@ export default function ShiftScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 16,
   },
   missingText: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   close: {
     marginTop: 24,

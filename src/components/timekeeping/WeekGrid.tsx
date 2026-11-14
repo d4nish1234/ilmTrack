@@ -5,6 +5,7 @@ import { format, parseISO } from 'date-fns';
 import type { TimesheetRow } from '../../utils/timesheet';
 import { formatTime } from '../../utils/timekeeping';
 import { cellTone, gridCells, rowHeight, shortRange, type CellTone, type GridCell } from '../../utils/weekGrid';
+import { colors, fontSize, fontWeight, radius, typography } from '../../constants/theme';
 
 const NAME_WIDTH = 104;
 /** Columns narrower than this scroll sideways instead. */
@@ -12,11 +13,11 @@ const MIN_COLUMN = 52;
 const HEADER_HEIGHT = 40;
 
 const TONE: Record<CellTone, { color: string; label: string }> = {
-  worked: { color: '#1e7e34', label: 'Worked' },
-  live: { color: '#fff', label: 'On shift' },
-  missed: { color: '#d32f2f', label: 'Not started' },
-  late: { color: '#e65100', label: 'Not started yet' },
-  upcoming: { color: '#444', label: 'Upcoming' },
+  worked: { color: colors.success, label: 'Worked' },
+  live: { color: colors.onPrimary, label: 'On shift' },
+  missed: { color: colors.danger, label: 'Not started' },
+  late: { color: colors.warning, label: 'Not started yet' },
+  upcoming: { color: colors.text, label: 'Upcoming' },
 };
 
 /** Each day column's width: the screen shared between the days, but never narrower than MIN_COLUMN. */
@@ -44,10 +45,10 @@ export function WeekGridHeader({ dates, today, column, scrollRef }: HeaderProps)
       <ScrollView ref={scrollRef} horizontal scrollEnabled={false} showsHorizontalScrollIndicator={false}>
         {dates.map((date) => (
           <View key={date} style={[styles.dayHead, { width: column }, date === today && styles.today]}>
-            <Text variant="labelMedium" style={date === today ? styles.todayText : styles.muted}>
+            <Text variant={typography.labelMedium} style={date === today ? styles.todayText : styles.muted}>
               {format(parseISO(date), 'EEE')}
             </Text>
-            <Text variant="labelSmall" style={date === today ? styles.todayText : styles.muted}>
+            <Text variant={typography.labelSmall} style={date === today ? styles.todayText : styles.muted}>
               {format(parseISO(date), 'd')}
             </Text>
           </View>
@@ -96,7 +97,7 @@ export function WeekGrid({ people, rowsFor, dates, today, column, onScrollX, onP
               accessibilityRole="button"
               accessibilityLabel={`${p.name}'s week`}
             >
-              <Text variant="bodyMedium" numberOfLines={2} style={styles.nameText}>
+              <Text variant={typography.body} numberOfLines={2} style={styles.nameText}>
                 {p.name}
               </Text>
             </Pressable>
@@ -133,7 +134,7 @@ export function WeekGrid({ people, rowsFor, dates, today, column, onScrollX, onP
                         return (
                           <Text
                             key={r.shiftId}
-                            variant="labelMedium"
+                            variant={typography.labelMedium}
                             numberOfLines={1}
                             style={[
                               styles.time,
@@ -159,8 +160,8 @@ export function WeekGrid({ people, rowsFor, dates, today, column, onScrollX, onP
       <View style={styles.legend}>
         {(['worked', 'live', 'missed', 'late', 'upcoming'] as CellTone[]).map((tone) => (
           <View key={tone} style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: tone === 'live' ? '#1a73e8' : TONE[tone].color }]} />
-            <Text variant="bodySmall" style={styles.muted}>
+            <View style={[styles.dot, { backgroundColor: tone === 'live' ? colors.primary : TONE[tone].color }]} />
+            <Text variant={typography.caption} style={styles.muted}>
               {TONE[tone].label}
             </Text>
           </View>
@@ -192,58 +193,58 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     height: HEADER_HEIGHT,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ddd',
+    borderBottomColor: colors.border,
   },
   dayHead: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   today: {
-    backgroundColor: '#eef3fd',
+    backgroundColor: colors.primarySoft,
   },
   todayText: {
-    color: '#1a73e8',
-    fontWeight: '600',
+    color: colors.primary,
+    fontWeight: fontWeight.semibold,
   },
   todayColumn: {
-    backgroundColor: '#f6f9fe',
+    backgroundColor: colors.primaryFaint,
   },
   pressed: {
-    backgroundColor: '#e3ecfc',
+    backgroundColor: colors.primarySoft,
   },
   name: {
     justifyContent: 'center',
     paddingLeft: 16,
     paddingRight: 4,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#eee',
+    borderBottomColor: colors.divider,
   },
   nameText: {
-    color: '#1a73e8',
+    color: colors.primary,
   },
   cell: {
     alignItems: 'center',
     justifyContent: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#eee',
+    borderBottomColor: colors.divider,
   },
   time: {
     lineHeight: 18,
     paddingHorizontal: 3,
   },
   live: {
-    backgroundColor: '#1a73e8',
-    borderRadius: 4,
+    backgroundColor: colors.primary,
+    borderRadius: radius.sm,
     overflow: 'hidden',
   },
   removed: {
     textDecorationLine: 'line-through',
   },
   empty: {
-    color: '#c4c4c4',
-    fontSize: 16,
+    color: colors.disabled,
+    fontSize: fontSize.lg,
   },
   legend: {
     flexDirection: 'row',
@@ -260,9 +261,9 @@ const styles = StyleSheet.create({
   dot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: radius.sm,
   },
   muted: {
-    color: '#666',
+    color: colors.textSecondary,
   },
 });

@@ -23,6 +23,7 @@ import {
 } from '../../../../src/services/class.service';
 import { Button, Input, LoadingSpinner, AppSnackbar } from '../../../../src/components/common';
 import { Class, Admin } from '../../../../src/types';
+import { colors, fontSize, fontWeight, radius, typography } from '../../../../src/constants/theme';
 
 const adminSchema = yup.object({
   email: yup
@@ -250,7 +251,7 @@ export default function EditClassScreen() {
           headerLeft: () => (
             <IconButton
               icon="arrow-left"
-              iconColor="#fff"
+              iconColor={colors.onPrimary}
               size={24}
               style={{ margin: 0 }}
               onPress={() => router.back()}
@@ -269,7 +270,7 @@ export default function EditClassScreen() {
             keyboardDismissMode="on-drag"
           >
             <View style={styles.section}>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
+              <Text variant={typography.h4} style={styles.sectionTitle}>
                 Class Details
               </Text>
 
@@ -306,7 +307,7 @@ export default function EditClassScreen() {
 
             <View style={styles.section}>
               <View style={styles.adminHeader}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
+                <Text variant={typography.h4} style={styles.sectionTitle}>
                   Teacher Access
                 </Text>
                 {isOwner && !showAddAdmin && (
@@ -319,7 +320,7 @@ export default function EditClassScreen() {
                 )}
               </View>
 
-              <Text variant="bodySmall" style={styles.adminNote}>
+              <Text variant={typography.caption} style={styles.adminNote}>
                 Invited teachers can view and manage students, homework, and attendance for this class.
               </Text>
 
@@ -358,14 +359,14 @@ export default function EditClassScreen() {
               )}
 
               {admins.length === 0 ? (
-                <Text variant="bodyMedium" style={styles.noAdmins}>
+                <Text variant={typography.body} style={styles.noAdmins}>
                   No other teachers added yet
                 </Text>
               ) : (
                 admins.map((admin, index) => (
                   <View key={admin.email} style={styles.adminItem}>
                     <View style={styles.adminInfo}>
-                      <Text variant="bodyMedium" style={styles.adminEmail}>
+                      <Text variant={typography.body} style={styles.adminEmail}>
                         {admin.email}
                       </Text>
                       <Chip
@@ -396,17 +397,17 @@ export default function EditClassScreen() {
               <>
                 <Divider style={styles.dangerDivider} />
                 <View style={styles.dangerZone}>
-                  <Text variant="titleMedium" style={styles.dangerTitle}>
+                  <Text variant={typography.h4} style={styles.dangerTitle}>
                     Danger Zone
                   </Text>
-                  <Text variant="bodySmall" style={styles.dangerNote}>
+                  <Text variant={typography.caption} style={styles.dangerNote}>
                     Deleting this class will permanently remove all students and their homework/attendance records.
                   </Text>
                   <Button
                     mode="outlined"
                     onPress={handleDeleteClass}
                     loading={deleting}
-                    textColor="#d32f2f"
+                    textColor={colors.danger}
                     style={styles.deleteButton}
                   >
                     Delete Class
@@ -427,7 +428,7 @@ export default function EditClassScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   keyboardView: {
     flex: 1,
@@ -444,7 +445,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 12,
   },
   divider: {
@@ -457,13 +458,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   adminNote: {
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 16,
   },
   addAdminSection: {
     padding: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
     marginBottom: 16,
   },
   addAdminActions: {
@@ -475,7 +476,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   noAdmins: {
-    color: '#666',
+    color: colors.textSecondary,
     fontStyle: 'italic',
   },
   adminItem: {
@@ -483,8 +484,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
     marginBottom: 8,
   },
   adminInfo: {
@@ -500,10 +501,10 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   acceptedChip: {
-    backgroundColor: '#e8f5e9',
+    backgroundColor: colors.successSoft,
   },
   statusText: {
-    fontSize: 11,
+    fontSize: fontSize.xs,
     textTransform: 'capitalize',
   },
   classActions: {
@@ -515,22 +516,22 @@ const styles = StyleSheet.create({
   },
   dangerZone: {
     padding: 16,
-    backgroundColor: '#fff5f5',
-    borderRadius: 8,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#ffcdd2',
+    borderColor: colors.dangerBorder,
     marginBottom: 32,
   },
   dangerTitle: {
-    fontWeight: '600',
-    color: '#d32f2f',
+    fontWeight: fontWeight.semibold,
+    color: colors.danger,
     marginBottom: 8,
   },
   dangerNote: {
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 16,
   },
   deleteButton: {
-    borderColor: '#d32f2f',
+    borderColor: colors.danger,
   },
 });

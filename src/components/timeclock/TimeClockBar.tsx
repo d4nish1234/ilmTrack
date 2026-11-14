@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTimeClock } from '../../contexts/TimeClockContext';
 import { barContent } from '../../utils/timeclock';
-import { useAppTheme } from '../../constants/theme';
+import { fontWeight, radius, typography, useAppTheme } from '../../constants/theme';
 
 /**
  * One slim row on the Classes screen, so the student list keeps its room.
@@ -31,12 +31,12 @@ export function TimeClockBar() {
       accessibilityLabel={`${label}. Open time clock.`}
     >
       <MaterialCommunityIcons name={icon as keyof typeof MaterialCommunityIcons.glyphMap} size={18} color={fg} />
-      <Text variant="bodyMedium" style={[styles.label, { color: fg }]} numberOfLines={1}>
+      <Text variant={typography.body} style={[styles.label, { color: fg }]} numberOfLines={1}>
         {label}
       </Text>
       <View style={styles.right}>
         {!!action && (
-          <Text variant="labelLarge" style={{ color: fg }}>
+          <Text variant={typography.label} style={{ color: fg }}>
             {action}
           </Text>
         )}
@@ -54,12 +54,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginHorizontal: 16,
     marginTop: 8,
-    borderRadius: 8,
+    borderRadius: radius.md,
     gap: 8,
   },
   label: {
     flex: 1,
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
   },
   right: {
     flexDirection: 'row',

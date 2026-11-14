@@ -9,6 +9,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { firestore } from '../../../../../../../src/config/firebase';
 import { updateHomework } from '../../../../../../../src/services/homework.service';
 import { Button, Input, AppSnackbar, LoadingSpinner } from '../../../../../../../src/components/common';
+import { colors } from '../../../../../../../src/constants/theme';
 
 const schema = yup.object({
   title: yup.string().required('Title is required'),
@@ -130,7 +131,7 @@ export default function EditHomeworkScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   keyboardView: {
     flex: 1,

@@ -5,7 +5,7 @@ import { format, parseISO } from 'date-fns';
 import { formatWorked, workedMs } from '../../utils/timeclock';
 import { formatTime } from '../../utils/timekeeping';
 import type { ShiftView } from '../../types';
-import { useAppTheme } from '../../constants/theme';
+import { colors, fontWeight, typography, useAppTheme } from '../../constants/theme';
 
 const shiftTimes = (s: ShiftView) => `${formatTime(s.start)}–${formatTime(s.end)}`;
 
@@ -26,24 +26,24 @@ export function WeekRow({ shift, now, showOrg }: { shift: ShiftView; now: number
   return (
     <View style={styles.row}>
       <View style={styles.rowDay}>
-        <Text variant="titleSmall">{format(parseISO(shift.date), 'EEE')}</Text>
-        <Text variant="bodySmall" style={styles.muted}>
+        <Text variant={typography.h5}>{format(parseISO(shift.date), 'EEE')}</Text>
+        <Text variant={typography.caption} style={styles.muted}>
           {format(parseISO(shift.date), 'd')}
         </Text>
       </View>
       <View style={styles.rowMain}>
-        <Text variant="bodyMedium">{shiftTimes(shift)}</Text>
-        <Text variant="bodySmall" style={styles.muted} numberOfLines={1}>
+        <Text variant={typography.body}>{shiftTimes(shift)}</Text>
+        <Text variant={typography.caption} style={styles.muted} numberOfLines={1}>
           {[shift.locationName, showOrg ? shift.orgName : ''].filter(Boolean).join(' · ')}
         </Text>
         {shift.entry?.correction && (
-          <Text variant="bodySmall" style={{ color: tone.paused.fg }} numberOfLines={2}>
+          <Text variant={typography.caption} style={{ color: tone.paused.fg }} numberOfLines={2}>
             Edited by admin: {shift.entry.correction.reason}
           </Text>
         )}
       </View>
       <Text
-        variant="bodyMedium"
+        variant={typography.body}
         style={[
           styles.rowRight,
           status === 'running' && { color: tone.running.fg },
@@ -59,7 +59,7 @@ export function WeekRow({ shift, now, showOrg }: { shift: ShiftView; now: number
 
 const styles = StyleSheet.create({
   muted: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   row: {
     flexDirection: 'row',
@@ -74,6 +74,6 @@ const styles = StyleSheet.create({
   },
   rowRight: {
     marginLeft: 8,
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
   },
 });

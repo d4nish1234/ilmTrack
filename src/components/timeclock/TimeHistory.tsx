@@ -7,6 +7,7 @@ import { shiftViews, weekRangeLabel, weekTotals } from '../../utils/timeclock';
 import { formatDuration, shiftWeek } from '../../utils/timekeeping';
 import type { MyTimekeeping, TimeEntry } from '../../types';
 import { WeekRow } from './WeekRow';
+import { colors, fontWeight, typography } from '../../constants/theme';
 
 interface TimeHistoryProps {
   teacherId: string;
@@ -79,7 +80,7 @@ export function TimeHistory({ teacherId, orgIds, thisWeek, now, onBack }: TimeHi
           onPress={() => setWeekStart((w) => shiftWeek(w, -1))}
           accessibilityLabel="Previous week"
         />
-        <Text variant="titleMedium" style={styles.range}>
+        <Text variant={typography.h4} style={styles.range}>
           {weekRangeLabel(weekStart, new Date(now).getFullYear())}
         </Text>
         <IconButton
@@ -92,7 +93,7 @@ export function TimeHistory({ teacherId, orgIds, thisWeek, now, onBack }: TimeHi
 
       {error ? (
         <View style={styles.message}>
-          <Text variant="bodyMedium" style={styles.muted}>
+          <Text variant={typography.body} style={styles.muted}>
             Couldn&apos;t load this week.
           </Text>
           <Button mode="text" onPress={() => setAttempt((n) => n + 1)}>
@@ -104,12 +105,12 @@ export function TimeHistory({ teacherId, orgIds, thisWeek, now, onBack }: TimeHi
           <LoadingSpinner />
         </View>
       ) : views.length === 0 ? (
-        <Text variant="bodyMedium" style={[styles.muted, styles.message]}>
+        <Text variant={typography.body} style={[styles.muted, styles.message]}>
           No shifts this week.
         </Text>
       ) : (
         <>
-          <Text variant="bodyLarge" style={styles.total}>
+          <Text variant={typography.bodyLarge} style={styles.total}>
             Worked {formatDuration(totals!.workedMinutes)}
             {totals!.scheduledMinutes > 0 ? ` of ${formatDuration(totals!.scheduledMinutes)}` : ''}
           </Text>
@@ -136,15 +137,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   range: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
   },
   total: {
-    fontWeight: '700',
+    fontWeight: fontWeight.bold,
     marginTop: 8,
     marginBottom: 8,
   },
   muted: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   message: {
     alignItems: 'center',

@@ -5,6 +5,7 @@ import { Button } from '../common';
 import { TimeField } from './TimeField';
 import type { TimesheetRow } from '../../utils/timesheet';
 import { errorMessage, formatDuration, formatTime } from '../../utils/timekeeping';
+import { colors, fontWeight, typography } from '../../constants/theme';
 
 interface TimeWorkedPanelProps {
   row: TimesheetRow;
@@ -66,26 +67,26 @@ export function TimeWorkedPanel({ row, onCorrect }: TimeWorkedPanelProps) {
   return (
     <View>
       <Divider style={styles.divider} />
-      <Text variant="titleMedium" style={styles.title}>
+      <Text variant={typography.h4} style={styles.title}>
         Time worked
       </Text>
 
       <View style={styles.row}>
-        <Text variant="bodyLarge">
+        <Text variant={typography.bodyLarge}>
           {STATUS[row.status]}
           {row.workedFrom && row.workedTo && row.status === 'worked'
             ? ` ${formatTime(row.workedFrom)}–${formatTime(row.workedTo)}`
             : ''}
         </Text>
         {(row.status === 'worked' || open) && (
-          <Text variant="bodyLarge" style={styles.minutes}>
+          <Text variant={typography.bodyLarge} style={styles.minutes}>
             {formatDuration(row.workedMinutes)}
           </Text>
         )}
       </View>
 
       {entry?.correction && (
-        <Text variant="bodyMedium" style={styles.muted}>
+        <Text variant={typography.body} style={styles.muted}>
           Edited by admin: {entry.correction.reason}
           {entry.original
             ? ` · teacher recorded ${formatDuration(entry.original.workedMinutes)}`
@@ -93,17 +94,17 @@ export function TimeWorkedPanel({ row, onCorrect }: TimeWorkedPanelProps) {
         </Text>
       )}
       {!!entry?.note && (
-        <Text variant="bodyMedium" style={styles.muted}>
+        <Text variant={typography.body} style={styles.muted}>
           Teacher&apos;s note: {entry.note}
         </Text>
       )}
       {open && (
-        <Text variant="bodyMedium" style={styles.muted}>
+        <Text variant={typography.body} style={styles.muted}>
           It can be corrected once the shift has ended.
         </Text>
       )}
       {row.status === 'late' && (
-        <Text variant="bodyMedium" style={styles.muted}>
+        <Text variant={typography.body} style={styles.muted}>
           Time can be added once the shift has ended.
         </Text>
       )}
@@ -129,11 +130,11 @@ export function TimeWorkedPanel({ row, onCorrect }: TimeWorkedPanelProps) {
       {editing && (
         <View style={styles.editor}>
           <View style={styles.row}>
-            <Text variant="bodyLarge">Worked from</Text>
+            <Text variant={typography.bodyLarge}>Worked from</Text>
             <TimeField value={start} onChange={setStart} />
           </View>
           <View style={styles.row}>
-            <Text variant="bodyLarge">to</Text>
+            <Text variant={typography.bodyLarge}>to</Text>
             <TimeField value={end} onChange={setEnd} />
           </View>
           <TextInput
@@ -145,11 +146,11 @@ export function TimeWorkedPanel({ row, onCorrect }: TimeWorkedPanelProps) {
             maxLength={200}
             style={styles.input}
           />
-          <Text variant="bodySmall" style={styles.muted}>
+          <Text variant={typography.caption} style={styles.muted}>
             Must be within the shift. To pay for longer, extend the shift above first.
           </Text>
           {error && (
-            <Text variant="bodyMedium" style={styles.error}>
+            <Text variant={typography.body} style={styles.error}>
               {error}
             </Text>
           )}
@@ -170,7 +171,7 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   title: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 8,
   },
   row: {
@@ -180,10 +181,10 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   minutes: {
-    fontWeight: '700',
+    fontWeight: fontWeight.bold,
   },
   muted: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   button: {
@@ -193,11 +194,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     marginTop: 8,
   },
   error: {
-    color: '#d32f2f',
+    color: colors.danger,
     marginTop: 8,
   },
 });

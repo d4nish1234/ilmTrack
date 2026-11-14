@@ -20,6 +20,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { removePushToken } from '../../../src/services/notification.service';
 import { getStudent } from '../../../src/services/student.service';
 import { Student } from '../../../src/types';
+import { colors, fontWeight, radius, typography } from '../../../src/constants/theme';
 
 export default function ParentSettingsScreen() {
   const { user, signOut, refreshUser, resetPassword, registerPushNotifications, deleteAccount } = useAuth();
@@ -189,7 +190,7 @@ export default function ParentSettingsScreen() {
         <View style={styles.profileSection}>
           <Avatar.Text size={80} label={initials} style={styles.avatar} />
           <View style={styles.nameRow}>
-            <Text variant="headlineSmall" style={styles.name}>
+            <Text variant={typography.h2} style={styles.name}>
               {user?.firstName} {user?.lastName}
             </Text>
             <IconButton
@@ -199,10 +200,10 @@ export default function ParentSettingsScreen() {
               style={styles.editButton}
             />
           </View>
-          <Text variant="bodyMedium" style={styles.email}>
+          <Text variant={typography.body} style={styles.email}>
             {user?.email}
           </Text>
-          <Text variant="bodySmall" style={styles.role}>
+          <Text variant={typography.caption} style={styles.role}>
             Parent
           </Text>
         </View>
@@ -250,7 +251,7 @@ export default function ParentSettingsScreen() {
             title="Sign Out"
             titleStyle={styles.signOutText}
             left={(props) => (
-              <List.Icon {...props} icon="logout" color="#d32f2f" />
+              <List.Icon {...props} icon="logout" color={colors.danger} />
             )}
             onPress={handleSignOut}
           />
@@ -258,16 +259,16 @@ export default function ParentSettingsScreen() {
 
         {/* Danger Zone */}
         <View style={styles.dangerZone}>
-          <Text variant="titleMedium" style={styles.dangerTitle}>
+          <Text variant={typography.h4} style={styles.dangerTitle}>
             Danger Zone
           </Text>
-          <Text variant="bodySmall" style={styles.dangerNote}>
+          <Text variant={typography.caption} style={styles.dangerNote}>
             Permanently delete your account and remove access to all linked children. This cannot be undone.
           </Text>
           <Button
             mode="outlined"
             onPress={openDeleteConfirm}
-            textColor="#d32f2f"
+            textColor={colors.danger}
             style={styles.deleteButton}
             icon="delete"
           >
@@ -283,7 +284,7 @@ export default function ParentSettingsScreen() {
           onDismiss={() => setShowEditName(false)}
           contentContainerStyle={styles.modalContainer}
         >
-          <Text variant="titleLarge" style={styles.modalTitle}>
+          <Text variant={typography.h3} style={styles.modalTitle}>
             Edit Name
           </Text>
 
@@ -323,24 +324,24 @@ export default function ParentSettingsScreen() {
           onDismiss={() => !deleting && setShowDeleteConfirm(false)}
           contentContainerStyle={styles.modalContainer}
         >
-          <Text variant="titleLarge" style={styles.deleteModalTitle}>
+          <Text variant={typography.h3} style={styles.deleteModalTitle}>
             Delete Account?
           </Text>
 
           {linkedStudents.length > 0 && (
             <View style={styles.studentListContainer}>
-              <Text variant="bodyMedium" style={styles.deleteModalText}>
+              <Text variant={typography.body} style={styles.deleteModalText}>
                 You will lose access to:
               </Text>
               {linkedStudents.map((s) => (
-                <Text key={s.id} variant="bodyMedium" style={styles.studentListItem}>
+                <Text key={s.id} variant={typography.body} style={styles.studentListItem}>
                   {'\u2022'} {s.firstName} {s.lastName}
                 </Text>
               ))}
             </View>
           )}
 
-          <Text variant="bodyMedium" style={styles.deleteModalText}>
+          <Text variant={typography.body} style={styles.deleteModalText}>
             If you re-create your account with the same email, you will be re-linked to your students automatically.
           </Text>
 
@@ -357,8 +358,8 @@ export default function ParentSettingsScreen() {
           <View style={styles.modalActions}>
             <Button
               mode="contained"
-              buttonColor="#d32f2f"
-              textColor="#fff"
+              buttonColor={colors.danger}
+              textColor={colors.onPrimary}
               onPress={handleDeleteAccount}
               loading={deleting}
               disabled={deleting || !deletePassword.trim()}
@@ -382,15 +383,15 @@ export default function ParentSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   profileSection: {
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
   },
   avatar: {
-    backgroundColor: '#1a73e8',
+    backgroundColor: colors.primary,
   },
   nameRow: {
     flexDirection: 'row',
@@ -398,52 +399,52 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   name: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
   },
   editButton: {
     margin: 0,
   },
   email: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   role: {
-    color: '#1a73e8',
+    color: colors.primary,
     marginTop: 4,
     textTransform: 'uppercase',
   },
   signOutText: {
-    color: '#d32f2f',
+    color: colors.danger,
   },
   dangerZone: {
     margin: 16,
     padding: 16,
-    backgroundColor: '#fff5f5',
-    borderRadius: 8,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#ffcdd2',
+    borderColor: colors.dangerBorder,
     marginBottom: 32,
   },
   dangerTitle: {
-    fontWeight: '600',
-    color: '#d32f2f',
+    fontWeight: fontWeight.semibold,
+    color: colors.danger,
     marginBottom: 8,
   },
   dangerNote: {
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 16,
   },
   deleteButton: {
-    borderColor: '#d32f2f',
+    borderColor: colors.danger,
   },
   deleteModalTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     textAlign: 'center',
     marginBottom: 16,
-    color: '#d32f2f',
+    color: colors.danger,
   },
   deleteModalText: {
-    color: '#444',
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 12,
   },
@@ -451,29 +452,29 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   studentListItem: {
-    color: '#444',
+    color: colors.text,
     textAlign: 'center',
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 2,
   },
   passwordInput: {
     marginBottom: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   modalContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     margin: 20,
     padding: 24,
-    borderRadius: 12,
+    borderRadius: radius.lg,
   },
   modalTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     textAlign: 'center',
     marginBottom: 16,
   },
   input: {
     marginBottom: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   modalActions: {
     marginTop: 8,

@@ -4,6 +4,7 @@ import { HelperText, Text } from 'react-native-paper';
 import { QURAN_SURAHS, Surah, getNextAyahPosition, composeSurahAyahTitle } from '../../data/quranSurahs';
 import { SurahPickerModal } from './SurahPickerModal';
 import { AyahPickerModal } from './AyahPickerModal';
+import { colors, fontSize, fontWeight, radius, typography } from '../../constants/theme';
 
 export interface SurahAyahSelection {
   fromSurah: Surah | null;
@@ -110,15 +111,15 @@ export function SurahAyahInput({ value, onChange, onTitleChange, error }: SurahA
   return (
     <View style={styles.container}>
       {/* From Row */}
-      <Text variant="labelLarge" style={styles.rowLabel}>From</Text>
+      <Text variant={typography.label} style={styles.rowLabel}>From</Text>
       <View style={styles.row}>
         <TouchableOpacity
           style={styles.field}
           onPress={() => openSurahPicker('fromSurah')}
         >
-          <Text variant="bodySmall" style={styles.fieldLabel}>Surah</Text>
+          <Text variant={typography.caption} style={styles.fieldLabel}>Surah</Text>
           <Text
-            variant="bodyLarge"
+            variant={typography.bodyLarge}
             style={[styles.fieldValue, !value.fromSurah && styles.placeholder]}
             numberOfLines={1}
           >
@@ -131,9 +132,9 @@ export function SurahAyahInput({ value, onChange, onTitleChange, error }: SurahA
           onPress={() => openAyahPicker('fromAyah')}
           disabled={!value.fromSurah}
         >
-          <Text variant="bodySmall" style={styles.fieldLabel}>Ayah</Text>
+          <Text variant={typography.caption} style={styles.fieldLabel}>Ayah</Text>
           <Text
-            variant="bodyLarge"
+            variant={typography.bodyLarge}
             style={[styles.fieldValue, !value.fromAyah && styles.placeholder]}
           >
             {value.fromAyah ?? 'Select'}
@@ -142,15 +143,15 @@ export function SurahAyahInput({ value, onChange, onTitleChange, error }: SurahA
       </View>
 
       {/* To Row */}
-      <Text variant="labelLarge" style={styles.rowLabel}>To</Text>
+      <Text variant={typography.label} style={styles.rowLabel}>To</Text>
       <View style={styles.row}>
         <TouchableOpacity
           style={styles.field}
           onPress={() => openSurahPicker('toSurah')}
         >
-          <Text variant="bodySmall" style={styles.fieldLabel}>Surah</Text>
+          <Text variant={typography.caption} style={styles.fieldLabel}>Surah</Text>
           <Text
-            variant="bodyLarge"
+            variant={typography.bodyLarge}
             style={[styles.fieldValue, !value.toSurah && styles.placeholder]}
             numberOfLines={1}
           >
@@ -163,9 +164,9 @@ export function SurahAyahInput({ value, onChange, onTitleChange, error }: SurahA
           onPress={() => openAyahPicker('toAyah')}
           disabled={!value.toSurah}
         >
-          <Text variant="bodySmall" style={styles.fieldLabel}>Ayah</Text>
+          <Text variant={typography.caption} style={styles.fieldLabel}>Ayah</Text>
           <Text
-            variant="bodyLarge"
+            variant={typography.bodyLarge}
             style={[styles.fieldValue, !value.toAyah && styles.placeholder]}
           >
             {value.toAyah ?? 'Select'}
@@ -202,7 +203,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   rowLabel: {
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 4,
     marginTop: 8,
   },
@@ -213,30 +214,30 @@ const styles = StyleSheet.create({
   field: {
     flex: 3,
     borderWidth: 1,
-    borderColor: '#79747E',
-    borderRadius: 4,
+    borderColor: colors.textSecondary,
+    borderRadius: radius.sm,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   ayahField: {
     flex: 1,
   },
   fieldDisabled: {
-    borderColor: '#ccc',
-    backgroundColor: '#fafafa',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   fieldLabel: {
-    color: '#49454F',
-    fontSize: 11,
+    color: colors.text,
+    fontSize: fontSize.xs,
     marginBottom: 2,
   },
   fieldValue: {
-    fontWeight: '500',
-    color: '#1C1B1F',
+    fontWeight: fontWeight.medium,
+    color: colors.text,
   },
   placeholder: {
-    color: '#79747E',
-    fontWeight: '400',
+    color: colors.textSecondary,
+    fontWeight: fontWeight.regular,
   },
 });

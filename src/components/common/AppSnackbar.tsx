@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Snackbar, Portal } from 'react-native-paper';
+import { colors } from '../../constants/theme';
 
 interface AppSnackbarProps {
   type?: 'error' | 'success';
@@ -35,6 +36,6 @@ export function AppSnackbar({
 
 const styles = StyleSheet.create({
   success: {
-    backgroundColor: '#2e7d32',
+    backgroundColor: colors.success,
   },
 });

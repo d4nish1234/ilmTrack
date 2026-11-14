@@ -3,6 +3,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SelectedClassProvider } from '../../src/contexts/SelectedClassContext';
 import { useOrganizations } from '../../src/contexts/OrganizationContext';
 import { TimeClockProvider } from '../../src/contexts/TimeClockContext';
+import { colors, headerOptions } from '../../src/constants/theme';
 
 /**
  * Organization screens shown without the tab bar, so the action pinned to
@@ -22,16 +23,10 @@ export default function TeacherLayout() {
       <TimeClockProvider>
         <Tabs
           screenOptions={{
-            tabBarActiveTintColor: '#1a73e8',
-            tabBarInactiveTintColor: '#5f6368',
+            tabBarActiveTintColor: colors.primary,
+            tabBarInactiveTintColor: colors.textSecondary,
             headerShown: true,
-            headerStyle: {
-              backgroundColor: '#1a73e8',
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: '600',
-            },
+            ...headerOptions,
           }}
         >
           <Tabs.Screen

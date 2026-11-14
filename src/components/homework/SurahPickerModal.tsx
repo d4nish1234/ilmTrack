@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Text, Searchbar } from 'react-native-paper';
 import { QURAN_SURAHS, Surah } from '../../data/quranSurahs';
+import { colors, fontSize, fontWeight, radius, typography } from '../../constants/theme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -48,15 +49,15 @@ export function SurahPickerModal({ visible, onDismiss, onSelect }: SurahPickerMo
   const renderItem = ({ item }: { item: Surah }) => (
     <TouchableOpacity style={styles.item} onPress={() => handleSelect(item)}>
       <View style={styles.itemNumber}>
-        <Text variant="titleMedium" style={styles.numberText}>{item.number}</Text>
+        <Text variant={typography.h4} style={styles.numberText}>{item.number}</Text>
       </View>
       <View style={styles.itemContent}>
-        <Text variant="bodyLarge" style={styles.nameText}>{item.name}</Text>
-        <Text variant="bodySmall" style={styles.metaText}>
+        <Text variant={typography.bodyLarge} style={styles.nameText}>{item.name}</Text>
+        <Text variant={typography.caption} style={styles.metaText}>
           {item.ayahCount} ayahs
         </Text>
       </View>
-      <Text variant="titleMedium" style={styles.arabicText}>{item.arabicName}</Text>
+      <Text variant={typography.h4} style={styles.arabicText}>{item.arabicName}</Text>
     </TouchableOpacity>
   );
 
@@ -74,7 +75,7 @@ export function SurahPickerModal({ visible, onDismiss, onSelect }: SurahPickerMo
               behavior={Platform.OS === 'ios' ? 'padding' : undefined}
               style={styles.modalContent}
             >
-              <Text variant="titleLarge" style={styles.title}>Select Surah</Text>
+              <Text variant={typography.h3} style={styles.title}>Select Surah</Text>
               <Searchbar
                 placeholder="Search by name or number..."
                 value={search}
@@ -91,7 +92,7 @@ export function SurahPickerModal({ visible, onDismiss, onSelect }: SurahPickerMo
                 ItemSeparatorComponent={() => <View style={styles.separator} />}
                 ListEmptyComponent={
                   <View style={styles.empty}>
-                    <Text variant="bodyMedium" style={styles.emptyText}>No surahs found</Text>
+                    <Text variant={typography.body} style={styles.emptyText}>No surahs found</Text>
                   </View>
                 }
               />
@@ -106,20 +107,20 @@ export function SurahPickerModal({ visible, onDismiss, onSelect }: SurahPickerMo
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.scrim,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     marginHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     maxHeight: SCREEN_HEIGHT * 0.7,
     width: '90%',
     overflow: 'hidden',
   },
   title: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 8,
@@ -128,10 +129,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 8,
     elevation: 0,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
   },
   searchInput: {
-    fontSize: 14,
+    fontSize: fontSize.md,
   },
   list: {
     flexGrow: 0,
@@ -146,34 +147,34 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#e8eaf6',
+    backgroundColor: colors.primarySoft,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   numberText: {
-    fontWeight: '600',
-    fontSize: 14,
-    color: '#3f51b5',
+    fontWeight: fontWeight.semibold,
+    fontSize: fontSize.md,
+    color: colors.primary,
   },
   itemContent: {
     flex: 1,
   },
   nameText: {
-    fontWeight: '500',
+    fontWeight: fontWeight.medium,
   },
   metaText: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   arabicText: {
-    fontSize: 18,
-    color: '#333',
+    fontSize: fontSize.xl,
+    color: colors.text,
     marginLeft: 8,
   },
   separator: {
     height: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: colors.surface,
     marginHorizontal: 16,
   },
   empty: {
@@ -181,6 +182,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: '#999',
+    color: colors.textDisabled,
   },
 });

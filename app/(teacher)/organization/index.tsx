@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { useOrganizations } from '../../../src/contexts/OrganizationContext';
 import { LoadingSpinner } from '../../../src/components/common';
+import { colors, fontSize, fontWeight, typography } from '../../../src/constants/theme';
 
 /**
  * The organization's tools. A plain list so more can be added as rows.
@@ -22,7 +23,7 @@ export default function OrganizationScreen() {
   if (!selectedOrg) {
     return (
       <SafeAreaView style={styles.empty} edges={['bottom']}>
-        <Text variant="bodyLarge" style={styles.emptyText}>
+        <Text variant={typography.bodyLarge} style={styles.emptyText}>
           You don’t manage any organization.
         </Text>
       </SafeAreaView>
@@ -85,7 +86,7 @@ export default function OrganizationScreen() {
 
         {canSwitch && (
           <View style={styles.footer}>
-            <Text variant="bodySmall" style={styles.footerText}>
+            <Text variant={typography.caption} style={styles.footerText}>
               Switching organization only changes this tab. Your Classes tab always shows the
               classes you teach.
             </Text>
@@ -99,31 +100,31 @@ export default function OrganizationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
     paddingVertical: 12,
   },
   orgName: {
-    fontWeight: '600',
-    fontSize: 18,
+    fontWeight: fontWeight.semibold,
+    fontSize: fontSize.xl,
   },
   empty: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     padding: 24,
   },
   emptyText: {
-    color: '#666',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   footer: {
     padding: 16,
   },
   footerText: {
-    color: '#888',
+    color: colors.textDisabled,
   },
 });

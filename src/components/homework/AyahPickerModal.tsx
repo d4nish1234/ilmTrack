@@ -9,6 +9,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { Text } from 'react-native-paper';
+import { colors, fontWeight, radius, typography } from '../../constants/theme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const NUM_COLUMNS = 5;
@@ -44,8 +45,8 @@ export function AyahPickerModal({
         <View style={styles.backdrop}>
           <TouchableWithoutFeedback>
             <View style={styles.modalContent}>
-              <Text variant="titleLarge" style={styles.title}>Select Ayah</Text>
-              <Text variant="bodyMedium" style={styles.subtitle}>{surahName}</Text>
+              <Text variant={typography.h3} style={styles.title}>Select Ayah</Text>
+              <Text variant={typography.body} style={styles.subtitle}>{surahName}</Text>
               <FlatList
                 data={ayahs}
                 keyExtractor={(item) => String(item)}
@@ -57,7 +58,7 @@ export function AyahPickerModal({
                     style={styles.ayahButton}
                     onPress={() => onSelect(item)}
                   >
-                    <Text variant="bodyLarge" style={styles.ayahText}>{item}</Text>
+                    <Text variant={typography.bodyLarge} style={styles.ayahText}>{item}</Text>
                   </TouchableOpacity>
                 )}
               />
@@ -72,20 +73,20 @@ export function AyahPickerModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.scrim,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     marginHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     maxHeight: SCREEN_HEIGHT * 0.6,
     width: '90%',
     overflow: 'hidden',
   },
   title: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 4,
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
   subtitle: {
     paddingHorizontal: 16,
     paddingBottom: 12,
-    color: '#666',
+    color: colors.textSecondary,
   },
   list: {
     flexGrow: 0,
@@ -106,13 +107,13 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: 4,
     paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   ayahText: {
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: fontWeight.medium,
+    color: colors.text,
   },
 });

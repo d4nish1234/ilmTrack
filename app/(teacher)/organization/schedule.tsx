@@ -38,6 +38,7 @@ import {
   templateName,
   templateProblem,
 } from '../../../src/utils/scheduleTemplates';
+import { colors, fontWeight, typography } from '../../../src/constants/theme';
 /** People listed in the preview's "Not added" part. */
 const PREVIEW_PEOPLE_MAX = 5;
 
@@ -239,7 +240,7 @@ export default function ScheduleTemplateScreen() {
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <Stack.Screen options={{ title }} />
         <View style={styles.content}>
-          <Text variant="bodyLarge" style={styles.muted}>
+          <Text variant={typography.bodyLarge} style={styles.muted}>
             This schedule no longer exists. Someone may have just deleted it.
           </Text>
           <Button mode="outlined" onPress={() => router.back()} style={styles.gap}>
@@ -318,11 +319,11 @@ export default function ScheduleTemplateScreen() {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <Stack.Screen options={{ title, headerLeft: unsaved.headerLeft }} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text variant="titleMedium" style={[styles.heading, styles.first]}>
+        <Text variant={typography.h4} style={[styles.heading, styles.first]}>
           Dates
         </Text>
         <View style={styles.row}>
-          <Text variant="bodyLarge">Starts</Text>
+          <Text variant={typography.bodyLarge}>Starts</Text>
           <DateField
             value={draft.startDate}
             onChange={(startDate) =>
@@ -334,11 +335,11 @@ export default function ScheduleTemplateScreen() {
           />
         </View>
         <View style={styles.row}>
-          <Text variant="bodyLarge">Ends</Text>
+          <Text variant={typography.bodyLarge}>Ends</Text>
           <DateField value={draft.endDate} onChange={(endDate) => update({ endDate })} minimumDate={draft.startDate} />
         </View>
 
-        <Text variant="titleMedium" style={styles.heading}>
+        <Text variant={typography.h4} style={styles.heading}>
           Times
         </Text>
         {draft.slots.map((slot) => (
@@ -369,14 +370,14 @@ export default function ScheduleTemplateScreen() {
                 })}
               </View>
               <View style={styles.row}>
-                <Text variant="bodyLarge">From</Text>
+                <Text variant={typography.bodyLarge}>From</Text>
                 <TimeField value={slot.start} onChange={(start) => updateSlot(slot.id, { start })} />
               </View>
               <View style={styles.row}>
-                <Text variant="bodyLarge">To</Text>
+                <Text variant={typography.bodyLarge}>To</Text>
                 <TimeField value={slot.end} onChange={(end) => updateSlot(slot.id, { end })} />
               </View>
-              <Text variant="bodySmall" style={styles.muted}>
+              <Text variant={typography.caption} style={styles.muted}>
                 {formatDuration(Math.max(0, shiftMinutes(slot)))} a day
               </Text>
               {(locations.length > 1 || !locationIds.includes(slot.locationId)) && (
@@ -399,7 +400,7 @@ export default function ScheduleTemplateScreen() {
               <Card.Actions>
                 <Button
                   mode="text"
-                  textColor="#d32f2f"
+                  textColor={colors.danger}
                   onPress={() =>
                     update({
                       slots: draft.slots.filter((s) => s.id !== slot.id),
@@ -426,7 +427,7 @@ export default function ScheduleTemplateScreen() {
           </Button>
         )}
 
-        <Text variant="titleMedium" style={styles.heading}>
+        <Text variant={typography.h4} style={styles.heading}>
           People
         </Text>
         <List.Item
@@ -439,24 +440,24 @@ export default function ScheduleTemplateScreen() {
           style={styles.people}
         />
         {people.length === 0 && (
-          <Text variant="bodyMedium" style={styles.muted}>
+          <Text variant={typography.body} style={styles.muted}>
             No one to choose yet. People appear here once they teach one of the organization&apos;s classes.
           </Text>
         )}
 
-        <Text variant="bodySmall" style={[styles.muted, styles.gap]}>
+        <Text variant={typography.caption} style={[styles.muted, styles.gap]}>
           Applies from today. Shifts that have started or already happened, and days you change by hand in
           someone&apos;s week, stay as they are.
         </Text>
 
         {error && !changed && (
-          <Text variant="bodyMedium" style={styles.error}>
+          <Text variant={typography.body} style={styles.error}>
             {error}
           </Text>
         )}
 
         {templateId && (
-          <Button mode="outlined" textColor="#d32f2f" onPress={remove} disabled={busy} style={styles.delete}>
+          <Button mode="outlined" textColor={colors.danger} onPress={remove} disabled={busy} style={styles.delete}>
             Delete schedule
           </Button>
         )}
@@ -465,7 +466,7 @@ export default function ScheduleTemplateScreen() {
       {changed && (
         <View style={styles.footer}>
           {(problem || error) && (
-            <Text variant="bodyMedium" style={styles.footerError}>
+            <Text variant={typography.body} style={styles.footerError}>
               {problem ?? error}
             </Text>
           )}
@@ -481,13 +482,13 @@ export default function ScheduleTemplateScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 16,
   },
   heading: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginTop: 24,
     marginBottom: 8,
   },
@@ -499,7 +500,7 @@ const styles = StyleSheet.create({
   },
   slot: {
     marginBottom: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   days: {
     flexDirection: 'row',
@@ -527,13 +528,13 @@ const styles = StyleSheet.create({
     marginLeft: -8,
   },
   muted: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   gap: {
     marginTop: 16,
   },
   error: {
-    color: '#d32f2f',
+    color: colors.danger,
     marginTop: 12,
   },
   delete: {
@@ -542,10 +543,10 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#ddd',
+    borderTopColor: colors.border,
   },
   footerError: {
-    color: '#d32f2f',
+    color: colors.danger,
     paddingTop: 10,
   },
 });

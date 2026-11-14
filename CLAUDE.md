@@ -141,6 +141,30 @@ teacher's shifts week by week (Organization tab → Timekeeping).
   background permission). Keep it that way unless the store listings are
   updated too.
 
+## Theme
+Everything about the look lives in `src/constants/theme.ts`; screens and
+components never hard-code it (`tests/theme.test.ts` fails if they do).
+- **Colours by meaning:** `colors.primary`, `text` / `textSecondary` /
+  `textDisabled`, `background` / `surface` / `border` / `divider`,
+  `success` / `warning` / `danger` (each with a `…Soft` fill), `star`,
+  `scrim`. One shade per meaning. The brand blue is in
+  `src/constants/brand.json`, which `app.config.js` also reads (splash,
+  Android icon).
+- **Status colours:** `statusColor(status)` / `statusSoftColor(status)` for
+  attendance and homework; don't write another switch.
+- **Type scale:** `<Text variant={typography.h2}>` (display, h1–h5,
+  bodyLarge, body, caption, label…), never a Paper variant name. Outside a
+  Paper Text, `fontSize.*` and `fontWeight.*`.
+- **Shape and space:** `radius.*` (8 is the default for buttons and cards;
+  circles use half their size), `spacing.*`.
+- **Headers:** spread `headerOptions` into a stack's `screenOptions`.
+- `colors` is a plain object, so `StyleSheet.create` can use it;
+  `useAppTheme()` gives the same values through Paper's theme (its
+  `primary`, `secondary`, `error` and the time clock's tones come from
+  `colors`).
+- The PDF builders (`utils/reportUtils.ts`, `utils/timesheetExport.ts`) have
+  their own CSS and are exempt.
+
 ## Edit screens
 Screens that edit data hide the tab bar, pin Save to the bottom and show it
 only once something has changed, have no Cancel (back is cancel, and asks

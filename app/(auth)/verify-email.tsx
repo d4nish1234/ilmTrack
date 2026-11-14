@@ -7,6 +7,7 @@ import { useAuth } from '../../src/contexts/AuthContext';
 import { Button } from '../../src/components/common';
 import { auth } from '../../src/config/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
+import { colors, fontWeight, typography } from '../../src/constants/theme';
 
 export default function VerifyEmailScreen() {
   const { user, firebaseUser, resendVerificationEmail, reloadFirebaseUser } =
@@ -76,28 +77,28 @@ export default function VerifyEmailScreen() {
         <IconButton
           icon="email-check"
           size={80}
-          iconColor="#1a73e8"
+          iconColor={colors.primary}
           style={styles.icon}
         />
 
-        <Text variant="headlineMedium" style={styles.title}>
+        <Text variant={typography.h1} style={styles.title}>
           Verify Your Email
         </Text>
 
-        <Text variant="bodyLarge" style={styles.description}>
+        <Text variant={typography.bodyLarge} style={styles.description}>
           We&apos;ve sent a verification email to:
         </Text>
 
-        <Text variant="titleMedium" style={styles.email}>
+        <Text variant={typography.h4} style={styles.email}>
           {firebaseUser?.email}
         </Text>
 
-        <Text variant="bodyMedium" style={styles.instructions}>
+        <Text variant={typography.body} style={styles.instructions}>
           Please click the link in the email to verify your account. Once
           verified, tap the button below to continue.
         </Text>
 
-        <Text variant="bodySmall" style={styles.spamNote}>
+        <Text variant={typography.caption} style={styles.spamNote}>
           Can&apos;t find the email? Check your spam or junk folder.
         </Text>
 
@@ -114,7 +115,7 @@ export default function VerifyEmailScreen() {
             Resend Verification Email
           </Button>
 
-          <Button mode="text" onPress={handleGoBack} textColor="#666">
+          <Button mode="text" onPress={handleGoBack} textColor={colors.textSecondary}>
             Use Different Email
           </Button>
         </View>
@@ -126,7 +127,7 @@ export default function VerifyEmailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
@@ -138,29 +139,29 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     textAlign: 'center',
     marginBottom: 16,
   },
   description: {
     textAlign: 'center',
-    color: '#666',
+    color: colors.textSecondary,
   },
   email: {
     textAlign: 'center',
-    color: '#1a73e8',
+    color: colors.primary,
     marginVertical: 8,
   },
   instructions: {
     textAlign: 'center',
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 16,
     marginBottom: 8,
     lineHeight: 22,
   },
   spamNote: {
     textAlign: 'center',
-    color: '#999',
+    color: colors.textDisabled,
     fontStyle: 'italic',
     marginBottom: 32,
   },

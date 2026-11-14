@@ -20,6 +20,7 @@ import { Button, Input, AppSnackbar } from '../../../../../src/components/common
 import { firestore } from '../../../../../src/config/firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { Student, User } from '../../../../../src/types';
+import { colors, fontWeight, radius, typography } from '../../../../../src/constants/theme';
 
 // Look up if a user account exists with this email
 async function getUserByEmail(email: string): Promise<User | null> {
@@ -300,10 +301,10 @@ export default function AddStudentScreen() {
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
           >
-            <Text variant="titleLarge" style={styles.stepTitle}>
+            <Text variant={typography.h3} style={styles.stepTitle}>
               Add Student
             </Text>
-            <Text variant="bodyMedium" style={styles.stepDescription}>
+            <Text variant={typography.body} style={styles.stepDescription}>
               Enter a parent&apos;s email to check if they already have children in your classes.
             </Text>
 
@@ -342,10 +343,10 @@ export default function AddStudentScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Text variant="titleLarge" style={styles.stepTitle}>
+          <Text variant={typography.h3} style={styles.stepTitle}>
             Existing Children Found
           </Text>
-          <Text variant="bodyMedium" style={styles.stepDescription}>
+          <Text variant={typography.body} style={styles.stepDescription}>
             We found {uniqueStudents.length} child{uniqueStudents.length > 1 ? 'ren' : ''} linked to {parentEmail}.
             Select one to add to this class, or add a new child.
           </Text>
@@ -370,11 +371,11 @@ export default function AddStudentScreen() {
                     <Card.Content style={styles.studentCardContent}>
                       <RadioButton value={student.id} />
                       <View style={styles.studentInfo}>
-                        <Text variant="titleMedium">
+                        <Text variant={typography.h4}>
                           {student.firstName} {student.lastName}
                         </Text>
                         {alreadyInThisClass && (
-                          <Text variant="bodySmall" style={styles.alreadyInClass}>
+                          <Text variant={typography.caption} style={styles.alreadyInClass}>
                             Already in this class
                           </Text>
                         )}
@@ -393,7 +394,7 @@ export default function AddStudentScreen() {
             onPress={() => setStep('add-student')}
           >
             <IconButton icon="plus" size={24} />
-            <Text variant="titleMedium" style={styles.addNewText}>
+            <Text variant={typography.h4} style={styles.addNewText}>
               Add a new child for this parent
             </Text>
           </TouchableOpacity>
@@ -432,7 +433,7 @@ export default function AddStudentScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
-          <Text variant="titleMedium" style={styles.sectionTitle}>
+          <Text variant={typography.h4} style={styles.sectionTitle}>
             Student Information
           </Text>
 
@@ -459,7 +460,7 @@ export default function AddStudentScreen() {
           <Divider style={styles.divider} />
 
           <View style={styles.parentHeader}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
+            <Text variant={typography.h4} style={styles.sectionTitle}>
               Parent/Guardian Information
             </Text>
             {fields.length < 2 && (
@@ -479,7 +480,7 @@ export default function AddStudentScreen() {
             return (
               <View key={field.id} style={styles.parentSection}>
                 <View style={styles.parentTitleRow}>
-                  <Text variant="titleSmall" style={styles.parentTitle}>
+                  <Text variant={typography.h5} style={styles.parentTitle}>
                     Parent {index + 1}
                   </Text>
                   {fields.length > 1 && (
@@ -501,10 +502,10 @@ export default function AddStudentScreen() {
                 {existingParent ? (
                   // Show read-only name for existing account
                   <View style={styles.existingParentInfo}>
-                    <Text variant="bodySmall" style={styles.existingParentLabel}>
+                    <Text variant={typography.caption} style={styles.existingParentLabel}>
                       Account found - name from their profile:
                     </Text>
-                    <Text variant="titleMedium" style={styles.existingParentName}>
+                    <Text variant={typography.h4} style={styles.existingParentName}>
                       {existingParent.firstName} {existingParent.lastName}
                     </Text>
                   </View>
@@ -569,7 +570,7 @@ export default function AddStudentScreen() {
             );
           })}
 
-          <Text variant="bodySmall" style={styles.inviteNote}>
+          <Text variant={typography.caption} style={styles.inviteNote}>
             An invitation email will be sent to each parent to create their
             account and view their child&apos;s homework and attendance.
           </Text>
@@ -598,7 +599,7 @@ export default function AddStudentScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   keyboardView: {
     flex: 1,
@@ -607,16 +608,16 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   stepTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 8,
   },
   stepDescription: {
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 24,
     lineHeight: 22,
   },
   sectionTitle: {
-    fontWeight: '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: 12,
   },
   nameRow: {
@@ -638,8 +639,8 @@ const styles = StyleSheet.create({
   parentSection: {
     marginBottom: 16,
     padding: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
   },
   parentTitleRow: {
     flexDirection: 'row',
@@ -648,21 +649,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   parentTitle: {
-    color: '#666',
+    color: colors.textSecondary,
   },
   existingParentInfo: {
-    backgroundColor: '#e8f5e9',
+    backgroundColor: colors.successSoft,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: radius.md,
     marginBottom: 12,
   },
   existingParentLabel: {
-    color: '#2e7d32',
+    color: colors.success,
     marginBottom: 4,
   },
   existingParentName: {
-    color: '#1b5e20',
-    fontWeight: '600',
+    color: colors.success,
+    fontWeight: fontWeight.semibold,
   },
   emailWithLookup: {
     flexDirection: 'row',
@@ -676,7 +677,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   inviteNote: {
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 8,
     marginBottom: 16,
     fontStyle: 'italic',
@@ -687,10 +688,10 @@ const styles = StyleSheet.create({
   },
   studentCard: {
     marginBottom: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   studentCardSelected: {
-    borderColor: '#1a73e8',
+    borderColor: colors.primary,
     borderWidth: 2,
   },
   studentCardContent: {
@@ -702,21 +703,21 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   alreadyInClass: {
-    color: '#f44336',
+    color: colors.danger,
     marginTop: 2,
   },
   addNewOption: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#f0f7ff',
-    borderRadius: 8,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#1a73e8',
+    borderColor: colors.primary,
     borderStyle: 'dashed',
   },
   addNewText: {
-    color: '#1a73e8',
+    color: colors.primary,
     flex: 1,
   },
 });
