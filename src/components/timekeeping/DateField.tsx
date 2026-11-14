@@ -3,7 +3,7 @@ import { Platform, Pressable, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
-import { colors, radius, typography } from '../../constants/theme';
+import { colors, radius, spacing, typography } from '../../constants/theme';
 
 interface DateFieldProps {
   /** 'yyyy-MM-dd' */
@@ -70,7 +70,7 @@ export function DateField({ value, onChange, minimumDate, maximumDate }: DateFie
 
 const styles = StyleSheet.create({
   androidButton: {
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     paddingVertical: 6,
     borderRadius: radius.md,
     backgroundColor: colors.primarySoft,

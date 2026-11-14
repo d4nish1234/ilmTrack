@@ -7,7 +7,7 @@ import { useAuth } from '../../src/contexts/AuthContext';
 import { Button } from '../../src/components/common';
 import { auth } from '../../src/config/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
-import { colors, fontWeight, typography } from '../../src/constants/theme';
+import { colors, fontWeight, spacing, typography } from '../../src/constants/theme';
 
 export default function VerifyEmailScreen() {
   const { user, firebaseUser, resendVerificationEmail, reloadFirebaseUser } =
@@ -131,17 +131,17 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 24,
+    padding: spacing.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
   icon: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   title: {
     fontWeight: fontWeight.semibold,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   description: {
     textAlign: 'center',
@@ -150,13 +150,13 @@ const styles = StyleSheet.create({
   email: {
     textAlign: 'center',
     color: colors.primary,
-    marginVertical: 8,
+    marginVertical: spacing.sm,
   },
   instructions: {
     textAlign: 'center',
     color: colors.textSecondary,
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
     lineHeight: 22,
   },
   spamNote: {
@@ -167,6 +167,6 @@ const styles = StyleSheet.create({
   },
   actions: {
     width: '100%',
-    gap: 12,
+    gap: spacing.md,
   },
 });

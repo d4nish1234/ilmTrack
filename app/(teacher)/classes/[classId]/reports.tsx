@@ -1,12 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  StyleSheet,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  Modal,
-} from 'react-native';
+import { StyleSheet, View, ScrollView, Alert } from 'react-native';
+import { Tappable } from '../../../../src/components/common';
 import {
   Text,
   IconButton,
@@ -19,7 +13,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useAuth } from '../../../../src/contexts/AuthContext';
 import { getClass } from '../../../../src/services/class.service';
-import { Button } from '../../../../src/components/common';
+import { DateField } from '../../../../src/components/timekeeping/DateField';
 import ReportModal, { ReportColumn, ReportRow } from '../../../../src/components/reports/ReportModal';
 import { firestore } from '../../../../src/config/firebase';
 import {
@@ -28,18 +22,7 @@ import {
   where,
   getDocs,
 } from 'firebase/firestore';
-import {
-  format,
-  addMonths,
-  subMonths,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  isSameDay,
-  getDay,
-  startOfDay,
-  endOfDay,
-} from 'date-fns';
+import { format, parseISO, startOfMonth, startOfDay, endOfDay } from 'date-fns';
 import {
   Class,
   Student,
@@ -54,7 +37,7 @@ import {
   buildHomeworkRows,
   generateHomeworkHtml,
 } from '../../../../src/utils/reportUtils';
-import { colors, fontSize, fontWeight, radius, typography } from '../../../../src/constants/theme';
+import { colors, fontWeight, radius, spacing, typography } from '../../../../src/constants/theme';
 
 const ATTENDANCE_COLUMNS: ReportColumn[] = [
   { key: 'date', label: 'Date', width: 100, align: 'left' },
@@ -92,9 +75,6 @@ export default function ReportsScreen() {
   const [classData, setClassData] = useState<Class | null>(null);
   const [startDate, setStartDate] = useState(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState(new Date());
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
-  const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [exporting, setExporting] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
@@ -111,17 +91,12 @@ export default function ReportsScreen() {
     }
   }, [classId]);
 
-  const handleDateSelect = (date: Date, isStart: boolean) => {
-    if (isStart) {
-      setStartDate(date);
-      if (date > endDate) {
-        setEndDate(date);
-      }
-      setShowStartPicker(false);
-    } else {
-      setEndDate(date);
-      setShowEndPicker(false);
-    }
+  const day = (date: Date) => format(date, 'yyyy-MM-dd');
+  // A start after the end moves the end along.
+  const setStart = (value: string) => {
+    const date = parseISO(value);
+    setStartDate(date);
+    if (date > endDate) setEndDate(date);
   };
 
   const isOwner = classData?.teacherId === user?.uid;
@@ -299,76 +274,6 @@ export default function ReportsScreen() {
     }
   };
 
-  // Calendar rendering
-  const renderCalendar = (isStart: boolean) => {
-    const monthStart = startOfMonth(calendarMonth);
-    const monthEnd = endOfMonth(calendarMonth);
-    const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
-    const startDayOfWeek = getDay(monthStart);
-    const emptySlots = Array(startDayOfWeek).fill(null);
-    const allDays = [...emptySlots, ...days];
-    const weeks: (Date | null)[][] = [];
-    for (let i = 0; i < allDays.length; i += 7) {
-      weeks.push(allDays.slice(i, i + 7));
-    }
-
-    const selectedDate = isStart ? startDate : endDate;
-
-    return (
-      <View style={styles.calendar}>
-        <View style={styles.calendarHeader}>
-          <IconButton
-            icon="chevron-left"
-            onPress={() => setCalendarMonth(subMonths(calendarMonth, 1))}
-          />
-          <Text variant={typography.h4} style={styles.calendarTitle}>
-            {format(calendarMonth, 'MMMM yyyy')}
-          </Text>
-          <IconButton
-            icon="chevron-right"
-            onPress={() => setCalendarMonth(addMonths(calendarMonth, 1))}
-          />
-        </View>
-
-        <View style={styles.weekDays}>
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <Text key={day} style={styles.weekDay}>
-              {day}
-            </Text>
-          ))}
-        </View>
-
-        {weeks.map((week, weekIndex) => (
-          <View key={weekIndex} style={styles.weekRow}>
-            {week.map((day, dayIndex) => (
-              <TouchableOpacity
-                key={dayIndex}
-                style={[
-                  styles.dayCell,
-                  day && isSameDay(day, selectedDate) && styles.selectedDay,
-                  day && isSameDay(day, new Date()) && styles.today,
-                ]}
-                onPress={() => day && handleDateSelect(day, isStart)}
-                disabled={!day}
-              >
-                {day && (
-                  <Text
-                    style={[
-                      styles.dayText,
-                      isSameDay(day, selectedDate) && styles.selectedDayText,
-                    ]}
-                  >
-                    {format(day, 'd')}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        ))}
-      </View>
-    );
-  };
-
   return (
     <>
       <Stack.Screen
@@ -395,37 +300,12 @@ export default function ReportsScreen() {
           </Text>
 
           <View style={styles.dateRow}>
-            <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => {
-                setCalendarMonth(startDate);
-                setShowStartPicker(true);
-              }}
-            >
-              <Text variant={typography.caption} style={styles.dateLabel}>
-                Start Date
-              </Text>
-              <Text variant={typography.bodyLarge} style={styles.dateValue}>
-                {format(startDate, 'MMM d, yyyy')}
-              </Text>
-            </TouchableOpacity>
-
-            <Text style={styles.dateSeparator}>to</Text>
-
-            <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => {
-                setCalendarMonth(endDate);
-                setShowEndPicker(true);
-              }}
-            >
-              <Text variant={typography.caption} style={styles.dateLabel}>
-                End Date
-              </Text>
-              <Text variant={typography.bodyLarge} style={styles.dateValue}>
-                {format(endDate, 'MMM d, yyyy')}
-              </Text>
-            </TouchableOpacity>
+            <Text variant={typography.bodyLarge}>From</Text>
+            <DateField value={day(startDate)} onChange={setStart} />
+          </View>
+          <View style={styles.dateRow}>
+            <Text variant={typography.bodyLarge}>To</Text>
+            <DateField value={day(endDate)} onChange={(v) => setEndDate(parseISO(v))} minimumDate={day(startDate)} />
           </View>
 
           <Divider style={styles.divider} />
@@ -434,11 +314,11 @@ export default function ReportsScreen() {
             Export Data
           </Text>
           <Text variant={typography.caption} style={styles.hint}>
-            Download attendance or homework records as CSV
+            Preview a report, then export it as a PDF
           </Text>
 
           <View style={styles.exportButtons}>
-            <TouchableOpacity
+            <Tappable
               style={styles.exportCard}
               onPress={handleAttendanceReport}
               disabled={exporting}
@@ -450,9 +330,9 @@ export default function ReportsScreen() {
               <Text variant={typography.caption} style={styles.exportDescription}>
                 Export all attendance records for this class
               </Text>
-            </TouchableOpacity>
+            </Tappable>
 
-            <TouchableOpacity
+            <Tappable
               style={styles.exportCard}
               onPress={handleHomeworkReport}
               disabled={exporting}
@@ -464,9 +344,9 @@ export default function ReportsScreen() {
               <Text variant={typography.caption} style={styles.exportDescription}>
                 Export all homework records with evaluations
               </Text>
-            </TouchableOpacity>
+            </Tappable>
 
-            <TouchableOpacity
+            <Tappable
               style={styles.exportCard}
               onPress={handleSummaryReport}
               disabled={exporting}
@@ -478,7 +358,7 @@ export default function ReportsScreen() {
               <Text variant={typography.caption} style={styles.exportDescription}>
                 Per-student stats: stars, attendance, homework
               </Text>
-            </TouchableOpacity>
+            </Tappable>
           </View>
 
           {exporting && (
@@ -491,54 +371,6 @@ export default function ReportsScreen() {
           )}
         </ScrollView>
       </SafeAreaView>
-
-      {/* Start Date Picker Modal */}
-      <Modal
-        visible={showStartPicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowStartPicker(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowStartPicker(false)}
-        >
-          <TouchableOpacity activeOpacity={1} style={styles.modalContainer}>
-            <Text variant={typography.h3} style={styles.modalTitle}>
-              Select Start Date
-            </Text>
-            {renderCalendar(true)}
-            <Button mode="outlined" onPress={() => setShowStartPicker(false)}>
-              Cancel
-            </Button>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* End Date Picker Modal */}
-      <Modal
-        visible={showEndPicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowEndPicker(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowEndPicker(false)}
-        >
-          <TouchableOpacity activeOpacity={1} style={styles.modalContainer}>
-            <Text variant={typography.h3} style={styles.modalTitle}>
-              Select End Date
-            </Text>
-            {renderCalendar(false)}
-            <Button mode="outlined" onPress={() => setShowEndPicker(false)}>
-              Cancel
-            </Button>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
 
       {/* Report Modal (used for all three reports) */}
       <ReportModal
@@ -561,136 +393,51 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   scrollContent: {
-    padding: 16,
+    padding: spacing.lg,
   },
   sectionTitle: {
     fontWeight: fontWeight.semibold,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   hint: {
     color: colors.textSecondary,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  dateButton: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-  },
-  dateLabel: {
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  dateValue: {
-    fontWeight: fontWeight.medium,
-  },
-  dateSeparator: {
-    color: colors.textSecondary,
+    justifyContent: 'space-between',
+    minHeight: 48,
   },
   divider: {
-    marginVertical: 24,
+    marginVertical: spacing.xl,
   },
   exportButtons: {
-    gap: 12,
+    gap: spacing.md,
   },
   exportCard: {
-    padding: 16,
+    padding: spacing.lg,
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     alignItems: 'center',
   },
   exportTitle: {
     fontWeight: fontWeight.semibold,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   exportDescription: {
     color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
-    gap: 8,
+    marginTop: spacing.lg,
+    gap: spacing.sm,
   },
   loadingText: {
     color: colors.textSecondary,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.scrim,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    backgroundColor: colors.background,
-    margin: 20,
-    padding: 20,
-    borderRadius: radius.lg,
-    width: '90%',
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontWeight: fontWeight.semibold,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  calendar: {
-    marginBottom: 16,
-  },
-  calendarHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  calendarTitle: {
-    fontWeight: fontWeight.semibold,
-  },
-  weekDays: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 8,
-  },
-  weekDay: {
-    width: 36,
-    textAlign: 'center',
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
-    fontWeight: fontWeight.medium,
-  },
-  weekRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 4,
-  },
-  dayCell: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectedDay: {
-    backgroundColor: colors.primary,
-  },
-  today: {
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  dayText: {
-    fontSize: fontSize.md,
-    color: colors.text,
-  },
-  selectedDayText: {
-    color: colors.onPrimary,
-    fontWeight: fontWeight.semibold,
   },
 });

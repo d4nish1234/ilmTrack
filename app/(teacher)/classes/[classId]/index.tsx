@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, View, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, FlatList } from 'react-native';
 import { Text, Card, FAB, IconButton, Menu } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { getClass } from '../../../../src/services/class.service';
 import { subscribeToStudents, subscribeToStudentsAsAdmin } from '../../../../src/services/student.service';
-import { LoadingSpinner } from '../../../../src/components/common';
+import { LoadingSpinner, Tappable } from '../../../../src/components/common';
 import { useAuth } from '../../../../src/contexts/AuthContext';
 import { Class, Student } from '../../../../src/types';
-import { colors, fontWeight, typography } from '../../../../src/constants/theme';
+import { colors, fontWeight, spacing, typography } from '../../../../src/constants/theme';
 
 export default function ClassDetailScreen() {
   const { classId } = useLocalSearchParams<{ classId: string }>();
@@ -80,7 +80,7 @@ export default function ClassDetailScreen() {
   };
 
   const renderStudent = ({ item }: { item: Student }) => (
-    <TouchableOpacity onPress={() => handleStudentPress(item)}>
+    <Tappable onPress={() => handleStudentPress(item)}>
       <Card style={styles.studentCard}>
         <Card.Content style={styles.cardContent}>
           <Text variant={typography.h4} style={styles.studentName}>
@@ -91,7 +91,7 @@ export default function ClassDetailScreen() {
           </Text>
         </Card.Content>
       </Card>
-    </TouchableOpacity>
+    </Tappable>
   );
 
   if (loading) {
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   },
   descriptionContainer: {
     backgroundColor: colors.background,
-    padding: 16,
+    padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -194,18 +194,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   header: {
-    padding: 16,
-    paddingBottom: 8,
+    padding: spacing.lg,
+    paddingBottom: spacing.sm,
   },
   sectionTitle: {
     fontWeight: fontWeight.semibold,
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingBottom: 80,
   },
   studentCard: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
     backgroundColor: colors.background,
   },
   cardContent: {
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: spacing.xl,
   },
   emptyMessage: {
     color: colors.textSecondary,

@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { StyleSheet, View, FlatList, RefreshControl, ScrollView } from 'react-native';
-import { Text, Card, Chip, Button, IconButton } from 'react-native-paper';
+import { Text, Card, Chip, IconButton } from 'react-native-paper';
 import { useNavigation } from 'expo-router';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useChildFilter } from '../../src/contexts/ChildFilterContext';
-import { LoadingSpinner } from '../../src/components/common';
+import { Button, LoadingSpinner } from '../../src/components/common';
 import { Student, Attendance } from '../../src/types';
 import { firestore } from '../../src/config/firebase';
 import { doc, getDoc, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { getAttendancePaginatedForParent } from '../../src/services/attendance.service';
 import { format } from 'date-fns';
-import { colors, statusColor, typography } from '../../src/constants/theme';
+import { colors, spacing, statusColor, typography } from '../../src/constants/theme';
 
 // Deduplicate students by name (same child in multiple classes)
 function deduplicateStudentsByName(students: Student[]): Student[] {
@@ -298,22 +298,22 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   filterScroll: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
   },
   filterChip: {
-    marginRight: 4,
+    marginRight: spacing.xs,
   },
   listContent: {
-    padding: 16,
+    padding: spacing.lg,
   },
   emptyListContent: {
     flexGrow: 1,
-    padding: 16,
+    padding: spacing.lg,
   },
   card: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
     backgroundColor: colors.background,
   },
   row: {
@@ -323,15 +323,15 @@ const styles = StyleSheet.create({
   },
   info: {
     flex: 1,
-    marginRight: 8,
+    marginRight: spacing.sm,
   },
   studentName: {
     color: colors.primary,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   notes: {
     color: colors.textSecondary,
-    marginTop: 4,
+    marginTop: spacing.xs,
     fontStyle: 'italic',
   },
   emptyContainer: {
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   loadMoreButton: {
-    marginTop: 8,
-    marginBottom: 16,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
   },
 });

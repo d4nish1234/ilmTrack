@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { TextInput, HelperText } from 'react-native-paper';
 import { Control, Controller, FieldValues, Path } from 'react-hook-form';
-import { colors } from '../../constants/theme';
+import { colors, spacing } from '../../constants/theme';
 
 interface InputProps<T extends FieldValues> {
   control: Control<T>;
@@ -96,7 +96,7 @@ export function KeyboardAccessory() {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   input: {
     backgroundColor: colors.background,

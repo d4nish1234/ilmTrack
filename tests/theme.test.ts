@@ -8,7 +8,13 @@ import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 
 // The theme itself, and the PDFs, whose HTML has its own CSS.
-const ALLOWED = new Set(['src/constants/theme.ts', 'src/utils/reportUtils.ts', 'src/utils/timesheetExport.ts']);
+const ALLOWED = new Set([
+  'src/constants/theme.ts',
+  'src/utils/reportUtils.ts',
+  'src/utils/timesheetExport.ts',
+  // The shared Button wraps Paper's.
+  'src/components/common/Button.tsx',
+]);
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -35,5 +41,9 @@ describe('the theme is the only place for the look', () => {
 
   it('has no literal font weights or Paper variant names outside it', () => {
     expect(offenders(/fontWeight: ['"]|variant="(display|headline|title|body|label)/)).toEqual([]);
+  });
+
+  it("uses the shared components: Tappable, not TouchableOpacity; the shared Button, not Paper's", () => {
+    expect(offenders(/<TouchableOpacity|import \{[^}]*\bButton\b[^}]*\} from 'react-native-paper'/)).toEqual([]);
   });
 });

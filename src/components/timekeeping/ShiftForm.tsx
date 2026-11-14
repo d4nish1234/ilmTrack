@@ -8,7 +8,7 @@ import { Button } from '../common';
 import { TimeField } from './TimeField';
 import type { Shift, TimekeepingLocation } from '../../types';
 import { errorMessage, formatDuration, shiftMinutes, shiftProblem } from '../../utils/timekeeping';
-import { colors, fontWeight, typography } from '../../constants/theme';
+import { colors, fontWeight, spacing, typography } from '../../constants/theme';
 
 interface ShiftFormProps {
   /** The shift being edited, or a new one prefilled with a date and default times. */
@@ -152,16 +152,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    padding: 16,
+    padding: spacing.lg,
   },
   title: {
     fontWeight: fontWeight.semibold,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   notice: {
     color: colors.textSecondary,
     marginTop: -8,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   row: {
     flexDirection: 'row',
@@ -173,24 +173,24 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   locations: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   locationsLabel: {
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   chip: {
-    marginRight: 8,
-    marginBottom: 8,
+    marginRight: spacing.sm,
+    marginBottom: spacing.sm,
   },
   error: {
     color: colors.danger,
-    marginTop: 12,
+    marginTop: spacing.md,
   },
   actions: {
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
 });

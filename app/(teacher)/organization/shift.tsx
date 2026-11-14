@@ -21,7 +21,7 @@ import { TimeWorkedPanel } from '../../../src/components/timekeeping/TimeWorkedP
 import type { Shift, TimeEntry, TimekeepingLocation } from '../../../src/types';
 import { timesheetRows } from '../../../src/utils/timesheet';
 import { templateTitle } from '../../../src/utils/scheduleTemplates';
-import { colors, typography } from '../../../src/constants/theme';
+import { colors, spacing, typography } from '../../../src/constants/theme';
 
 function deviceTimezone(): string {
   try {
@@ -207,13 +207,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    padding: 16,
+    padding: spacing.lg,
   },
   missingText: {
     color: colors.textSecondary,
   },
   close: {
-    marginTop: 24,
+    marginTop: spacing.xl,
   },
 });
 

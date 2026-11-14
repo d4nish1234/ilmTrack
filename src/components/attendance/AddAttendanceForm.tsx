@@ -1,19 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
-  StyleSheet,
-  View,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  Modal,
-} from 'react-native';
-import {
-  Text,
-  SegmentedButtons,
-  IconButton,
-} from 'react-native-paper';
+import { StyleSheet, View, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { Chip, Text, SegmentedButtons } from 'react-native-paper';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -26,20 +13,10 @@ import {
 } from '../../services/attendance.service';
 import { getStudent, getInvitedTeacherIds } from '../../services/student.service';
 import { Button, Input, AppSnackbar } from '../common';
+import { DateField } from '../timekeeping/DateField';
 import { AttendanceStatus, Student } from '../../types';
-import {
-  format,
-  addDays,
-  subDays,
-  addMonths,
-  subMonths,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  isSameDay,
-  getDay,
-} from 'date-fns';
-import { colors, fontSize, fontWeight, radius, typography } from '../../constants/theme';
+import { format, addDays, isSameDay, parseISO } from 'date-fns';
+import { colors, radius, spacing, typography } from '../../constants/theme';
 
 const schema = yup.object({
   notes: yup.string(),
@@ -64,8 +41,6 @@ export function AddAttendanceForm({ classId, studentId, onDone }: AddAttendanceF
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<AttendanceStatus>('present');
   const [date, setDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [student, setStudent] = useState<Student | null>(null);
 
   useEffect(() => {
@@ -138,90 +113,10 @@ export function AddAttendanceForm({ classId, studentId, onDone }: AddAttendanceF
     }
   };
 
-  const handleDateSelect = (selectedDate: Date) => {
-    setDate(selectedDate);
-    setShowDatePicker(false);
-  };
-
-  const handleQuickDate = (daysOffset: number) => {
-    const newDate = addDays(new Date(), daysOffset);
-    setDate(newDate);
-  };
-
-  // Calendar rendering
-  const renderCalendar = () => {
-    const monthStart = startOfMonth(calendarMonth);
-    const monthEnd = endOfMonth(calendarMonth);
-    const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
-
-    // Get the day of week for the first day (0 = Sunday)
-    const startDayOfWeek = getDay(monthStart);
-
-    // Create empty slots for days before the month starts
-    const emptySlots = Array(startDayOfWeek).fill(null);
-
-    const allDays = [...emptySlots, ...days];
-
-    // Create rows of 7 days
-    const weeks: (Date | null)[][] = [];
-    for (let i = 0; i < allDays.length; i += 7) {
-      weeks.push(allDays.slice(i, i + 7));
-    }
-
-    return (
-      <View style={styles.calendar}>
-        <View style={styles.calendarHeader}>
-          <IconButton
-            icon="chevron-left"
-            onPress={() => setCalendarMonth(subMonths(calendarMonth, 1))}
-          />
-          <Text variant={typography.h4} style={styles.calendarTitle}>
-            {format(calendarMonth, 'MMMM yyyy')}
-          </Text>
-          <IconButton
-            icon="chevron-right"
-            onPress={() => setCalendarMonth(addMonths(calendarMonth, 1))}
-          />
-        </View>
-
-        <View style={styles.weekDays}>
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <Text key={day} style={styles.weekDay}>
-              {day}
-            </Text>
-          ))}
-        </View>
-
-        {weeks.map((week, weekIndex) => (
-          <View key={weekIndex} style={styles.weekRow}>
-            {week.map((day, dayIndex) => (
-              <TouchableOpacity
-                key={dayIndex}
-                style={[
-                  styles.dayCell,
-                  day && isSameDay(day, date) && styles.selectedDay,
-                  day && isSameDay(day, new Date()) && styles.today,
-                ]}
-                onPress={() => day && handleDateSelect(day)}
-                disabled={!day}
-              >
-                {day && (
-                  <Text
-                    style={[
-                      styles.dayText,
-                      isSameDay(day, date) && styles.selectedDayText,
-                    ]}
-                  >
-                    {format(day, 'd')}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        ))}
-      </View>
-    );
-  };
+  const quickDates = [
+    { label: 'Today', offset: 0 },
+    { label: 'Yesterday', offset: -1 },
+  ];
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -235,55 +130,28 @@ export function AddAttendanceForm({ classId, studentId, onDone }: AddAttendanceF
           keyboardDismissMode="on-drag"
         >
           <View style={styles.dateContainer}>
-            <Text variant={typography.h4}>Date</Text>
-            <TouchableOpacity
-              style={styles.dateSelector}
-              onPress={() => {
-                setCalendarMonth(date);
-                setShowDatePicker(true);
-              }}
-            >
-              <Text variant={typography.bodyLarge} style={styles.dateText}>
-                {format(date, 'EEEE, MMMM d, yyyy')}
-              </Text>
-              <IconButton icon="calendar" size={20} />
-            </TouchableOpacity>
-
+            <View style={styles.dateRow}>
+              <Text variant={typography.h4}>Date</Text>
+              <DateField
+                value={format(date, 'yyyy-MM-dd')}
+                onChange={(value) => setDate(parseISO(value))}
+              />
+            </View>
             <View style={styles.quickDates}>
-              <TouchableOpacity
-                style={[
-                  styles.quickDateButton,
-                  isSameDay(date, new Date()) && styles.quickDateActive,
-                ]}
-                onPress={() => handleQuickDate(0)}
-              >
-                <Text
-                  style={[
-                    styles.quickDateText,
-                    isSameDay(date, new Date()) && styles.quickDateActiveText,
-                  ]}
-                >
-                  Today
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.quickDateButton,
-                  isSameDay(date, subDays(new Date(), 1)) &&
-                    styles.quickDateActive,
-                ]}
-                onPress={() => handleQuickDate(-1)}
-              >
-                <Text
-                  style={[
-                    styles.quickDateText,
-                    isSameDay(date, subDays(new Date(), 1)) &&
-                      styles.quickDateActiveText,
-                  ]}
-                >
-                  Yesterday
-                </Text>
-              </TouchableOpacity>
+              {quickDates.map(({ label, offset }) => {
+                const on = isSameDay(date, addDays(new Date(), offset));
+                return (
+                  <Chip
+                    key={label}
+                    selected={on}
+                    showSelectedOverlay
+                    onPress={() => setDate(addDays(new Date(), offset))}
+                    accessibilityLabel={`${label}${on ? ', selected' : ''}`}
+                  >
+                    {label}
+                  </Chip>
+                );
+              })}
             </View>
           </View>
 
@@ -325,32 +193,6 @@ export function AddAttendanceForm({ classId, studentId, onDone }: AddAttendanceF
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Date Picker Modal */}
-      <Modal
-        visible={showDatePicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowDatePicker(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowDatePicker(false)}
-        >
-          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-            <View style={styles.modalContainer}>
-              <Text variant={typography.h3} style={styles.modalTitle}>
-                Select Date
-              </Text>
-              {renderCalendar()}
-              <Button mode="outlined" onPress={() => setShowDatePicker(false)}>
-                Cancel
-              </Button>
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-
       <AppSnackbar message={error} onDismiss={() => setError(null)} />
     </SafeAreaView>
   );
@@ -365,124 +207,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: spacing.lg,
   },
   dateContainer: {
     marginBottom: 20,
-    padding: 16,
+    padding: spacing.lg,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
   },
-  dateSelector: {
+  dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  dateText: {
-    color: colors.text,
-    flex: 1,
   },
   quickDates: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-  },
-  quickDateButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radius.xl,
-    backgroundColor: colors.border,
-  },
-  quickDateActive: {
-    backgroundColor: colors.primary,
-  },
-  quickDateText: {
-    fontSize: fontSize.sm,
-    color: colors.text,
-  },
-  quickDateActiveText: {
-    color: colors.onPrimary,
+    gap: spacing.sm,
+    marginTop: spacing.md,
   },
   statusContainer: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   label: {
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   segmentedButtons: {
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   actions: {
-    marginTop: 16,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.scrim,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    backgroundColor: colors.background,
-    margin: 20,
-    padding: 20,
-    borderRadius: radius.lg,
-    width: '90%',
-  },
-  modalTitle: {
-    fontWeight: fontWeight.semibold,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  calendar: {
-    marginBottom: 16,
-  },
-  calendarHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  calendarTitle: {
-    fontWeight: fontWeight.semibold,
-  },
-  weekDays: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 8,
-  },
-  weekDay: {
-    width: 36,
-    textAlign: 'center',
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
-    fontWeight: fontWeight.medium,
-  },
-  weekRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 4,
-  },
-  dayCell: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectedDay: {
-    backgroundColor: colors.primary,
-  },
-  today: {
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  dayText: {
-    fontSize: fontSize.md,
-    color: colors.text,
-  },
-  selectedDayText: {
-    color: colors.onPrimary,
-    fontWeight: fontWeight.semibold,
+    marginTop: spacing.lg,
   },
 });

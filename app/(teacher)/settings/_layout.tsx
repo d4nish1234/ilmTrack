@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { colors, headerOptions } from '../../../src/constants/theme';
+import { headerOptions } from '../../../src/constants/theme';
 
 /**
  * Settings and the pages it opens. Help lives here as a pushed screen rather

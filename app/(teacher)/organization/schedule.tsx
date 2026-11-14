@@ -38,7 +38,7 @@ import {
   templateName,
   templateProblem,
 } from '../../../src/utils/scheduleTemplates';
-import { colors, fontWeight, typography } from '../../../src/constants/theme';
+import { colors, fontWeight, spacing, typography } from '../../../src/constants/theme';
 /** People listed in the preview's "Not added" part. */
 const PREVIEW_PEOPLE_MAX = 5;
 
@@ -485,12 +485,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    padding: 16,
+    padding: spacing.lg,
   },
   heading: {
     fontWeight: fontWeight.semibold,
-    marginTop: 24,
-    marginBottom: 8,
+    marginTop: spacing.xl,
+    marginBottom: spacing.sm,
   },
   row: {
     flexDirection: 'row',
@@ -499,14 +499,14 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   slot: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
     backgroundColor: colors.background,
   },
   days: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   day: {
     minWidth: 44,
@@ -514,11 +514,11 @@ const styles = StyleSheet.create({
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   chip: {
-    marginRight: 8,
-    marginBottom: 8,
+    marginRight: spacing.sm,
+    marginBottom: spacing.sm,
   },
   first: {
     marginTop: 0,
@@ -531,17 +531,17 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   gap: {
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
   error: {
     color: colors.danger,
-    marginTop: 12,
+    marginTop: spacing.md,
   },
   delete: {
-    marginTop: 24,
+    marginTop: spacing.xl,
   },
   footer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },

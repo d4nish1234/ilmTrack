@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { StyleSheet, View, FlatList, RefreshControl, ScrollView } from 'react-native';
-import { Text, Card, Chip, IconButton, Button } from 'react-native-paper';
+import { Text, Card, Chip, IconButton } from 'react-native-paper';
 import { useNavigation } from 'expo-router';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useChildFilter } from '../../src/contexts/ChildFilterContext';
-import { LoadingSpinner } from '../../src/components/common';
+import { Button, LoadingSpinner } from '../../src/components/common';
 import { Student, Homework, HomeworkEvaluation, EVALUATION_LABELS } from '../../src/types';
 import { firestore } from '../../src/config/firebase';
 import { doc, getDoc, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { getHomeworkPaginatedForParent } from '../../src/services/homework.service';
 import { format } from 'date-fns';
-import { colors, fontWeight, statusColor, typography } from '../../src/constants/theme';
+import { colors, fontWeight, spacing, statusColor, typography } from '../../src/constants/theme';
 
 // Deduplicate students by name (same child in multiple classes)
 function deduplicateStudentsByName(students: Student[]): Student[] {
@@ -63,8 +63,8 @@ function EvaluationDisplay({ evaluation }: { evaluation: HomeworkEvaluation }) {
 
 const evaluationStyles = StyleSheet.create({
   container: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.divider,
   },
@@ -367,22 +367,22 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   filterScroll: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
   },
   filterChip: {
-    marginRight: 4,
+    marginRight: spacing.xs,
   },
   listContent: {
-    padding: 16,
+    padding: spacing.lg,
   },
   emptyListContent: {
     flexGrow: 1,
-    padding: 16,
+    padding: spacing.lg,
   },
   card: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
     backgroundColor: colors.background,
   },
   header: {
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     flex: 1,
-    marginRight: 8,
+    marginRight: spacing.sm,
   },
   title: {
     fontWeight: fontWeight.semibold,
@@ -406,15 +406,15 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   description: {
-    marginTop: 12,
+    marginTop: spacing.md,
     color: colors.text,
   },
   dueDate: {
-    marginTop: 8,
+    marginTop: spacing.sm,
     color: colors.textSecondary,
   },
   notes: {
-    marginTop: 8,
+    marginTop: spacing.sm,
     color: colors.textSecondary,
     fontStyle: 'italic',
   },
@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   loadMoreButton: {
-    marginTop: 8,
-    marginBottom: 16,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
   },
 });

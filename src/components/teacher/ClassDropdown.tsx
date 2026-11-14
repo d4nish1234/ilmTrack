@@ -4,7 +4,7 @@ import DropDownPicker from 'react-native-dropdown-picker';
 import { router } from 'expo-router';
 import { useClasses } from '../../hooks/useClasses';
 import { useSelectedClass } from '../../hooks/useSelectedClass';
-import { colors, fontSize, fontWeight, radius } from '../../constants/theme';
+import { colors, fontSize, fontWeight, radius, spacing } from '../../constants/theme';
 
 const CREATE_CLASS_VALUE = '__CREATE_NEW_CLASS__';
 
@@ -98,8 +98,8 @@ export function ClassDropdown({ onClassChange }: ClassDropdownProps) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,

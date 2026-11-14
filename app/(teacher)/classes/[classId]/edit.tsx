@@ -23,7 +23,7 @@ import {
 } from '../../../../src/services/class.service';
 import { Button, Input, LoadingSpinner, AppSnackbar } from '../../../../src/components/common';
 import { Class, Admin } from '../../../../src/types';
-import { colors, fontSize, fontWeight, radius, typography } from '../../../../src/constants/theme';
+import { colors, fontSize, fontWeight, radius, spacing, typography } from '../../../../src/constants/theme';
 
 const adminSchema = yup.object({
   email: yup
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: spacing.lg,
   },
   errorContainer: {
     flex: 1,
@@ -442,35 +442,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   section: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   sectionTitle: {
     fontWeight: fontWeight.semibold,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   divider: {
-    marginVertical: 16,
+    marginVertical: spacing.lg,
   },
   adminHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   adminNote: {
     color: colors.textSecondary,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   addAdminSection: {
-    padding: 12,
+    padding: spacing.md,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   addAdminActions: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
   addButton: {
     flex: 1,
@@ -483,22 +483,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
+    padding: spacing.md,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   adminInfo: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   adminEmail: {
     flex: 1,
   },
   statusChip: {
-    marginLeft: 4,
+    marginLeft: spacing.xs,
   },
   acceptedChip: {
     backgroundColor: colors.successSoft,
@@ -508,14 +508,14 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   classActions: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   dangerDivider: {
     marginTop: 32,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   dangerZone: {
-    padding: 16,
+    padding: spacing.lg,
     backgroundColor: colors.dangerSoft,
     borderRadius: radius.md,
     borderWidth: 1,
@@ -525,11 +525,11 @@ const styles = StyleSheet.create({
   dangerTitle: {
     fontWeight: fontWeight.semibold,
     color: colors.danger,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   dangerNote: {
     color: colors.textSecondary,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   deleteButton: {
     borderColor: colors.danger,

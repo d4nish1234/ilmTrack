@@ -5,7 +5,7 @@ import { format, parseISO } from 'date-fns';
 import type { TimesheetRow } from '../../utils/timesheet';
 import { formatTime } from '../../utils/timekeeping';
 import { cellTone, gridCells, rowHeight, shortRange, type CellTone, type GridCell } from '../../utils/weekGrid';
-import { colors, fontSize, fontWeight, radius, typography } from '../../constants/theme';
+import { colors, fontSize, fontWeight, radius, spacing, typography } from '../../constants/theme';
 
 const NAME_WIDTH = 104;
 /** Columns narrower than this scroll sideways instead. */
@@ -216,8 +216,8 @@ const styles = StyleSheet.create({
   },
   name: {
     justifyContent: 'center',
-    paddingLeft: 16,
-    paddingRight: 4,
+    paddingLeft: spacing.lg,
+    paddingRight: spacing.xs,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.divider,
   },
@@ -249,14 +249,14 @@ const styles = StyleSheet.create({
   legend: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    gap: 12,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    gap: spacing.md,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
   },
   dot: {
     width: 8,

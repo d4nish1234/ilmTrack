@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Linking, Platform, StyleSheet, View } from 'react-native';
-import { Button, Text } from 'react-native-paper';
+import { Text } from 'react-native-paper';
+import { Button } from './common';
 import Constants from 'expo-constants';
 import { fetchAppConfig, type AppConfig } from '../services/appConfig.service';
 import { isUpdateRequired, resolveStoreUrl } from '../utils/appVersion';
-import { colors, fontWeight, typography } from '../constants/theme';
+import { colors, fontWeight, spacing, typography } from '../constants/theme';
 
 /**
  * Blocks builds older than config/app.minSupportedVersion in Firestore.
@@ -70,8 +71,8 @@ export default function VersionGate({ children }: { children: React.ReactNode })
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, backgroundColor: colors.background },
-  title: { fontWeight: fontWeight.semibold, marginBottom: 12, textAlign: 'center' },
-  body: { color: colors.textSecondary, textAlign: 'center', marginBottom: 24 },
+  title: { fontWeight: fontWeight.semibold, marginBottom: spacing.md, textAlign: 'center' },
+  body: { color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.xl },
   button: { minWidth: 200 },
-  version: { color: colors.textDisabled, marginTop: 24 },
+  version: { color: colors.textDisabled, marginTop: spacing.xl },
 });

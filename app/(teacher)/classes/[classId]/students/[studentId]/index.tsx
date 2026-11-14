@@ -9,7 +9,7 @@ import { useAuth } from '../../../../../../src/contexts/AuthContext';
 import { LoadingSpinner, Button } from '../../../../../../src/components/common';
 import { Student, Homework, Attendance, Parent } from '../../../../../../src/types';
 import { format } from 'date-fns';
-import { colors, fontSize, statusColor, typography } from '../../../../../../src/constants/theme';
+import { colors, fontSize, spacing, statusColor, typography } from '../../../../../../src/constants/theme';
 
 interface ParentDisplayInfo {
   firstName: string;
@@ -352,22 +352,22 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     flexDirection: 'row',
-    padding: 16,
-    gap: 12,
+    padding: spacing.lg,
+    gap: spacing.md,
   },
   actionButton: {
     flex: 1,
   },
   card: {
-    marginHorizontal: 16,
-    marginBottom: 16,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
     backgroundColor: colors.background,
   },
   parentItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
   },
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   statusChip: {
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   acceptedChip: {
     backgroundColor: colors.successSoft,
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
   },
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
   },

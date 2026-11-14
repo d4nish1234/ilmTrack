@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Alert, StyleSheet, View, KeyboardAvoidingView, Platform, ScrollView, Modal as RNModal, TouchableOpacity, TouchableWithoutFeedback, Dimensions, type ViewInstance } from 'react-native';
+import { Alert, StyleSheet, View, KeyboardAvoidingView, Platform, ScrollView, Modal as RNModal, TouchableWithoutFeedback, Dimensions, type ViewInstance } from 'react-native';
 import { Stack } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -9,11 +9,11 @@ import { IconButton, Text } from 'react-native-paper';
 import { useAuth } from '../../contexts/AuthContext';
 import { createHomework, getHomeworkAssignedToday } from '../../services/homework.service';
 import { getStudent, getInvitedTeacherIds, updateStudentSurahAyahMode } from '../../services/student.service';
-import { Button, Input, AppSnackbar } from '../common';
+import { AppSnackbar, Button, Input, Tappable } from '../common';
 import { SurahAyahInput, SurahAyahSelection } from './SurahAyahInput';
 import { surahAyahRangeProblem } from '../../data/quranSurahs';
 import { Student } from '../../types';
-import { colors, fontSize, radius, typography } from '../../constants/theme';
+import { colors, fontSize, radius, spacing, typography } from '../../constants/theme';
 
 const schema = yup.object({
   title: yup.string().required('Title is required'),
@@ -221,14 +221,14 @@ export function AddHomeworkForm({ classId, studentId, onDone }: AddHomeworkFormP
           <View style={styles.menuBackdrop}>
             <TouchableWithoutFeedback>
               <View style={[styles.menuContent, { position: 'absolute', top: menuPosition.top, right: menuPosition.right }]}>
-                <TouchableOpacity style={styles.menuItem} onPress={toggleQuranMode}>
+                <Tappable style={styles.menuItem} onPress={toggleQuranMode}>
                   {quranMode && (
                     <IconButton icon="check" size={20} style={styles.menuIcon} />
                   )}
                   <Text variant={typography.bodyLarge} style={[styles.menuText, !quranMode && styles.menuTextNoIcon]}>
                     Quran Mode
                   </Text>
-                </TouchableOpacity>
+                </Tappable>
               </View>
             </TouchableWithoutFeedback>
           </View>
@@ -306,10 +306,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: spacing.lg,
   },
   actions: {
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
   headerButton: {
     margin: 0,
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   menuContent: {
     backgroundColor: colors.background,
     borderRadius: radius.md,
-    paddingVertical: 4,
+    paddingVertical: spacing.xs,
     minWidth: 180,
     elevation: 8,
     shadowColor: colors.shadow,
@@ -332,17 +332,17 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   menuIcon: {
     margin: 0,
-    marginRight: 4,
+    marginRight: spacing.xs,
   },
   menuText: {
     fontSize: fontSize.lg,
   },
   menuTextNoIcon: {
-    paddingLeft: 8,
+    paddingLeft: spacing.sm,
   },
 });

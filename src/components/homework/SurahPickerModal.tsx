@@ -1,18 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import {
-  StyleSheet,
-  View,
-  FlatList,
-  TouchableOpacity,
-  Dimensions,
-  Modal,
-  TouchableWithoutFeedback,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { StyleSheet, View, FlatList, Dimensions, Modal, TouchableWithoutFeedback, KeyboardAvoidingView, Platform } from 'react-native';
+import { Tappable } from '../common';
 import { Text, Searchbar } from 'react-native-paper';
 import { QURAN_SURAHS, Surah } from '../../data/quranSurahs';
-import { colors, fontSize, fontWeight, radius, typography } from '../../constants/theme';
+import { colors, fontSize, fontWeight, radius, spacing, typography } from '../../constants/theme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -47,7 +38,7 @@ export function SurahPickerModal({ visible, onDismiss, onSelect }: SurahPickerMo
   };
 
   const renderItem = ({ item }: { item: Surah }) => (
-    <TouchableOpacity style={styles.item} onPress={() => handleSelect(item)}>
+    <Tappable style={styles.item} onPress={() => handleSelect(item)}>
       <View style={styles.itemNumber}>
         <Text variant={typography.h4} style={styles.numberText}>{item.number}</Text>
       </View>
@@ -58,7 +49,7 @@ export function SurahPickerModal({ visible, onDismiss, onSelect }: SurahPickerMo
         </Text>
       </View>
       <Text variant={typography.h4} style={styles.arabicText}>{item.arabicName}</Text>
-    </TouchableOpacity>
+    </Tappable>
   );
 
   return (
@@ -113,7 +104,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: colors.background,
-    marginHorizontal: 16,
+    marginHorizontal: spacing.lg,
     borderRadius: radius.lg,
     maxHeight: SCREEN_HEIGHT * 0.7,
     width: '90%',
@@ -121,13 +112,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: fontWeight.semibold,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
   },
   searchbar: {
-    marginHorizontal: 16,
-    marginBottom: 8,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
     elevation: 0,
     backgroundColor: colors.surface,
   },
@@ -140,8 +131,8 @@ const styles = StyleSheet.create({
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
   itemNumber: {
     width: 36,
@@ -150,7 +141,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primarySoft,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   numberText: {
     fontWeight: fontWeight.semibold,
@@ -170,12 +161,12 @@ const styles = StyleSheet.create({
   arabicText: {
     fontSize: fontSize.xl,
     color: colors.text,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   separator: {
     height: 1,
     backgroundColor: colors.surface,
-    marginHorizontal: 16,
+    marginHorizontal: spacing.lg,
   },
   empty: {
     padding: 32,

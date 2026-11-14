@@ -30,7 +30,7 @@ import {
   type DateRange,
   type ExportPerson,
 } from '../../../src/utils/timesheetExport';
-import { colors, typography } from '../../../src/constants/theme';
+import { colors, spacing, typography } from '../../../src/constants/theme';
 
 const WEEK_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -271,19 +271,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    paddingBottom: 24,
+    paddingBottom: spacing.xl,
   },
   body: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
   },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   chip: {
-    marginRight: 8,
-    marginBottom: 8,
+    marginRight: spacing.sm,
+    marginBottom: spacing.sm,
   },
   row: {
     flexDirection: 'row',
@@ -293,15 +293,15 @@ const styles = StyleSheet.create({
   },
   error: {
     color: colors.danger,
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   hint: {
     color: colors.textSecondary,
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
   },
   footer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },

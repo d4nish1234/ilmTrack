@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTimeClock } from '../../contexts/TimeClockContext';
 import { barContent } from '../../utils/timeclock';
-import { fontWeight, radius, typography, useAppTheme } from '../../constants/theme';
+import { fontWeight, radius, spacing, typography, useAppTheme } from '../../constants/theme';
 
 /**
  * One slim row on the Classes screen, so the student list keeps its room.
@@ -51,11 +51,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 36,
-    paddingHorizontal: 12,
-    marginHorizontal: 16,
-    marginTop: 8,
+    paddingHorizontal: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
     borderRadius: radius.md,
-    gap: 8,
+    gap: spacing.sm,
   },
   label: {
     flex: 1,

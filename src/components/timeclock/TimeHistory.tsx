@@ -7,7 +7,7 @@ import { shiftViews, weekRangeLabel, weekTotals } from '../../utils/timeclock';
 import { formatDuration, shiftWeek } from '../../utils/timekeeping';
 import type { MyTimekeeping, TimeEntry } from '../../types';
 import { WeekRow } from './WeekRow';
-import { colors, fontWeight, typography } from '../../constants/theme';
+import { colors, fontWeight, spacing, typography } from '../../constants/theme';
 
 interface TimeHistoryProps {
   teacherId: string;
@@ -141,8 +141,8 @@ const styles = StyleSheet.create({
   },
   total: {
     fontWeight: fontWeight.bold,
-    marginTop: 8,
-    marginBottom: 8,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
   muted: {
     color: colors.textSecondary,
@@ -150,12 +150,12 @@ const styles = StyleSheet.create({
   message: {
     alignItems: 'center',
     textAlign: 'center',
-    marginVertical: 24,
+    marginVertical: spacing.xl,
   },
   loading: {
     height: 120,
   },
   back: {
-    marginTop: 24,
+    marginTop: spacing.xl,
   },
 });

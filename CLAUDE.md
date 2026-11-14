@@ -158,6 +158,13 @@ components never hard-code it (`tests/theme.test.ts` fails if they do).
 - **Shape and space:** `radius.*` (8 is the default for buttons and cards;
   circles use half their size), `spacing.*`.
 - **Headers:** spread `headerOptions` into a stack's `screenOptions`.
+- **One component per job** (`src/components/common` unless noted):
+  `Button` (never Paper's directly), `Tappable` for anything tappable that
+  isn't a button, list row or chip (never `TouchableOpacity`), `DateField`
+  (`components/timekeeping`) for every date, `AppSnackbar` for messages,
+  `HelpSheet` / `HelpLink`, `useUnsavedChanges`. Teacher and parent share
+  `SettingsScreen` and `HelpAndSupportScreen` (`components/settings`); their
+  routes pass only what differs.
 - `colors` is a plain object, so `StyleSheet.create` can use it;
   `useAppTheme()` gives the same values through Paper's theme (its
   `primary`, `secondary`, `error` and the time clock's tones come from

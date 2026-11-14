@@ -1,13 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  StyleSheet,
-  View,
-  FlatList,
-  TouchableOpacity,
-  Alert,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { StyleSheet, View, FlatList, Alert, type StyleProp, type ViewStyle } from 'react-native';
 import {
   Text,
   Card,
@@ -33,7 +25,7 @@ import { useSelectedClass } from '../../../src/hooks/useSelectedClass';
 import { ClassDropdown } from '../../../src/components/teacher';
 import { TimeClockBar } from '../../../src/components/timeclock/TimeClockBar';
 import { useTimeClock } from '../../../src/contexts/TimeClockContext';
-import { LoadingSpinner, AppSnackbar } from '../../../src/components/common';
+import { AppSnackbar, LoadingSpinner, Tappable } from '../../../src/components/common';
 import { Student, AttendanceStatus } from '../../../src/types';
 import { firestore } from '../../../src/config/firebase';
 import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
@@ -41,7 +33,7 @@ import {
   toggleAttendance,
 } from '../../../src/services/attendance.service';
 import { getInvitedTeacherIds } from '../../../src/services/student.service';
-import { colors, fontSize, fontWeight, radius, statusColor, statusSoftColor, typography } from '../../../src/constants/theme';
+import { colors, fontSize, fontWeight, radius, spacing, statusColor, statusSoftColor, typography } from '../../../src/constants/theme';
 
 interface TodayAttendance {
   [studentId: string]: AttendanceStatus | null;
@@ -290,20 +282,20 @@ export default function ClassesScreen() {
         style={[styles.swipeAction, styles.swipeActionLeft]}
       >
         <View style={styles.swipeActionsRow}>
-          <TouchableOpacity
+          <Tappable
             style={[styles.swipeActionButton, { backgroundColor: colors.primary }]}
             onPress={() => handleOpenNewHomework(student)}
           >
             <IconButton icon="plus" iconColor={colors.onPrimary} size={20} style={{ margin: 0 }} />
             <Text style={styles.swipeButtonText}>New</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
+          </Tappable>
+          <Tappable
             style={[styles.swipeActionButton, { backgroundColor: colors.warning }]}
             onPress={() => handleOpenEvaluate(student)}
           >
             <IconButton icon="clipboard-check" iconColor={colors.onPrimary} size={20} style={{ margin: 0 }} />
             <Text style={styles.swipeButtonText}>Evaluate</Text>
-          </TouchableOpacity>
+          </Tappable>
         </View>
       </SwipeActionPanel>
     );
@@ -351,7 +343,7 @@ export default function ClassesScreen() {
         overshootRight={false}
         overshootLeft={false}
       >
-        <TouchableOpacity onPress={() => handleStudentPress(item)}>
+        <Tappable onPress={() => handleStudentPress(item)}>
           <Card style={styles.studentCard}>
             <Card.Content style={styles.cardContent}>
               <View style={styles.studentInfo}>
@@ -369,7 +361,7 @@ export default function ClassesScreen() {
               <Text style={styles.swipeHint}>← Homework | Attendance →</Text>
             </Card.Content>
           </Card>
-        </TouchableOpacity>
+        </Tappable>
       </ReanimatedSwipeable>
     );
   };
@@ -532,7 +524,7 @@ export default function ClassesScreen() {
  * ReanimatedSwipeable keeps both panels behind the row at all times (the
  * legacy Swipeable moved them off-screen), so a closed panel is hidden
  * outright. Otherwise it shows through the card's rounded corners, and
- * through the card itself while TouchableOpacity dims it on press.
+ * through the card itself while Tappable fades it on press.
  */
 function SwipeActionPanel({
   progress,
@@ -567,35 +559,35 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuButton: {
-    marginRight: 4,
+    marginRight: spacing.xs,
     marginLeft: -8,
   },
   searchContainer: {
-    padding: 16,
-    paddingTop: 8,
+    padding: spacing.lg,
+    paddingTop: spacing.sm,
     backgroundColor: colors.background,
   },
   searchbar: {
     backgroundColor: colors.surface,
   },
   header: {
-    padding: 16,
-    paddingBottom: 8,
+    padding: spacing.lg,
+    paddingBottom: spacing.sm,
   },
   sectionTitle: {
     fontWeight: fontWeight.semibold,
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingBottom: 80,
   },
   studentCard: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
     backgroundColor: colors.background,
   },
   cardContent: {
     flexDirection: 'column',
-    gap: 8,
+    gap: spacing.sm,
   },
   studentInfo: {
     flex: 1,
@@ -606,11 +598,11 @@ const styles = StyleSheet.create({
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   attendanceChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     borderRadius: radius.lg,
     borderWidth: 1,
   },
@@ -625,7 +617,7 @@ const styles = StyleSheet.create({
   },
   swipeAction: {
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   swipeActionRight: {
     alignItems: 'flex-end',
@@ -636,13 +628,13 @@ const styles = StyleSheet.create({
   swipeActionsRow: {
     flexDirection: 'row',
     height: '100%',
-    gap: 4,
+    gap: spacing.xs,
   },
   swipeActionButton: {
     alignItems: 'center',
     justifyContent: 'center',
     height: '100%',
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     borderRadius: radius.md,
     minWidth: 70,
   },
@@ -657,7 +649,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: '100%',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     borderRadius: radius.md,
     minWidth: 100,
   },
@@ -670,11 +662,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: spacing.xl,
   },
   emptyTitle: {
     fontWeight: fontWeight.semibold,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   emptyMessage: {
     color: colors.textSecondary,
@@ -687,7 +679,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   createClassFab: {
-    marginTop: 24,
+    marginTop: spacing.xl,
     backgroundColor: colors.primary,
   },
 });

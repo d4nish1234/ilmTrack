@@ -9,7 +9,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { firestore } from '../../../../../../../src/config/firebase';
 import { updateHomework } from '../../../../../../../src/services/homework.service';
 import { Button, Input, AppSnackbar, LoadingSpinner } from '../../../../../../../src/components/common';
-import { colors } from '../../../../../../../src/constants/theme';
+import { colors, spacing } from '../../../../../../../src/constants/theme';
 
 const schema = yup.object({
   title: yup.string().required('Title is required'),
@@ -137,9 +137,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: spacing.lg,
   },
   actions: {
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
 });

@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import {
-  StyleSheet,
-  View,
-  ScrollView,
-  Modal,
-  TouchableOpacity,
-} from 'react-native';
+import { StyleSheet, View, ScrollView, Modal } from 'react-native';
 import { Text, IconButton } from 'react-native-paper';
-import { Button } from '../common';
-import { colors, fontWeight, radius, typography } from '../../constants/theme';
+import { Button, Tappable } from '../common';
+import { colors, fontWeight, radius, spacing, typography } from '../../constants/theme';
 
 export interface ReportColumn {
   key: string;
@@ -90,7 +84,7 @@ export default function ReportModal({
             style={styles.filterScroll}
             contentContainerStyle={styles.filterContent}
           >
-            <TouchableOpacity
+            <Tappable
               style={[styles.chip, selectedStudent === null && styles.chipActive]}
               onPress={() => setSelectedStudent(null)}
             >
@@ -100,9 +94,9 @@ export default function ReportModal({
               >
                 All Students
               </Text>
-            </TouchableOpacity>
+            </Tappable>
             {studentNames.map((name) => (
-              <TouchableOpacity
+              <Tappable
                 key={name}
                 style={[styles.chip, selectedStudent === name && styles.chipActive]}
                 onPress={() => setSelectedStudent(name)}
@@ -113,7 +107,7 @@ export default function ReportModal({
                 >
                   {name}
                 </Text>
-              </TouchableOpacity>
+              </Tappable>
             ))}
           </ScrollView>
         )}
@@ -201,9 +195,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingTop: 48,
-    paddingBottom: 12,
+    paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -223,13 +217,13 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   filterContent: {
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     paddingVertical: 10,
-    gap: 8,
+    gap: spacing.sm,
     flexDirection: 'row',
   },
   chip: {
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     paddingVertical: 6,
     borderRadius: radius.xl,
     borderWidth: 1,
@@ -292,8 +286,8 @@ const styles = StyleSheet.create({
   },
   bottomBar: {
     flexDirection: 'row',
-    padding: 16,
-    gap: 12,
+    padding: spacing.lg,
+    gap: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },

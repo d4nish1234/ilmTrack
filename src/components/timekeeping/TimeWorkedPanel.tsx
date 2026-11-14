@@ -5,7 +5,7 @@ import { Button } from '../common';
 import { TimeField } from './TimeField';
 import type { TimesheetRow } from '../../utils/timesheet';
 import { errorMessage, formatDuration, formatTime } from '../../utils/timekeeping';
-import { colors, fontWeight, typography } from '../../constants/theme';
+import { colors, fontWeight, spacing, typography } from '../../constants/theme';
 
 interface TimeWorkedPanelProps {
   row: TimesheetRow;
@@ -168,11 +168,11 @@ export function TimeWorkedPanel({ row, onCorrect }: TimeWorkedPanelProps) {
 
 const styles = StyleSheet.create({
   divider: {
-    marginVertical: 16,
+    marginVertical: spacing.lg,
   },
   title: {
     fontWeight: fontWeight.semibold,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   row: {
     flexDirection: 'row',
@@ -185,20 +185,20 @@ const styles = StyleSheet.create({
   },
   muted: {
     color: colors.textSecondary,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   button: {
-    marginTop: 12,
+    marginTop: spacing.md,
   },
   editor: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   input: {
     backgroundColor: colors.background,
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   error: {
     color: colors.danger,
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
 });

@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { useOrganizations } from '../../../src/contexts/OrganizationContext';
 import { LoadingSpinner } from '../../../src/components/common';
-import { colors, fontSize, fontWeight, typography } from '../../../src/constants/theme';
+import { colors, fontSize, fontWeight, spacing, typography } from '../../../src/constants/theme';
 
 /**
  * The organization's tools. A plain list so more can be added as rows.
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: colors.surface,
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
   },
   orgName: {
     fontWeight: fontWeight.semibold,
@@ -115,14 +115,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.background,
-    padding: 24,
+    padding: spacing.xl,
   },
   emptyText: {
     color: colors.textSecondary,
     textAlign: 'center',
   },
   footer: {
-    padding: 16,
+    padding: spacing.lg,
   },
   footerText: {
     color: colors.textDisabled,

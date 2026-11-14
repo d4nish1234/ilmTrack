@@ -20,7 +20,7 @@ import type { OrgTeacher, TimeEntry, TimekeepingSettings, WeekSchedule } from '.
 import { currentWeekStart, formatTime, shiftWeek, todayIn, weekDates } from '../../../src/utils/timekeeping';
 import { clockedInNow, timesheetRows, workedOfScheduled } from '../../../src/utils/timesheet';
 import { gridDates, weekRangeLabel, type GridCell } from '../../../src/utils/weekGrid';
-import { colors, fontWeight, typography } from '../../../src/constants/theme';
+import { colors, fontWeight, spacing, typography } from '../../../src/constants/theme';
 
 function deviceTimezone(): string {
   try {
@@ -563,42 +563,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 4,
-    paddingTop: 4,
+    paddingHorizontal: spacing.xs,
+    paddingTop: spacing.xs,
   },
   weekLabel: {
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   toggle: {
-    marginHorizontal: 16,
-    marginBottom: 8,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
   },
   strip: {
     backgroundColor: colors.successSoft,
   },
   grid: {
-    paddingTop: 8,
-    paddingBottom: 16,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
   },
   hint: {
     color: colors.textSecondary,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
   muted: {
     color: colors.textSecondary,
   },
   off: {
-    padding: 24,
+    padding: spacing.xl,
   },
   offTitle: {
     fontWeight: fontWeight.semibold,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   offButton: {
-    marginTop: 24,
+    marginTop: spacing.xl,
   },
   dialogList: {
     maxHeight: 360,

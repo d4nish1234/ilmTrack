@@ -15,7 +15,7 @@ import * as yup from 'yup';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { Button, Input, AppSnackbar } from '../../src/components/common';
 import { getAuthErrorMessage } from '../../src/utils/authErrors';
-import { colors, fontWeight, typography } from '../../src/constants/theme';
+import { colors, fontWeight, spacing, typography } from '../../src/constants/theme';
 
 const schema = yup.object({
   email: yup
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    padding: spacing.xl,
   },
   header: {
     marginBottom: 32,
@@ -141,13 +141,13 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: fontWeight.bold,
     color: colors.text,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   subtitle: {
     color: colors.textSecondary,
   },
   form: {
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   footer: {
     alignItems: 'center',
@@ -155,13 +155,13 @@ const styles = StyleSheet.create({
   successContent: {
     flex: 1,
     justifyContent: 'center',
-    padding: 24,
+    padding: spacing.xl,
     alignItems: 'center',
   },
   successTitle: {
     fontWeight: fontWeight.bold,
     color: colors.text,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
     textAlign: 'center',
   },
   successMessage: {

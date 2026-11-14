@@ -5,7 +5,7 @@ import { format, parseISO } from 'date-fns';
 import { formatWorked, workedMs } from '../../utils/timeclock';
 import { formatTime } from '../../utils/timekeeping';
 import type { ShiftView } from '../../types';
-import { colors, fontWeight, typography, useAppTheme } from '../../constants/theme';
+import { colors, fontWeight, spacing, typography, useAppTheme } from '../../constants/theme';
 
 const shiftTimes = (s: ShiftView) => `${formatTime(s.start)}–${formatTime(s.end)}`;
 
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rowRight: {
-    marginLeft: 8,
+    marginLeft: spacing.sm,
     fontWeight: fontWeight.semibold,
   },
 });

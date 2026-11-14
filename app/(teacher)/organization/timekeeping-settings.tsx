@@ -14,7 +14,7 @@ import { AppSnackbar, LoadingSpinner } from '../../../src/components/common';
 import type { ScheduleTemplate, TimekeepingSettings } from '../../../src/types';
 import { hasEnded } from '../../../src/utils/scheduleTemplates';
 import { todayIn } from '../../../src/utils/timekeeping';
-import { colors, fontSize, fontWeight, typography } from '../../../src/constants/theme';
+import { colors, fontSize, fontWeight, spacing, typography } from '../../../src/constants/theme';
 
 /**
  * Timekeeping's setup, set up once and changed now and then: the on/off
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   },
   switchRow: {
     backgroundColor: colors.surface,
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
   },
   switchTitle: {
     fontWeight: fontWeight.semibold,
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   },
   blurb: {
     color: colors.textSecondary,
-    paddingHorizontal: 16,
-    paddingBottom: 4,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xs,
   },
 });

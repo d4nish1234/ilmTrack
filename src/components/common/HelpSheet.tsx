@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from './Button';
-import { colors, fontWeight, typography } from '../../constants/theme';
+import { colors, fontWeight, spacing, typography } from '../../constants/theme';
 
 export interface HelpItem {
   /** A MaterialCommunityIcons name. */
@@ -89,7 +89,7 @@ export function HelpLink({ label, onPress }: HelpLinkProps) {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.background,
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.xl,
     paddingTop: 28,
   },
   title: {
@@ -98,14 +98,14 @@ const styles = StyleSheet.create({
   },
   intro: {
     color: colors.textSecondary,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   item: {
     flexDirection: 'row',
     paddingVertical: 10,
   },
   icon: {
-    marginRight: 16,
+    marginRight: spacing.lg,
     marginTop: 2,
   },
   itemText: {
@@ -119,15 +119,15 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   done: {
-    marginTop: 16,
-    marginBottom: 16,
+    marginTop: spacing.lg,
+    marginBottom: spacing.lg,
   },
   link: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: 6,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingVertical: 10,
   },
   pressed: {

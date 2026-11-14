@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../../src/components/common';
 import { peoplePickerRequest } from '../../../src/components/timekeeping/peoplePicker';
 import { filterPeople, pickResult } from '../../../src/utils/peoplePicker';
-import { colors, typography } from '../../../src/constants/theme';
+import { colors, spacing, typography } from '../../../src/constants/theme';
 
 /**
  * Choose People, shared by every screen that picks people (opened with
@@ -113,26 +113,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingLeft: 16,
-    paddingRight: 8,
+    paddingLeft: spacing.lg,
+    paddingRight: spacing.sm,
     minHeight: 52,
   },
   count: {
     color: colors.textSecondary,
   },
   search: {
-    marginHorizontal: 16,
-    marginBottom: 8,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
   },
   label: {
     textAlign: 'left',
   },
   empty: {
     color: colors.textSecondary,
-    padding: 16,
+    padding: spacing.lg,
   },
   footer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },

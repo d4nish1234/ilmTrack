@@ -9,7 +9,7 @@ import { AppSnackbar, LoadingSpinner } from '../../../src/components/common';
 import type { ScheduleTemplate, TimekeepingSettings } from '../../../src/types';
 import { hasEnded, templateDescription, templateTitle } from '../../../src/utils/scheduleTemplates';
 import { todayIn } from '../../../src/utils/timekeeping';
-import { colors, typography } from '../../../src/constants/theme';
+import { colors, spacing, typography } from '../../../src/constants/theme';
 
 /**
  * The organization's schedule templates: current and upcoming ones, Add
@@ -95,8 +95,8 @@ const styles = StyleSheet.create({
   },
   intro: {
     color: colors.textSecondary,
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
   },
   addText: {
     color: colors.primary,

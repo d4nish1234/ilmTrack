@@ -28,7 +28,7 @@ import {
 } from '../../../../src/utils/timekeeping';
 import { templateTitle } from '../../../../src/utils/scheduleTemplates';
 import { timesheetRows, totals, type TimesheetRow } from '../../../../src/utils/timesheet';
-import { colors, fontWeight, radius, typography } from '../../../../src/constants/theme';
+import { colors, fontWeight, radius, spacing, typography } from '../../../../src/constants/theme';
 
 function deviceTimezone(): string {
   try {
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 4,
+    paddingVertical: spacing.xs,
   },
   weekLabel: {
     alignItems: 'center',
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
   },
   footerButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
   },
   footerButton: {
     flex: 1,
@@ -396,14 +396,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 64,
-    paddingLeft: 16,
+    paddingLeft: spacing.lg,
   },
   dayLabel: {
     width: 48,
   },
   dayShifts: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
   },
   none: {
     color: colors.disabled,
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     backgroundColor: colors.primarySoft,
     borderRadius: radius.md,
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     paddingVertical: 6,
     marginVertical: 3,
   },
@@ -421,13 +421,13 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
   },
   footer: {
-    padding: 16,
+    padding: spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },
   total: {
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
     color: colors.text,
   },
 });

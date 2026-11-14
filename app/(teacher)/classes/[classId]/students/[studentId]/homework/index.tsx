@@ -1,14 +1,14 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { StyleSheet, View, FlatList, TouchableOpacity, Keyboard, TouchableWithoutFeedback } from 'react-native';
-import { Text, Card, Chip, FAB, Menu, IconButton, Portal, Modal, Divider, TextInput, Button } from 'react-native-paper';
+import { StyleSheet, View, FlatList, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { Text, Card, Chip, FAB, Menu, IconButton, Portal, Modal, Divider, TextInput } from 'react-native-paper';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { getHomeworkPaginatedAsTeacher, updateHomework, deleteHomework } from '../../../../../../../src/services/homework.service';
 import { useAuth } from '../../../../../../../src/contexts/AuthContext';
-import { LoadingSpinner } from '../../../../../../../src/components/common';
+import { Button, LoadingSpinner, Tappable } from '../../../../../../../src/components/common';
 import { Homework, HomeworkStatus, HomeworkEvaluation, EVALUATION_LABELS } from '../../../../../../../src/types';
 import { format } from 'date-fns';
 import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
-import { colors, fontSize, fontWeight, radius, statusColor, typography } from '../../../../../../../src/constants/theme';
+import { colors, fontSize, fontWeight, radius, spacing, statusColor, typography } from '../../../../../../../src/constants/theme';
 
 // Star rating component
 function StarRating({
@@ -26,7 +26,7 @@ function StarRating({
     <View style={starStyles.container}>
       <View style={starStyles.starsRow}>
         {stars.map((star) => (
-          <TouchableOpacity
+          <Tappable
             key={star}
             onPress={() => !readonly && onRatingChange?.(star)}
             disabled={readonly}
@@ -38,7 +38,7 @@ function StarRating({
               size={readonly ? 16 : 32}
               style={{ margin: 0 }}
             />
-          </TouchableOpacity>
+          </Tappable>
         ))}
       </View>
       {rating && (
@@ -65,7 +65,7 @@ const starStyles = StyleSheet.create({
     padding: 0,
   },
   label: {
-    marginTop: 8,
+    marginTop: spacing.sm,
     color: colors.textSecondary,
     fontWeight: fontWeight.medium,
   },
@@ -393,14 +393,14 @@ export default function HomeworkListScreen() {
               />
 
               <View style={styles.modalActions}>
-                <TouchableOpacity
+                <Tappable
                   style={[styles.modalButton, styles.saveButton, !selectedRating && styles.disabledButton]}
                   onPress={handleSaveEvaluation}
                   disabled={!selectedRating}
                 >
                   <Text style={styles.saveButtonText}>Save</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
+                </Tappable>
+                <Tappable
                   style={[styles.modalButton, styles.cancelButton]}
                   onPress={() => {
                     setEvaluationModalId(null);
@@ -409,7 +409,7 @@ export default function HomeworkListScreen() {
                   }}
                 >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
+                </Tappable>
               </View>
             </View>
           </TouchableWithoutFeedback>
@@ -425,11 +425,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   listContent: {
-    padding: 16,
+    padding: spacing.lg,
     paddingBottom: 80,
   },
   card: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
     backgroundColor: colors.background,
   },
   header: {
@@ -448,21 +448,21 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   description: {
-    marginTop: 8,
+    marginTop: spacing.sm,
     color: colors.text,
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
-    gap: 12,
+    marginTop: spacing.md,
+    gap: spacing.md,
   },
   dueDate: {
     color: colors.textSecondary,
   },
   evaluationContainer: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.divider,
   },
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   notes: {
-    marginTop: 8,
+    marginTop: spacing.sm,
     color: colors.textSecondary,
     fontStyle: 'italic',
   },
@@ -485,8 +485,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   loadMoreButton: {
-    marginTop: 8,
-    marginBottom: 16,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
   },
   fab: {
     position: 'absolute',
@@ -497,30 +497,30 @@ const styles = StyleSheet.create({
   modalContainer: {
     backgroundColor: colors.background,
     margin: 20,
-    padding: 24,
+    padding: spacing.xl,
     borderRadius: radius.lg,
   },
   modalTitle: {
     fontWeight: fontWeight.semibold,
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   modalSubtitle: {
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   commentInput: {
-    marginTop: 16,
+    marginTop: spacing.lg,
     backgroundColor: colors.background,
   },
   modalActions: {
-    marginTop: 24,
-    gap: 12,
+    marginTop: spacing.xl,
+    gap: spacing.md,
   },
   modalButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
     borderRadius: radius.md,
     alignItems: 'center',
   },

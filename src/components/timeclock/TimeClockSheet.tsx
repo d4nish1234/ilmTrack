@@ -15,7 +15,7 @@ import {
 import { countingFrom, formatClock, formatWorked, wallTime, workedMs } from '../../utils/timeclock';
 import { currentWeekStart, formatTime } from '../../utils/timekeeping';
 import type { ShiftView } from '../../types';
-import { colors, fontWeight, typography, useAppTheme } from '../../constants/theme';
+import { colors, fontWeight, spacing, typography, useAppTheme } from '../../constants/theme';
 import { WeekRow } from './WeekRow';
 import { TimeHistory } from './TimeHistory';
 import { useAuth } from '../../contexts/AuthContext';
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    padding: 16,
+    padding: spacing.lg,
   },
   card: {
     backgroundColor: colors.surface,
@@ -454,35 +454,35 @@ const styles = StyleSheet.create({
   timer: {
     fontVariant: ['tabular-nums'],
     fontWeight: fontWeight.semibold,
-    marginVertical: 4,
+    marginVertical: spacing.xs,
   },
   heading: {
     fontWeight: fontWeight.semibold,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   muted: {
     color: colors.textSecondary,
   },
   hint: {
     color: colors.textSecondary,
-    marginTop: 12,
+    marginTop: spacing.md,
   },
   pending: {
-    marginTop: 12,
+    marginTop: spacing.md,
   },
   buttons: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
+    gap: spacing.md,
+    marginTop: spacing.lg,
   },
   half: {
     flex: 1,
   },
   primary: {
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
   errorBox: {
-    marginTop: 12,
+    marginTop: spacing.md,
   },
   error: {
     color: colors.danger,
@@ -491,8 +491,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 12,
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
   },
   total: {
     fontWeight: fontWeight.bold,
@@ -501,18 +501,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   edited: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   closeButton: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   historyButton: {
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
 
   weekTitle: {
     fontWeight: fontWeight.semibold,
-    marginTop: 24,
-    marginBottom: 8,
+    marginTop: spacing.xl,
+    marginBottom: spacing.sm,
   },
 });

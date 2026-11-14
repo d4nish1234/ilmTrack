@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Tappable } from '../common';
 import { HelperText, Text } from 'react-native-paper';
 import { QURAN_SURAHS, Surah, getNextAyahPosition, composeSurahAyahTitle } from '../../data/quranSurahs';
 import { SurahPickerModal } from './SurahPickerModal';
 import { AyahPickerModal } from './AyahPickerModal';
-import { colors, fontSize, fontWeight, radius, typography } from '../../constants/theme';
+import { colors, fontSize, fontWeight, radius, spacing, typography } from '../../constants/theme';
 
 export interface SurahAyahSelection {
   fromSurah: Surah | null;
@@ -113,7 +114,7 @@ export function SurahAyahInput({ value, onChange, onTitleChange, error }: SurahA
       {/* From Row */}
       <Text variant={typography.label} style={styles.rowLabel}>From</Text>
       <View style={styles.row}>
-        <TouchableOpacity
+        <Tappable
           style={styles.field}
           onPress={() => openSurahPicker('fromSurah')}
         >
@@ -125,9 +126,9 @@ export function SurahAyahInput({ value, onChange, onTitleChange, error }: SurahA
           >
             {value.fromSurah ? value.fromSurah.name : 'Select'}
           </Text>
-        </TouchableOpacity>
+        </Tappable>
 
-        <TouchableOpacity
+        <Tappable
           style={[styles.field, styles.ayahField, !value.fromSurah && styles.fieldDisabled]}
           onPress={() => openAyahPicker('fromAyah')}
           disabled={!value.fromSurah}
@@ -139,13 +140,13 @@ export function SurahAyahInput({ value, onChange, onTitleChange, error }: SurahA
           >
             {value.fromAyah ?? 'Select'}
           </Text>
-        </TouchableOpacity>
+        </Tappable>
       </View>
 
       {/* To Row */}
       <Text variant={typography.label} style={styles.rowLabel}>To</Text>
       <View style={styles.row}>
-        <TouchableOpacity
+        <Tappable
           style={styles.field}
           onPress={() => openSurahPicker('toSurah')}
         >
@@ -157,9 +158,9 @@ export function SurahAyahInput({ value, onChange, onTitleChange, error }: SurahA
           >
             {value.toSurah ? value.toSurah.name : 'Select'}
           </Text>
-        </TouchableOpacity>
+        </Tappable>
 
-        <TouchableOpacity
+        <Tappable
           style={[styles.field, styles.ayahField, !value.toSurah && styles.fieldDisabled]}
           onPress={() => openAyahPicker('toAyah')}
           disabled={!value.toSurah}
@@ -171,7 +172,7 @@ export function SurahAyahInput({ value, onChange, onTitleChange, error }: SurahA
           >
             {value.toAyah ?? 'Select'}
           </Text>
-        </TouchableOpacity>
+        </Tappable>
       </View>
 
       {!!error && (
@@ -200,23 +201,23 @@ export function SurahAyahInput({ value, onChange, onTitleChange, error }: SurahA
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   rowLabel: {
     color: colors.textSecondary,
-    marginBottom: 4,
-    marginTop: 8,
+    marginBottom: spacing.xs,
+    marginTop: spacing.sm,
   },
   row: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
   },
   field: {
     flex: 3,
     borderWidth: 1,
     borderColor: colors.textSecondary,
     borderRadius: radius.sm,
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     paddingVertical: 10,
     backgroundColor: colors.background,
   },

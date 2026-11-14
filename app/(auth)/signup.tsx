@@ -17,7 +17,7 @@ import { Button, Input, AppSnackbar } from '../../src/components/common';
 import { UserRole } from '../../src/types';
 import { getAuthErrorMessage } from '../../src/utils/authErrors';
 import { getInvitedParentInfo } from '../../src/services/student.service';
-import { colors, fontSize, fontWeight, typography } from '../../src/constants/theme';
+import { colors, fontSize, fontWeight, spacing, typography } from '../../src/constants/theme';
 
 const schema = yup.object({
   firstName: yup.string().required('First name is required'),
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    padding: spacing.xl,
   },
   header: {
     alignItems: 'center',
@@ -241,21 +241,21 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: colors.textSecondary,
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   form: {
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   roleLabel: {
-    marginBottom: 8,
+    marginBottom: spacing.sm,
     color: colors.text,
   },
   segmentedButtons: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   nameRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
   },
   nameField: {
     flex: 1,
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     color: colors.success,
     fontSize: fontSize.sm,
     marginTop: -8,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   footer: {
     alignItems: 'center',

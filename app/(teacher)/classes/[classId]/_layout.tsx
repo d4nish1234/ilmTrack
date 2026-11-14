@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { colors, headerOptions } from '../../../../src/constants/theme';
+import { headerOptions } from '../../../../src/constants/theme';
 
 export default function ClassDetailLayout() {
   return (

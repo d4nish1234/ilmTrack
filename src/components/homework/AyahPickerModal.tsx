@@ -1,15 +1,8 @@
 import React, { useMemo } from 'react';
-import {
-  StyleSheet,
-  View,
-  FlatList,
-  TouchableOpacity,
-  Dimensions,
-  Modal,
-  TouchableWithoutFeedback,
-} from 'react-native';
+import { StyleSheet, View, FlatList, Dimensions, Modal, TouchableWithoutFeedback } from 'react-native';
+import { Tappable } from '../common';
 import { Text } from 'react-native-paper';
-import { colors, fontWeight, radius, typography } from '../../constants/theme';
+import { colors, fontWeight, radius, spacing, typography } from '../../constants/theme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const NUM_COLUMNS = 5;
@@ -54,12 +47,12 @@ export function AyahPickerModal({
                 style={styles.list}
                 contentContainerStyle={styles.listContent}
                 renderItem={({ item }) => (
-                  <TouchableOpacity
+                  <Tappable
                     style={styles.ayahButton}
                     onPress={() => onSelect(item)}
                   >
                     <Text variant={typography.bodyLarge} style={styles.ayahText}>{item}</Text>
-                  </TouchableOpacity>
+                  </Tappable>
                 )}
               />
             </View>
@@ -79,7 +72,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: colors.background,
-    marginHorizontal: 16,
+    marginHorizontal: spacing.lg,
     borderRadius: radius.lg,
     maxHeight: SCREEN_HEIGHT * 0.6,
     width: '90%',
@@ -87,26 +80,26 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: fontWeight.semibold,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 4,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xs,
   },
   subtitle: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
     color: colors.textSecondary,
   },
   list: {
     flexGrow: 0,
   },
   listContent: {
-    paddingHorizontal: 12,
-    paddingBottom: 16,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.lg,
   },
   ayahButton: {
     flex: 1,
-    margin: 4,
-    paddingVertical: 12,
+    margin: spacing.xs,
+    paddingVertical: spacing.md,
     borderRadius: radius.md,
     backgroundColor: colors.surface,
     alignItems: 'center',

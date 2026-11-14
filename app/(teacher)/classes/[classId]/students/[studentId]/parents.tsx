@@ -20,7 +20,7 @@ import { firestore } from '../../../../../../src/config/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Student, Parent } from '../../../../../../src/types';
 import { unlinkParentsFromStudent } from '../../../../../../src/utils/parentLinkCleanup';
-import { colors, fontSize, fontWeight, radius, typography } from '../../../../../../src/constants/theme';
+import { colors, fontSize, fontWeight, radius, spacing, typography } from '../../../../../../src/constants/theme';
 
 const parentSchema = yup.object({
   firstName: yup.string().required('First name is required'),
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: spacing.lg,
   },
   errorContainer: {
     flex: 1,
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
   },
   studentName: {
     color: colors.textSecondary,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   sectionTitle: {
     fontWeight: fontWeight.semibold,
@@ -390,11 +390,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   parentSection: {
-    marginBottom: 16,
-    padding: 12,
+    marginBottom: spacing.lg,
+    padding: spacing.md,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
   },
@@ -402,18 +402,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   parentTitleLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   parentTitle: {
     color: colors.textSecondary,
   },
   statusChip: {
-    marginLeft: 4,
+    marginLeft: spacing.xs,
   },
   acceptedChip: {
     backgroundColor: colors.successSoft,
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   },
   nameRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
   },
   nameField: {
     flex: 1,
@@ -440,6 +440,6 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   actions: {
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
 });

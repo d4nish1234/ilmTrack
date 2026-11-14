@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { createClass } from '../../../src/services/class.service';
 import { Button, Input, AppSnackbar } from '../../../src/components/common';
-import { colors } from '../../../src/constants/theme';
+import { colors, spacing } from '../../../src/constants/theme';
 
 const schema = yup.object({
   name: yup.string().required('Class name is required'),
@@ -97,6 +97,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   form: {
-    padding: 16,
+    padding: spacing.lg,
   },
 });

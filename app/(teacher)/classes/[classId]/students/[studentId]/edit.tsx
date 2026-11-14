@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getStudent, updateStudent, deleteStudent } from '../../../../../../src/services/student.service';
 import { Button, Input, LoadingSpinner, AppSnackbar } from '../../../../../../src/components/common';
 import { Student } from '../../../../../../src/types';
-import { colors, fontWeight, radius, typography } from '../../../../../../src/constants/theme';
+import { colors, fontWeight, radius, spacing, typography } from '../../../../../../src/constants/theme';
 
 const schema = yup.object({
   firstName: yup.string().required('First name is required'),
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: spacing.lg,
   },
   errorContainer: {
     flex: 1,
@@ -231,21 +231,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   section: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   sectionTitle: {
     fontWeight: fontWeight.semibold,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   actions: {
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
   dangerDivider: {
     marginTop: 32,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   dangerZone: {
-    padding: 16,
+    padding: spacing.lg,
     backgroundColor: colors.dangerSoft,
     borderRadius: radius.md,
     borderWidth: 1,
@@ -255,11 +255,11 @@ const styles = StyleSheet.create({
   dangerTitle: {
     fontWeight: fontWeight.semibold,
     color: colors.danger,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   dangerNote: {
     color: colors.textSecondary,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   deleteButton: {
     borderColor: colors.danger,

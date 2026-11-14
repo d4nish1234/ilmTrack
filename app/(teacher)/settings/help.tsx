@@ -1,12 +1,13 @@
 import React from 'react';
-import { StyleSheet, View, ScrollView, Linking, Alert } from 'react-native';
-import { Text, List, Divider, Card } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
-import Constants from 'expo-constants';
-import { colors, fontWeight, headerOptions, typography } from '../../../src/constants/theme';
+import { HelpAndSupportScreen, type Faq, type GuideStep } from '../../../src/components/settings/HelpAndSupportScreen';
 
-const FAQ_ITEMS = [
+const STEPS: GuideStep[] = [
+  { title: 'Create a Class', text: 'Tap the Classes tab and create your first class' },
+  { title: 'Add Students', text: 'Add students with their parent\'s email for notifications' },
+  { title: 'Track Daily', text: 'Use swipe gestures to mark attendance and assign homework' },
+];
+
+const FAQS: Faq[] = [
   {
     question: 'How do I add a student to my class?',
     answer: 'Go to the Classes tab, select a class, then tap the + button. Enter the parent\'s email to check if they already have children in your classes, or add a new student with their parent\'s information.',
@@ -37,7 +38,7 @@ const FAQ_ITEMS = [
   },
   {
     question: 'How do I export reports?',
-    answer: 'Go to the Classes tab, tap the three-dot menu, and select "Reports". Choose a date range and export attendance or homework data as CSV.',
+    answer: 'Go to the Classes tab, tap the three-dot menu, and select "Reports". Choose a date range, preview a report, and export it as a PDF.',
   },
   {
     question: 'How do I delete my account?',
@@ -46,197 +47,12 @@ const FAQ_ITEMS = [
 ];
 
 export default function TeacherHelpScreen() {
-  const handleEmailSupport = async () => {
-    const url = 'mailto:info@youngmomins.com?subject=ilmTrack%20Support%20Request';
-    const canOpen = await Linking.canOpenURL(url);
-    if (canOpen) {
-      Linking.openURL(url);
-    } else {
-      Alert.alert('Contact Support', 'Email us at info@youngmomins.com');
-    }
-  };
-
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: 'Help & Support',
-          headerShown: true,
-          ...headerOptions,
-        }}
-      />
-      <SafeAreaView style={styles.container} edges={['bottom']}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Quick Start Guide */}
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant={typography.h4} style={styles.cardTitle}>
-                Quick Start Guide
-              </Text>
-              <View style={styles.step}>
-                <Text variant={typography.h5} style={styles.stepNumber}>1</Text>
-                <View style={styles.stepContent}>
-                  <Text variant={typography.body} style={styles.stepTitle}>Create a Class</Text>
-                  <Text variant={typography.caption} style={styles.stepDescription}>
-                    Tap the Classes tab and create your first class
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.step}>
-                <Text variant={typography.h5} style={styles.stepNumber}>2</Text>
-                <View style={styles.stepContent}>
-                  <Text variant={typography.body} style={styles.stepTitle}>Add Students</Text>
-                  <Text variant={typography.caption} style={styles.stepDescription}>
-                    Add students with their parent&apos;s email for notifications
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.step}>
-                <Text variant={typography.h5} style={styles.stepNumber}>3</Text>
-                <View style={styles.stepContent}>
-                  <Text variant={typography.body} style={styles.stepTitle}>Track Daily</Text>
-                  <Text variant={typography.caption} style={styles.stepDescription}>
-                    Use swipe gestures to mark attendance and assign homework
-                  </Text>
-                </View>
-              </View>
-            </Card.Content>
-          </Card>
-
-          {/* FAQ Section */}
-          <Text variant={typography.h4} style={styles.sectionTitle}>
-            Frequently Asked Questions
-          </Text>
-
-          <List.AccordionGroup>
-            {FAQ_ITEMS.map((item, index) => (
-              <List.Accordion
-                key={index}
-                id={String(index)}
-                title={item.question}
-                titleNumberOfLines={2}
-                style={styles.accordion}
-              >
-                <View style={styles.answerContainer}>
-                  <Text variant={typography.body} style={styles.answer}>
-                    {item.answer}
-                  </Text>
-                </View>
-              </List.Accordion>
-            ))}
-          </List.AccordionGroup>
-
-          <Divider style={styles.divider} />
-
-          {/* Contact Support */}
-          <Text variant={typography.h4} style={styles.sectionTitle}>
-            Need More Help?
-          </Text>
-
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant={typography.body} style={styles.supportText}>
-                If you have questions or issues not covered here, please reach out to our support team.
-              </Text>
-              <List.Item
-                title="Email Support"
-                description="info@youngmomins.com"
-                left={(props) => <List.Icon {...props} icon="email" />}
-                right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                onPress={handleEmailSupport}
-                style={styles.contactItem}
-              />
-            </Card.Content>
-          </Card>
-
-          {/* App Info */}
-          <View style={styles.appInfo}>
-            <Text variant={typography.caption} style={styles.appVersion}>
-              ilmTrack v{Constants.expoConfig?.version ?? ''}
-            </Text>
-          </View>
-        </ScrollView>
-
-      </SafeAreaView>
-    </>
+    <HelpAndSupportScreen
+      guideTitle="Quick Start Guide"
+      steps={STEPS}
+      faqs={FAQS}
+      supportText="If you have questions or issues not covered here, please reach out to our support team."
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  card: {
-    marginBottom: 16,
-    backgroundColor: colors.background,
-  },
-  cardTitle: {
-    fontWeight: fontWeight.semibold,
-    marginBottom: 16,
-  },
-  step: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  stepNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    color: colors.onPrimary,
-    textAlign: 'center',
-    lineHeight: 28,
-    fontWeight: fontWeight.semibold,
-    marginRight: 12,
-  },
-  stepContent: {
-    flex: 1,
-  },
-  stepTitle: {
-    fontWeight: fontWeight.semibold,
-  },
-  stepDescription: {
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  sectionTitle: {
-    fontWeight: fontWeight.semibold,
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  accordion: {
-    backgroundColor: colors.background,
-  },
-  answerContainer: {
-    backgroundColor: colors.surface,
-    padding: 16,
-    paddingTop: 0,
-  },
-  answer: {
-    color: colors.text,
-    lineHeight: 22,
-  },
-  divider: {
-    marginVertical: 24,
-  },
-  supportText: {
-    color: colors.textSecondary,
-    marginBottom: 12,
-  },
-  contactItem: {
-    paddingLeft: 0,
-  },
-  appInfo: {
-    alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 16,
-  },
-  appVersion: {
-    color: colors.textDisabled,
-  },
-});

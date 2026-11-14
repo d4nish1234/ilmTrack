@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Button as PaperButton } from 'react-native-paper';
-import { radius } from '../../constants/theme';
+import { radius, spacing } from '../../constants/theme';
 
 interface ButtonProps {
   onPress: () => void;
@@ -45,7 +45,7 @@ export function Button({
 
 const styles = StyleSheet.create({
   button: {
-    marginVertical: 8,
+    marginVertical: spacing.sm,
     borderRadius: radius.md,
   },
   content: {

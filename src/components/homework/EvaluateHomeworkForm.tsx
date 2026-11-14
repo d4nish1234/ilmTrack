@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { Card, IconButton, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -7,9 +7,9 @@ import { format } from 'date-fns';
 import { useAuth } from '../../contexts/AuthContext';
 import { getRecentPendingHomeworkAsTeacher, updateHomework } from '../../services/homework.service';
 import { getStudent } from '../../services/student.service';
-import { AppSnackbar, Button } from '../common';
+import { AppSnackbar, Button, Tappable } from '../common';
 import type { Homework, HomeworkEvaluation, HomeworkStatus, Student } from '../../types';
-import { colors, fontSize, fontWeight, radius, typography } from '../../constants/theme';
+import { colors, fontSize, fontWeight, radius, spacing, typography } from '../../constants/theme';
 
 interface EvaluateHomeworkFormProps {
   studentId: string | undefined;
@@ -103,7 +103,7 @@ export function EvaluateHomeworkForm({ studentId, onDone }: EvaluateHomeworkForm
     return (
       <View style={styles.starsContainer}>
         {[1, 2, 3, 4, 5].map((star) => (
-          <TouchableOpacity
+          <Tappable
             key={star}
             onPress={() => handleStarPress(homeworkId, star as HomeworkEvaluation)}
             style={styles.starButton}
@@ -114,7 +114,7 @@ export function EvaluateHomeworkForm({ studentId, onDone }: EvaluateHomeworkForm
               size={28}
               style={styles.noMargin}
             />
-          </TouchableOpacity>
+          </Tappable>
         ))}
       </View>
     );
@@ -127,14 +127,14 @@ export function EvaluateHomeworkForm({ studentId, onDone }: EvaluateHomeworkForm
     icon: string,
     colorStyle: object
   ) => (
-    <TouchableOpacity
+    <Tappable
       style={[styles.statusButton, colorStyle, updatingHomeworkId === hw.id && styles.statusButtonDisabled]}
       onPress={() => handleQuickStatusUpdate(hw.id, status)}
       disabled={updatingHomeworkId === hw.id}
     >
       <IconButton icon={icon} iconColor={colors.onPrimary} size={24} style={styles.noMargin} />
       <Text style={styles.statusButtonText}>{label}</Text>
-    </TouchableOpacity>
+    </Tappable>
   );
 
   return (
@@ -218,14 +218,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    padding: 16,
+    padding: spacing.lg,
   },
   studentName: {
     color: colors.textSecondary,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   placeholder: {
-    padding: 24,
+    padding: spacing.xl,
     alignItems: 'center',
   },
   muted: {
@@ -233,15 +233,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   homeworkList: {
-    gap: 12,
+    gap: spacing.md,
   },
   homeworkCard: {
     backgroundColor: colors.surface,
   },
   homeworkCardContent: {
     flexDirection: 'column',
-    paddingVertical: 12,
-    gap: 12,
+    paddingVertical: spacing.md,
+    gap: spacing.md,
   },
   homeworkHeader: {
     flexDirection: 'row',
@@ -254,12 +254,12 @@ const styles = StyleSheet.create({
   },
   homeworkDate: {
     color: colors.textSecondary,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   starsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 4,
+    gap: spacing.xs,
   },
   starButton: {
     padding: 0,
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   statusButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: spacing.sm,
   },
   statusButton: {
     flex: 1,
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
   },
   statusComplete: {
     backgroundColor: colors.success,
@@ -303,6 +303,6 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   closeButton: {
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
 });

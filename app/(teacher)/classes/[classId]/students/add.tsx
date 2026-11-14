@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  StyleSheet,
-  View,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import { StyleSheet, View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { Text, Divider, IconButton, Card, RadioButton } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -16,11 +9,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../src/contexts/AuthContext';
 import { createStudent, linkExistingStudentToClass } from '../../../../../src/services/student.service';
 import { getClass } from '../../../../../src/services/class.service';
-import { Button, Input, AppSnackbar } from '../../../../../src/components/common';
+import { AppSnackbar, Button, Input, Tappable } from '../../../../../src/components/common';
 import { firestore } from '../../../../../src/config/firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { Student, User } from '../../../../../src/types';
-import { colors, fontWeight, radius, typography } from '../../../../../src/constants/theme';
+import { colors, fontWeight, radius, spacing, typography } from '../../../../../src/constants/theme';
 
 // Look up if a user account exists with this email
 async function getUserByEmail(email: string): Promise<User | null> {
@@ -358,7 +351,7 @@ export default function AddStudentScreen() {
             {uniqueStudents.map((student) => {
               const alreadyInThisClass = isStudentNameInClass(allMatchingStudents, student, classId!);
               return (
-                <TouchableOpacity
+                <Tappable
                   key={student.id}
                   onPress={() => setSelectedStudentId(student.id)}
                 >
@@ -382,14 +375,14 @@ export default function AddStudentScreen() {
                       </View>
                     </Card.Content>
                   </Card>
-                </TouchableOpacity>
+                </Tappable>
               );
             })}
           </RadioButton.Group>
 
           <Divider style={styles.divider} />
 
-          <TouchableOpacity
+          <Tappable
             style={styles.addNewOption}
             onPress={() => setStep('add-student')}
           >
@@ -397,7 +390,7 @@ export default function AddStudentScreen() {
             <Text variant={typography.h4} style={styles.addNewText}>
               Add a new child for this parent
             </Text>
-          </TouchableOpacity>
+          </Tappable>
 
           <View style={styles.actions}>
             <Button
@@ -605,24 +598,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: spacing.lg,
   },
   stepTitle: {
     fontWeight: fontWeight.semibold,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   stepDescription: {
     color: colors.textSecondary,
-    marginBottom: 24,
+    marginBottom: spacing.xl,
     lineHeight: 22,
   },
   sectionTitle: {
     fontWeight: fontWeight.semibold,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   nameRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
   },
   nameField: {
     flex: 1,
@@ -634,11 +627,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   parentSection: {
-    marginBottom: 16,
-    padding: 12,
+    marginBottom: spacing.lg,
+    padding: spacing.md,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
   },
@@ -646,20 +639,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   parentTitle: {
     color: colors.textSecondary,
   },
   existingParentInfo: {
     backgroundColor: colors.successSoft,
-    padding: 12,
+    padding: spacing.md,
     borderRadius: radius.md,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   existingParentLabel: {
     color: colors.success,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   existingParentName: {
     color: colors.success,
@@ -668,26 +661,26 @@ const styles = StyleSheet.create({
   emailWithLookup: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
+    gap: spacing.sm,
   },
   emailField: {
     flex: 1,
   },
   lookupButton: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   inviteNote: {
     color: colors.textSecondary,
-    marginTop: 8,
-    marginBottom: 16,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
     fontStyle: 'italic',
   },
   actions: {
-    marginTop: 16,
-    gap: 12,
+    marginTop: spacing.lg,
+    gap: spacing.md,
   },
   studentCard: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
     backgroundColor: colors.background,
   },
   studentCardSelected: {
@@ -700,7 +693,7 @@ const styles = StyleSheet.create({
   },
   studentInfo: {
     flex: 1,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   alreadyInClass: {
     color: colors.danger,
@@ -709,7 +702,7 @@ const styles = StyleSheet.create({
   addNewOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: spacing.md,
     backgroundColor: colors.primarySoft,
     borderRadius: radius.md,
     borderWidth: 1,

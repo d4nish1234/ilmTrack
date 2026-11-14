@@ -7,7 +7,7 @@ import * as Location from 'expo-location';
 import { Button } from '../common';
 import type { TimekeepingLocation } from '../../types';
 import { DEFAULT_RADIUS_M, RADIUS_OPTIONS_M, errorMessage } from '../../utils/timekeeping';
-import { colors, radius, typography } from '../../constants/theme';
+import { colors, radius, spacing, typography } from '../../constants/theme';
 
 interface LocationFormProps {
   /** The location being edited, or null for a new one. */
@@ -261,36 +261,36 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    padding: 16,
+    padding: spacing.lg,
   },
   input: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
     backgroundColor: colors.background,
   },
   or: {
     textAlign: 'center',
     color: colors.textDisabled,
-    marginVertical: 8,
+    marginVertical: spacing.sm,
   },
   pin: {
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    padding: 12,
-    marginBottom: 12,
+    padding: spacing.md,
+    marginBottom: spacing.md,
   },
   pinLabel: {
     color: colors.textSecondary,
     marginBottom: 2,
   },
   radiusLabel: {
-    marginTop: 4,
-    marginBottom: 8,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
   },
   error: {
     color: colors.danger,
-    marginTop: 12,
+    marginTop: spacing.md,
   },
   actions: {
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
 });

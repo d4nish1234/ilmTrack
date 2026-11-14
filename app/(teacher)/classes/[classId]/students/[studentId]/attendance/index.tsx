@@ -1,14 +1,14 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { StyleSheet, View, FlatList } from 'react-native';
-import { Text, Card, Chip, FAB, Menu, IconButton, Divider, Button } from 'react-native-paper';
+import { Text, Card, Chip, FAB, Menu, IconButton, Divider } from 'react-native-paper';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { getAttendancePaginatedAsTeacher, updateAttendance, deleteAttendance } from '../../../../../../../src/services/attendance.service';
 import { useAuth } from '../../../../../../../src/contexts/AuthContext';
-import { LoadingSpinner } from '../../../../../../../src/components/common';
+import { Button, LoadingSpinner } from '../../../../../../../src/components/common';
 import { Attendance, AttendanceStatus } from '../../../../../../../src/types';
 import { format } from 'date-fns';
 import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
-import { colors, statusColor, typography } from '../../../../../../../src/constants/theme';
+import { colors, spacing, statusColor, typography } from '../../../../../../../src/constants/theme';
 
 export default function AttendanceListScreen() {
   const { classId, studentId } = useLocalSearchParams<{
@@ -240,11 +240,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   listContent: {
-    padding: 16,
+    padding: spacing.lg,
     paddingBottom: 80,
   },
   card: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
     backgroundColor: colors.background,
   },
   row: {
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
   },
   notes: {
     color: colors.textSecondary,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   actions: {
     flexDirection: 'row',
@@ -272,8 +272,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   loadMoreButton: {
-    marginTop: 8,
-    marginBottom: 16,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
   },
   fab: {
     position: 'absolute',

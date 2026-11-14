@@ -9,7 +9,7 @@ import { Student, Homework, Attendance } from '../../src/types';
 import { firestore } from '../../src/config/firebase';
 import { collection, doc, getDoc, getDocs, query, where, limit } from 'firebase/firestore';
 import { format } from 'date-fns';
-import { colors, fontSize, fontWeight, radius, statusColor, typography } from '../../src/constants/theme';
+import { colors, fontSize, fontWeight, radius, spacing, statusColor, typography } from '../../src/constants/theme';
 
 // Deduplicate students by name (same child in multiple classes)
 function deduplicateStudentsByName(students: Student[]): Student[] {
@@ -349,10 +349,10 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 24,
+    paddingBottom: spacing.xl,
   },
   header: {
-    padding: 16,
+    padding: spacing.lg,
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -361,12 +361,12 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
   },
   card: {
-    margin: 16,
+    margin: spacing.lg,
     marginBottom: 0,
     backgroundColor: colors.background,
   },
   studentItem: {
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
   },
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
   },
@@ -393,11 +393,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: spacing.xl,
   },
   emptyTitle: {
     fontWeight: fontWeight.semibold,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   emptyMessage: {
     color: colors.textSecondary,
@@ -407,10 +407,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.warningSoft,
-    marginHorizontal: 16,
-    marginTop: 12,
-    paddingLeft: 12,
-    paddingVertical: 8,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    paddingLeft: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: radius.md,
     borderLeftWidth: 3,
     borderLeftColor: colors.star,
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
   },
   bannerLink: {
     color: colors.primary,
-    marginTop: 4,
+    marginTop: spacing.xs,
     textDecorationLine: 'underline',
   },
   bannerClose: {
