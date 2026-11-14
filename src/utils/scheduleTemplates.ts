@@ -50,29 +50,58 @@ export function dateRangeLabel(startDate: string, endDate: string, thisYear: num
   return `${format(start, 'MMM d, yyyy')} – ${format(end, 'MMM d, yyyy')}`;
 }
 
-/** The list row's second line: 'Mon–Thu · 4:00 PM–6:00 PM +1 more · Sep 8 – Dec 18 · 12 people'. */
-export function templateDescription(
-  t: { slots: TemplateSlot[]; startDate: string; endDate: string; teacherIds: string[] },
-  thisYear: number
-): string {
+/** The list row's title: its dates, 'Sep 8 – Dec 18'. Schedules have no name on screen. */
+export function templateTitle(t: { startDate: string; endDate: string }, thisYear: number): string {
+  return dateRangeLabel(t.startDate, t.endDate, thisYear);
+}
+
+/** The list row's second line: 'Mon–Thu · 4:00 PM–6:00 PM +1 more · 12 people'. */
+export function templateDescription(t: { slots: TemplateSlot[]; teacherIds: string[] }): string {
   const times = t.slots.length
     ? `${slotSummary(t.slots[0])}${t.slots.length > 1 ? ` +${t.slots.length - 1} more` : ''}`
     : 'No times';
   const people = `${t.teacherIds.length} ${t.teacherIds.length === 1 ? 'person' : 'people'}`;
-  return [times, dateRangeLabel(t.startDate, t.endDate, thisYear), people].join(' · ');
+  return [times, people].join(' · ');
+}
+
+/**
+ * The name saved with a template. The server still requires one (and older
+ * app versions show it), but the app no longer asks for or shows it, so it is
+ * made from the dates and first time: 'Sep 8 – Dec 18, 2026 · Mon–Thu 4:00
+ * PM–6:00 PM'. The same template always gets the same name, so a
+ * retried save is still recognised as the same change.
+ */
+export function templateName(t: { startDate: string; endDate: string; slots: TemplateSlot[] }): string {
+  const dates = dateRangeLabel(t.startDate, t.endDate, Number.NaN);
+  const first = t.slots[0];
+  const name = first ? `${dates} · ${formatDays(first.days)} ${formatTime(first.start)}–${formatTime(first.end)}` : dates;
+  return name.length > TEMPLATE_NAME_MAX ? `${name.slice(0, TEMPLATE_NAME_MAX - 1)}…` : name;
+}
+
+/** Whether the editor's draft differs from where it started, so there is something to save. */
+export function templateChanged(
+  a: { startDate: string; endDate: string; slots: TemplateSlot[]; teacherIds: string[] },
+  b: { startDate: string; endDate: string; slots: TemplateSlot[]; teacherIds: string[] }
+): boolean {
+  const key = (t: typeof a) =>
+    JSON.stringify([
+      t.startDate,
+      t.endDate,
+      t.slots.map((s) => [s.id, [...s.days].sort((x, y) => x - y), s.start, s.end, s.locationId]),
+      [...t.teacherIds].sort(),
+    ]);
+  return key(a) !== key(b);
 }
 
 /**
  * Why the editor's template can't be saved yet, or null. The same checks and
- * messages as the server's parseTemplate, so the admin sees them straight away.
+ * messages as the server's parseTemplate, so the admin sees them straight away
+ * (the name is left out: templateName always makes a valid one).
  */
 export function templateProblem(
-  t: { name: string; startDate: string; endDate: string; slots: TemplateSlot[]; teacherIds: string[] },
+  t: { startDate: string; endDate: string; slots: TemplateSlot[]; teacherIds: string[] },
   locationIds: string[]
 ): string | null {
-  const name = t.name.trim();
-  if (!name) return 'Give the schedule a name.';
-  if (name.length > TEMPLATE_NAME_MAX) return `Keep the name under ${TEMPLATE_NAME_MAX} characters.`;
   if (t.endDate < t.startDate) return 'The end date must be on or after the start date.';
   if (differenceInCalendarDays(parseISO(t.endDate), parseISO(t.startDate)) >= SPAN_DAYS_MAX) {
     return 'A schedule can cover at most a year.';

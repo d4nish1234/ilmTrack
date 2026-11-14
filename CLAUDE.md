@@ -117,7 +117,7 @@ teacher's shifts week by week (Organization tab → Timekeeping).
   `getMyWeek` still returns a week after timekeeping is turned off, but the
   app only reaches history through the bar, which an org with timekeeping
   off doesn't show.
-- **Schedule templates** (`scheduleTemplates/{id}`, Timekeeping → Schedules):
+- **Schedule templates** (`scheduleTemplates/{id}`, Timekeeping → Settings → Schedules):
   a weekly pattern between two dates for chosen people. Saving one runs
   `saveScheduleTemplate`, which writes its shifts into each person's weekly
   `schedules` docs, so nothing that reads schedules needs to know about
@@ -129,6 +129,9 @@ teacher's shifts week by week (Organization tab → Timekeeping).
   `templateId`). If a new time has already passed today, today keeps its old
   time. Only the Cloud Functions write templates; a template stores no
   bookkeeping at rest (`pending` exists only while a save is applying).
+  Templates have no name in the app (after 1.8): the server still requires
+  `name`, so the app sends one made from the dates and first time
+  (`templateName`) and shows the dates instead.
 - **One open shift per teacher**, via `activeShifts/{uid}`. Release it only if
   it still points at the entry being closed (back-to-back shifts).
 - Teachers can't read `timekeeping/{orgId}`; `getMyTimekeeping` returns their
@@ -137,6 +140,13 @@ teacher's shifts week by week (Organization tab → Timekeeping).
 - Location is foreground-only (`expo-location` plugin in `app.config.js`, no
   background permission). Keep it that way unless the store listings are
   updated too.
+
+## Edit screens
+Screens that edit data hide the tab bar, pin Save to the bottom and show it
+only once something has changed, have no Cancel (back is cancel, and asks
+Keep editing / Discard / Save in a native alert, `useUnsavedChanges`,
+when there are changes), and keep Delete at the end of the form. Details in `app/(teacher)/CLAUDE.md` ("Edit
+screens"); follow it for every new or reworked edit screen.
 
 ## Project Structure
 ```

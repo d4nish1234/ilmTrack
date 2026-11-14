@@ -7,7 +7,7 @@ import { useOrganizations } from '../../../src/contexts/OrganizationContext';
 import { subscribeToScheduleTemplates, subscribeToTimekeeping } from '../../../src/services/timekeeping.service';
 import { AppSnackbar, LoadingSpinner } from '../../../src/components/common';
 import type { ScheduleTemplate, TimekeepingSettings } from '../../../src/types';
-import { hasEnded, templateDescription } from '../../../src/utils/scheduleTemplates';
+import { hasEnded, templateDescription, templateTitle } from '../../../src/utils/scheduleTemplates';
 import { todayIn } from '../../../src/utils/timekeeping';
 
 /**
@@ -46,8 +46,8 @@ export default function SchedulesScreen() {
   const row = (t: ScheduleTemplate) => (
     <List.Item
       key={t.id}
-      title={t.name}
-      description={templateDescription(t, thisYear)}
+      title={templateTitle(t, thisYear)}
+      description={templateDescription(t)}
       descriptionNumberOfLines={2}
       left={(props) => <List.Icon {...props} icon="calendar-sync" />}
       right={(props) => <List.Icon {...props} icon="chevron-right" />}

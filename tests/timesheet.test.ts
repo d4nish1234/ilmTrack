@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  CSV_HEADER,
   clockedInNow,
-  csvField,
-  csvFileName,
-  timesheetCsv,
   timesheetRows,
   totals,
   workedOfScheduled,
@@ -129,49 +125,5 @@ describe('clockedInNow', () => {
       entry('d', 'running', [[at('15:00'), null]], { endAt: at('16:00') }), // past its end: being closed
     ];
     expect(clockedInNow(list, now).map((e) => e.shiftId)).toEqual(['a', 'b']);
-  });
-});
-
-describe('CSV', () => {
-  it('quotes commas, quotes and line breaks', () => {
-    expect(csvField('plain')).toBe('plain');
-    expect(csvField('a, b')).toBe('"a, b"');
-    expect(csvField('say "hi"')).toBe('"say ""hi"""');
-    expect(csvField('two\nlines')).toBe('"two\nlines"');
-  });
-
-  it('defuses spreadsheet formulas a note could contain', () => {
-    expect(csvField('=HYPERLINK("http://x")')).toBe(`"'=HYPERLINK(""http://x"")"`);
-    expect(csvField('+1')).toBe("'+1");
-    expect(csvField('-')).toBe("'-");
-    expect(csvField('\tcmd')).toBe("'\tcmd");
-    expect(csvField('\r=1')).toBe(`"'\r=1"`);
-  });
-
-  it('writes one row per shift, with edits and notes', () => {
-    const rows = timesheetRows(
-      [shift('s1', '16:00', '17:00')],
-      [
-        entry('s1', 'done', [[at('16:00'), at('16:30')]], {
-          workedMinutes: 30,
-          note: 'Covered, then left',
-          correction: { by: 'admin', at: ts(0), reason: 'Forgot to end' },
-        } as Omit<Partial<TimeEntry>, 'startAt' | 'endAt'>),
-      ],
-      places, TZ, at('18:00')
-    );
-    const csv = timesheetCsv([{ teacher: { uid: 't1', name: 'Sara M', email: 's@x.com' }, rows }]);
-    const [header, line, last] = csv.split('\r\n');
-    expect(header).toBe(CSV_HEADER.join(','));
-    expect(line).toBe(
-      'Sara M,s@x.com,2026-10-13,Tue,16:00,17:00,Main campus,16:00,16:30,30,0:30,Worked,Yes,Forgot to end,"Covered, then left"'
-    );
-    expect(last).toBe(''); // ends with a line break
-  });
-
-  it('names the file after what was exported', () => {
-    expect(csvFileName(['Test School'], '2026-10-12')).toBe('timesheet-test-school-2026-10-12.csv');
-    expect(csvFileName(['Sara M.', 'Test School'], '2026-10-12')).toBe('timesheet-sara-m-test-school-2026-10-12.csv');
-    expect(csvFileName([], '2026-10-12')).toBe('timesheet-week-2026-10-12.csv');
   });
 });

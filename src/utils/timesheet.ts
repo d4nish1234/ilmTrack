@@ -1,13 +1,12 @@
 /**
  * Timesheets for org admins: a teacher's scheduled shifts next to what they
- * actually worked, totals, and the CSV export. Pure, so it is unit-tested
+ * actually worked, and totals. Pure, so it is unit-tested
  * directly (tests/timesheet.test.ts).
  *
  * Like the teacher's view (utils/timeclock.ts shiftViews), rows come from the
  * schedule *and* the time entries: a shift deleted after it was worked still
  * has hours, so it still appears.
  */
-import { format, parseISO } from 'date-fns';
 import type { Shift, TimeEntry } from '../types';
 import { formatDuration, shiftMinutes } from './timekeeping';
 import { wallTime, workedMs, zonedTimeToInstant } from './timeclock';
@@ -130,9 +129,8 @@ export function clockedInNow(entries: TimeEntry[], now: number): TimeEntry[] {
   return entries.filter((e) => (e.status === 'running' || e.status === 'paused') && now < e.endAt.toMillis());
 }
 
-// ─── CSV ─────────────────────────────────────────────────────────────────
-
-const STATUS_LABEL: Record<RowStatus, string> = {
+/** How a row's status reads in the PDF. */
+export const STATUS_LABEL: Record<RowStatus, string> = {
   upcoming: 'Upcoming',
   late: 'Not started',
   'not-started': 'Not started',
@@ -140,62 +138,3 @@ const STATUS_LABEL: Record<RowStatus, string> = {
   paused: 'On break',
   worked: 'Worked',
 };
-
-/** Quote a field when it has a comma, quote or line break; also neutralise
- * spreadsheet formulas (a leading = + - @, tab or CR), which a teacher's note
- * could hold. */
-export function csvField(value: string | number): string {
-  let text = String(value);
-  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
-  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-}
-
-export const CSV_HEADER = [
-  'Teacher', 'Email', 'Date', 'Day', 'Scheduled start', 'Scheduled end', 'Location',
-  'Worked from', 'Worked to', 'Worked minutes', 'Worked (h:mm)', 'Status',
-  'Edited by admin', 'Edit reason', 'Teacher note',
-];
-
-/** One CSV for any number of teachers' weeks. */
-export function timesheetCsv(weeks: { teacher: TimesheetTeacher; rows: TimesheetRow[] }[]): string {
-  const lines = [CSV_HEADER.map(csvField).join(',')];
-  for (const { teacher, rows } of weeks) {
-    for (const r of rows) {
-      const hhmm = `${Math.floor(r.workedMinutes / 60)}:${String(r.workedMinutes % 60).padStart(2, '0')}`;
-      lines.push(
-        [
-          teacher.name,
-          teacher.email,
-          r.date,
-          format(parseISO(r.date), 'EEE'),
-          r.start,
-          r.end,
-          r.removed ? `${r.locationName} (shift removed)` : r.locationName,
-          r.workedFrom ?? '',
-          r.workedTo ?? '',
-          r.workedMinutes,
-          hhmm,
-          STATUS_LABEL[r.status],
-          r.entry?.correction ? 'Yes' : 'No',
-          r.entry?.correction?.reason ?? '',
-          r.entry?.note ?? '',
-        ]
-          .map(csvField)
-          .join(',')
-      );
-    }
-  }
-  // CRLF, the line ending spreadsheets expect.
-  return lines.join('\r\n') + '\r\n';
-}
-
-/** 'timesheet-test-school-2026-10-12.csv' */
-export function csvFileName(parts: string[], weekStart: string): string {
-  const slug = parts
-    .join('-')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-  return `timesheet-${slug || 'week'}-${weekStart}.csv`;
-}
-

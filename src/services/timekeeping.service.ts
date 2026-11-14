@@ -9,6 +9,7 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   query,
   runTransaction,
@@ -344,6 +345,72 @@ export function subscribeToOrgWeekEntries(
     (snap) => onUpdate(snap.docs.map((d) => ({ ...(d.data() as TimeEntry), id: d.id }))),
     onError
   );
+}
+
+/**
+ * Every schedule and time entry in the organization for these weeks, read
+ * once, for the timesheet export. A query per week and collection, on
+ * equality filters only, so no composite index; they run side by side.
+ * Filtering to the people chosen happens on the phone.
+ */
+export async function getOrgWeeks(
+  orgId: string,
+  weekStarts: string[]
+): Promise<{ schedules: WeekSchedule[]; entries: TimeEntry[] }> {
+  const entriesRef = collection(firestore, 'timeEntries');
+  const [scheduleSnaps, entrySnaps] = await Promise.all([
+    Promise.all(
+      weekStarts.map((w) => getDocs(query(schedulesRef, where('orgId', '==', orgId), where('weekStart', '==', w))))
+    ),
+    Promise.all(
+      weekStarts.map((w) => getDocs(query(entriesRef, where('orgId', '==', orgId), where('weekStart', '==', w))))
+    ),
+  ]);
+  return {
+    schedules: scheduleSnaps.flatMap((snap) =>
+      snap.docs.map((d) => toSchedule(d.id, d.data() as Omit<WeekSchedule, 'id'>))
+    ),
+    entries: entrySnaps.flatMap((snap) => snap.docs.map((d) => ({ ...(d.data() as TimeEntry), id: d.id }))),
+  };
+}
+
+/**
+ * The same as getOrgWeeks, for just these people: each week's schedule by its
+ * id and its entries filtered to the person. Cheaper than the whole
+ * organization's when only some people are exported (about two reads a person
+ * a week), still on equality filters only. People go one after another, their
+ * weeks side by side, so a long range doesn't open hundreds of requests at once.
+ */
+export async function getTeacherWeeks(
+  orgId: string,
+  teacherIds: string[],
+  weekStarts: string[]
+): Promise<{ schedules: WeekSchedule[]; entries: TimeEntry[] }> {
+  const entriesRef = collection(firestore, 'timeEntries');
+  const schedules: WeekSchedule[] = [];
+  const entries: TimeEntry[] = [];
+  for (const teacherId of teacherIds) {
+    const [scheduleSnaps, entrySnaps] = await Promise.all([
+      Promise.all(weekStarts.map((w) => getDoc(doc(schedulesRef, scheduleId(orgId, teacherId, w))))),
+      Promise.all(
+        weekStarts.map((w) =>
+          getDocs(
+            query(
+              entriesRef,
+              where('orgId', '==', orgId),
+              where('weekStart', '==', w),
+              where('teacherId', '==', teacherId)
+            )
+          )
+        )
+      ),
+    ]);
+    for (const snap of scheduleSnaps) {
+      if (snap.exists()) schedules.push(toSchedule(snap.id, snap.data() as Omit<WeekSchedule, 'id'>));
+    }
+    for (const snap of entrySnaps) entries.push(...snap.docs.map((d) => ({ ...(d.data() as TimeEntry), id: d.id })));
+  }
+  return { schedules, entries };
 }
 
 export interface Correction {

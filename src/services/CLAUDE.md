@@ -52,9 +52,14 @@ Org admins' writes; each is a transaction setting absolute values.
 - `saveLocation` / `deleteLocation` — replace the `locations[]` array
 - `subscribeToOrgWeek(orgId, weekStart, ...)` — every teacher's week, keyed by teacherId
 - `subscribeToTeacherWeek(orgId, teacherId, weekStart, ...)`
+- `getOrgWeeks(orgId, weekStarts)` — one-time read of every schedule and time entry for those weeks (a query per week and collection, equality filters only, so no index), for the timesheet PDF
+- `getTeacherWeeks(orgId, teacherIds, weekStarts)` — the same for just those people (each week's schedule by id, entries filtered by teacher); used when exporting a few people
 - `saveShift` / `deleteShift` — re-check overlaps against the stored week. Saving a template's shift drops its `templateId` (that day becomes the admin's own) and records its id in `skippedTemplateShifts`, as deleting one does, so the template never re-adds that day, even after the edited shift is deleted. `updateWeek` keeps that list on every write
 - `inspectWeek` / `copyWeek(orgId, teacherId, from, to, expected, uid)` — replaces the target week only if it is unchanged since `inspectWeek` (compared in a transaction by `updatedAt`); otherwise throws `WeekChangedError` so the UI asks again. Copies drop `templateId`
 - `subscribeToScheduleTemplates` / `saveScheduleTemplate(orgId, draft, dryRun, version)` / `deleteScheduleTemplate(orgId, id, dryRun)` — templates are read here but written only by the Cloud Functions; `version` is `{create: true}` or the `updatedAt` the editor opened. Both calls wait up to 300 s (the server's limit, not the SDK's 70 s default). Server refusals come back as `TimekeepingError` with a message to show
+
+## export.service.ts
+`sharePdf(fileName, html)` — prints to a US Letter PDF, moves it to a readable name in the cache (expo-print's own is random) and opens the share sheet.
 
 ## timeclock.service.ts
 The teacher's time clock. Calls the time-clock Cloud Functions; reads `timeEntries` live (`subscribeToMyEntries`, never writes). `endShift` saves the tap time in AsyncStorage when offline and `flushPendingEnd` sends it later.

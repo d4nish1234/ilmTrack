@@ -13,18 +13,11 @@ import {
   subscribeToOrgWeekEntries,
   subscribeToTimekeeping,
 } from '../../../src/services/timekeeping.service';
-import { shareCsv } from '../../../src/services/export.service';
 import { AppSnackbar, Button, LoadingSpinner } from '../../../src/components/common';
 import { WeekGrid, WeekGridHeader, useGridColumn } from '../../../src/components/timekeeping/WeekGrid';
 import type { OrgTeacher, TimeEntry, TimekeepingSettings, WeekSchedule } from '../../../src/types';
 import { currentWeekStart, formatTime, shiftWeek, todayIn, weekDates } from '../../../src/utils/timekeeping';
-import {
-  clockedInNow,
-  csvFileName,
-  timesheetCsv,
-  timesheetRows,
-  workedOfScheduled,
-} from '../../../src/utils/timesheet';
+import { clockedInNow, timesheetRows, workedOfScheduled } from '../../../src/utils/timesheet';
 import { gridDates, weekRangeLabel, type GridCell } from '../../../src/utils/weekGrid';
 
 function deviceTimezone(): string {
@@ -46,7 +39,8 @@ const STRIP_NAMES = 2;
  * Timekeeping for the selected organization, built around the week: a pager,
  * who's on shift now, and everyone's hours as a list (worked against
  * scheduled) or a grid of people by day. Setup (on/off, locations,
- * schedules) is in Settings, under the ⋮ menu, which also exports the week.
+ * schedules) is in Settings, under the ⋮ menu, which also opens Export
+ * Timesheet.
  * Kept to the week so the people list, the most used part, comes first.
  */
 export default function TimekeepingScreen() {
@@ -84,7 +78,6 @@ export default function TimekeepingScreen() {
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   // Which week each listener last delivered, or null after an error.
   const [loaded, setLoaded] = useState<{ week: string | null; hours: string | null }>({ week: null, hours: null });
-  const [exporting, setExporting] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [onShiftOpen, setOnShiftOpen] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -162,7 +155,7 @@ export default function TimekeepingScreen() {
       }
     );
   }, [orgId, enabled, viewWeek]);
-  // Shown, and exported, only once the week's shifts and hours have both
+  // Shown only once the week's shifts and hours have both
   // loaded, so worked shifts never read as zero or another week's.
   const weekReady = loaded.week === viewWeek && loaded.hours === viewWeek;
 
@@ -201,10 +194,9 @@ export default function TimekeepingScreen() {
   const column = useGridColumn(columns.length);
 
   const openTeacher = (uid: string) => {
-    const t = teachers.find((x) => x.uid === uid);
     router.push({
       pathname: '/(teacher)/organization/teacher/[teacherId]',
-      params: { teacherId: uid, name: nameOf(uid), email: t?.email ?? '', weekStart: viewWeek },
+      params: { teacherId: uid, name: nameOf(uid), weekStart: viewWeek },
     });
   };
 
@@ -223,22 +215,6 @@ export default function TimekeepingScreen() {
       });
     } else {
       openTeacher(uid);
-    }
-  };
-
-  const exportWeek = async () => {
-    setExporting(true);
-    try {
-      const weeks = teachers.map((t) => ({
-        teacher: { uid: t.uid, name: `${t.firstName} ${t.lastName}`, email: t.email },
-        rows: rowsFor(t.uid),
-      }));
-      await shareCsv(csvFileName([selectedOrg?.name ?? ''], viewWeek), timesheetCsv(weeks));
-    } catch (err) {
-      console.error('Error exporting week:', err);
-      setMessage("Couldn't export this week.");
-    } finally {
-      setExporting(false);
     }
   };
 
@@ -349,11 +325,10 @@ export default function TimekeepingScreen() {
               <Menu.Item
                 onPress={() => {
                   closeMenu();
-                  exportWeek();
+                  router.push({ pathname: '/(teacher)/organization/timesheet-export', params: { weekStart: viewWeek } });
                 }}
-                title="Export week (CSV)"
-                leadingIcon="file-delimited-outline"
-                disabled={exporting || !weekReady || teachers.length === 0}
+                title="Export timesheet"
+                leadingIcon="file-pdf-box"
               />
             )}
           </Menu>

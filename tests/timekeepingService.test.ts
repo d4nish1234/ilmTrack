@@ -114,3 +114,48 @@ describe('copying a week', () => {
     expect(next.skippedTemplateShifts).toEqual(['tpl-a-2026-11-24']);
   });
 });
+
+describe('reading weeks for the timesheet export', () => {
+  it("reads the organization's schedules and time entries for each week, and no other organization's", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'schedules', `${ORG}_${TEACHER}_${NEXT}`), {
+        orgId: ORG, teacherId: TEACHER, weekStart: NEXT, shifts: [tplShift('2026-11-23')],
+      });
+      await setDoc(doc(db, 'schedules', `org2_${TEACHER}_${WEEK}`), {
+        orgId: 'org2', teacherId: TEACHER, weekStart: WEEK, shifts: [tplShift('2026-11-16')],
+      });
+      await setDoc(doc(db, 'timeEntries', `${ORG}_${TEACHER}_2026-11-16_tpl-a-2026-11-16`), {
+        orgId: ORG, teacherId: TEACHER, weekStart: WEEK, date: '2026-11-16', shiftId: 'tpl-a-2026-11-16', status: 'done',
+      });
+      await setDoc(doc(db, 'timeEntries', `org2_${TEACHER}_2026-11-16_x`), {
+        orgId: 'org2', teacherId: TEACHER, weekStart: WEEK, date: '2026-11-16', shiftId: 'x', status: 'done',
+      });
+    });
+
+    const { schedules, entries } = await svc.getOrgWeeks(ORG, [WEEK, NEXT, '2026-11-30']);
+    expect(schedules.map((s) => s.weekStart).sort()).toEqual([WEEK, NEXT]);
+    expect(schedules.every((s) => s.orgId === ORG)).toBe(true);
+    expect(entries.map((e) => e.id)).toEqual([`${ORG}_${TEACHER}_2026-11-16_tpl-a-2026-11-16`]);
+  });
+
+  it("reads just the chosen people's weeks, including weeks they have no schedule", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'schedules', `${ORG}_other_${WEEK}`), {
+        orgId: ORG, teacherId: 'other', weekStart: WEEK, shifts: [tplShift('2026-11-16')],
+      });
+      await setDoc(doc(db, 'timeEntries', `${ORG}_${TEACHER}_2026-11-17_tpl-a-2026-11-17`), {
+        orgId: ORG, teacherId: TEACHER, weekStart: WEEK, date: '2026-11-17', shiftId: 'tpl-a-2026-11-17', status: 'done',
+      });
+      await setDoc(doc(db, 'timeEntries', `${ORG}_other_2026-11-16_tpl-a-2026-11-16`), {
+        orgId: ORG, teacherId: 'other', weekStart: WEEK, date: '2026-11-16', shiftId: 'tpl-a-2026-11-16', status: 'done',
+      });
+    });
+
+    // NEXT has no schedule document: reading it is allowed and gives nothing.
+    const { schedules, entries } = await svc.getTeacherWeeks(ORG, [TEACHER], [WEEK, NEXT]);
+    expect(schedules.map((s) => s.id)).toEqual([`${ORG}_${TEACHER}_${WEEK}`]);
+    expect(entries.map((e) => e.teacherId)).toEqual([TEACHER]);
+  });
+});

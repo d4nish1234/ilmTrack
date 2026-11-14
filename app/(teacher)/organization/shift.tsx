@@ -20,6 +20,7 @@ import { ShiftForm } from '../../../src/components/timekeeping/ShiftForm';
 import { TimeWorkedPanel } from '../../../src/components/timekeeping/TimeWorkedPanel';
 import type { Shift, TimeEntry, TimekeepingLocation } from '../../../src/types';
 import { timesheetRows } from '../../../src/utils/timesheet';
+import { templateTitle } from '../../../src/utils/scheduleTemplates';
 
 function deviceTimezone(): string {
   try {
@@ -63,7 +64,10 @@ export default function ShiftScreen() {
     if (!orgId) return;
     return subscribeToScheduleTemplates(
       orgId,
-      (templates) => setTemplateNames(new Map(templates.map((t) => [t.id, t.name]))),
+      (templates) => {
+        const thisYear = new Date().getFullYear();
+        setTemplateNames(new Map(templates.map((t) => [t.id, templateTitle(t, thisYear)])));
+      },
       (err) => console.error('Error loading schedules:', err)
     );
   }, [orgId]);
@@ -186,7 +190,7 @@ export default function ShiftScreen() {
         onDone={() => router.back()}
         notice={
           draft.templateId
-            ? `From the “${templateNames.get(draft.templateId) ?? 'schedule'}” schedule. Changes here are for this day only; to change every week, edit the schedule in Timekeeping.`
+            ? `From ${templateNames.has(draft.templateId) ? `the ${templateNames.get(draft.templateId)}` : 'a'} schedule. Changes here are for this day only; to change every week, edit the schedule in Timekeeping.`
             : undefined
         }
       >

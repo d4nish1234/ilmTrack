@@ -7,8 +7,11 @@ import {
   formatDays,
   skippedLines,
   slotSummary,
+  templateChanged,
   templateDescription,
+  templateName,
   templateProblem,
+  templateTitle,
 } from '../src/utils/scheduleTemplates';
 import type { TemplateApplyResult, TemplateSlot } from '../src/types';
 
@@ -39,8 +42,26 @@ describe('describing a template', () => {
   it('summarises a time and the whole template', () => {
     expect(slotSummary(slot())).toBe('Mon–Thu · 4:00 PM–6:00 PM');
     const t = { ...draft(), slots: [slot(), slot({ id: 'b', days: [6] })], teacherIds: ['t1', 't2'] };
-    expect(templateDescription(t, 2026)).toBe('Mon–Thu · 4:00 PM–6:00 PM +1 more · Sep 8 – Dec 18 · 2 people');
-    expect(templateDescription({ ...t, teacherIds: ['t1'] }, 2026)).toMatch(/· 1 person$/);
+    expect(templateTitle(t, 2026)).toBe('Sep 8 – Dec 18');
+    expect(templateDescription(t)).toBe('Mon–Thu · 4:00 PM–6:00 PM +1 more · 2 people');
+    expect(templateDescription({ ...t, teacherIds: ['t1'] })).toMatch(/· 1 person$/);
+  });
+
+  it('makes the hidden name from the dates and first time, never too long for the server', () => {
+    expect(templateName(draft())).toBe('Sep 8 – Dec 18, 2026 · Mon–Thu 4:00 PM–6:00 PM');
+    expect(templateName(draft({ endDate: '2027-01-30' }))).toBe('Sep 8, 2026 – Jan 30, 2027 · Mon–Thu 4:00 PM–6:00 PM');
+    const long = templateName(draft({ endDate: '2027-01-30', slots: [slot({ days: [1, 3, 5, 7] })] }));
+    expect(long.length).toBeLessThanOrEqual(60);
+    expect(templateName(draft({ slots: [] }))).toBe('Sep 8 – Dec 18, 2026');
+  });
+
+  it('notices a change, but not the same template in another order', () => {
+    expect(templateChanged(draft(), draft())).toBe(false);
+    expect(templateChanged(draft({ teacherIds: ['t1', 't2'] }), draft({ teacherIds: ['t2', 't1'] }))).toBe(false);
+    expect(templateChanged(draft({ slots: [slot({ days: [2, 1] })] }), draft({ slots: [slot({ days: [1, 2] })] }))).toBe(false);
+    expect(templateChanged(draft(), draft({ endDate: '2026-12-19' }))).toBe(true);
+    expect(templateChanged(draft(), draft({ slots: [slot({ end: '18:30' })] }))).toBe(true);
+    expect(templateChanged(draft(), draft({ teacherIds: [] }))).toBe(true);
   });
 
   it('shows years only when needed', () => {
@@ -57,7 +78,6 @@ describe('templateProblem (the same messages as the server)', () => {
   });
 
   it('catches each problem the server would', () => {
-    expect(templateProblem(draft({ name: ' ' }), LOC)).toBe('Give the schedule a name.');
     expect(templateProblem(draft({ endDate: '2026-09-01' }), LOC)).toBe('The end date must be on or after the start date.');
     expect(templateProblem(draft({ endDate: '2027-09-09' }), LOC)).toBe('A schedule can cover at most a year.');
     expect(templateProblem(draft({ endDate: '2027-09-08' }), LOC)).toBeNull();

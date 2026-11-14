@@ -46,6 +46,18 @@ export default function OrganizationLayout() {
         }}
       />
       <Stack.Screen
+        name="timesheet-export"
+        options={{
+          title: 'Export Timesheet',
+        }}
+      />
+      <Stack.Screen
+        name="choose-people"
+        options={{
+          title: 'Choose People',
+        }}
+      />
+      <Stack.Screen
         name="teacher/[teacherId]"
         options={{
           title: 'Shifts',

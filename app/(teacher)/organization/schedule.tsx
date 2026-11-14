@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { Card, Checkbox, Chip, Divider, Searchbar, Text, TextInput } from 'react-native-paper';
+import { Card, Chip, List, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { addWeeks, format, parseISO } from 'date-fns';
 import { useAuth } from '../../../src/contexts/AuthContext';
@@ -16,23 +15,29 @@ import {
   subscribeToTimekeeping,
   type TemplateDraft,
 } from '../../../src/services/timekeeping.service';
-import { Button, LoadingSpinner } from '../../../src/components/common';
+import { Button, LoadingSpinner, useUnsavedChanges } from '../../../src/components/common';
 import { DateField } from '../../../src/components/timekeeping/DateField';
 import { TimeField } from '../../../src/components/timekeeping/TimeField';
-import type { OrgTeacher, ScheduleTemplate, TemplateApplyResult, TemplateSlot, TimekeepingLocation } from '../../../src/types';
+import { openPeoplePicker } from '../../../src/components/timekeeping/peoplePicker';
+import type {
+  OrgTeacher,
+  ScheduleTemplate,
+  TemplateApplyResult,
+  TemplateSlot,
+  TimekeepingLocation,
+} from '../../../src/types';
 import { errorMessage, formatDuration, shiftMinutes, todayIn } from '../../../src/utils/timekeeping';
+import { peopleSummary } from '../../../src/utils/peoplePicker';
 import {
-  TEMPLATE_NAME_MAX,
   TEMPLATE_SLOTS_MAX,
   WEEKDAYS,
   changeSummary,
   endAfterStartMoves,
   skippedLines,
+  templateChanged,
+  templateName,
   templateProblem,
 } from '../../../src/utils/scheduleTemplates';
-
-/** Show a search box once the list of people is longer than this. */
-const SEARCH_FROM = 8;
 /** People listed in the preview's "Not added" part. */
 const PREVIEW_PEOPLE_MAX = 5;
 
@@ -48,6 +53,12 @@ const newSlot = (locationId: string, like?: TemplateSlot): TemplateSlot => ({
  * Create or edit a schedule template: the same shifts for many people over a
  * term. Saving shows what will change first (a dry run of
  * saveScheduleTemplate), then writes it into everyone's weeks.
+ *
+ * Follows the edit-screen pattern (app/(teacher)/CLAUDE.md): no tab bar, Save
+ * pinned to the bottom and shown only once something has changed, no Cancel
+ * (back asks Keep editing / Discard / Save when there are changes), Delete at the end of
+ * the form. Schedules have no name on
+ * screen; templateName makes the one the server needs.
  */
 export default function ScheduleTemplateScreen() {
   const { templateId } = useLocalSearchParams<{ templateId?: string }>();
@@ -64,8 +75,10 @@ export default function ScheduleTemplateScreen() {
   const [newTemplateId] = useState(newId);
   // What the admin has changed, with the version they started from. Until
   // they change something, the form follows the stored template.
-  const [edits, setEdits] = useState<{ draft: TemplateDraft; version: number | null } | null>(null);
-  const [search, setSearch] = useState('');
+  const [edits, setEdits] = useState<{
+    draft: TemplateDraft;
+    version: number | null;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,7 +116,10 @@ export default function ScheduleTemplateScreen() {
   }, [orgId, templateId]);
 
   /** The form before any change: a new template, or the stored one and its version. */
-  const initial = useMemo((): { draft: TemplateDraft; version: number | null } | null => {
+  const initial = useMemo((): {
+    draft: TemplateDraft;
+    version: number | null;
+  } | null => {
     if (!locations) return null;
     if (!templateId) {
       const today = todayIn(timezone);
@@ -134,6 +150,10 @@ export default function ScheduleTemplateScreen() {
   }, [locations, templateId, timezone, newTemplateId, stored]);
   const current = edits ?? initial;
   const draft = current?.draft ?? null;
+  // Something to save: Save appears only then.
+  // Saved or deleted: nothing left to save, and the screen goes back (below).
+  const [done, setDone] = useState(false);
+  const changed = !done && !!edits && (!initial || templateChanged(edits.draft, initial.draft));
   // Deleted before the admin changed anything; once they have, saving says so.
   const missing = stored === 'missing' && !edits;
 
@@ -141,54 +161,6 @@ export default function ScheduleTemplateScreen() {
     const names = new Map((teachers ?? []).map((t) => [t.uid, `${t.firstName} ${t.lastName}`]));
     return (uid: string) => names.get(uid) ?? 'Someone no longer in the organization';
   }, [teachers]);
-
-  const title = templateId ? 'Edit Schedule' : 'New Schedule';
-
-  if (missing) {
-    return (
-      <SafeAreaView style={styles.container} edges={['bottom']}>
-        <Stack.Screen options={{ title }} />
-        <View style={styles.content}>
-          <Text variant="bodyLarge" style={styles.muted}>
-            This schedule no longer exists. Someone may have just deleted it.
-          </Text>
-          <Button mode="outlined" onPress={() => router.back()} style={styles.gap}>
-            Back
-          </Button>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (!orgId || !user || !draft || !locations || !teachers) {
-    return (
-      <>
-        <Stack.Screen options={{ title }} />
-        <LoadingSpinner />
-      </>
-    );
-  }
-
-  const locationIds = locations.map((l) => l.id);
-  const problem = templateProblem(draft, locationIds);
-  const update = (change: Partial<TemplateDraft>) =>
-    setEdits({ draft: { ...draft, ...change }, version: current!.version });
-  const updateSlot = (id: string, change: Partial<TemplateSlot>) =>
-    update({ slots: draft.slots.map((s) => (s.id === id ? { ...s, ...change } : s)) });
-
-  // Everyone who can be picked, plus anyone on the template who has since left
-  // the organization, so they can be taken off it.
-  const known = new Set(teachers.map((t) => t.uid));
-  const people = [
-    ...teachers.map((t) => ({ uid: t.uid, name: `${t.firstName} ${t.lastName}` })),
-    ...draft.teacherIds.filter((uid) => !known.has(uid)).map((uid) => ({ uid, name: nameOf(uid) })),
-  ];
-  const query = search.trim().toLowerCase();
-  const shown = query ? people.filter((p) => p.name.toLowerCase().includes(query)) : people;
-  const chosen = new Set(draft.teacherIds);
-  const allChosen = people.length > 0 && people.every((p) => chosen.has(p.uid));
-  const toggle = (uid: string) =>
-    update({ teacherIds: chosen.has(uid) ? draft.teacherIds.filter((id) => id !== uid) : [...draft.teacherIds, uid] });
 
   /** The preview's message: what changes, and any days that won't be added. */
   const describe = (r: TemplateApplyResult, footer: string) => {
@@ -220,33 +192,112 @@ export default function ScheduleTemplateScreen() {
   };
 
   const version = templateId
-    ? ({ create: false, expectedUpdatedAt: current!.version } as const)
+    ? ({ create: false, expectedUpdatedAt: current?.version ?? null } as const)
     : ({ create: true } as const);
+  const locationIds = locations?.map((l) => l.id) ?? [];
+  const problem = draft && locations ? templateProblem(draft, locationIds) : null;
 
-  const apply = () =>
-    run(async () => {
-      await saveScheduleTemplate(orgId, draft, false, version);
-      router.back();
-    }, "Couldn't save the schedule. Check your connection and try again.");
+  // Defined before the screen's early returns, because the unsaved-changes
+  // guard below (a hook) needs it: Save there runs this same preview.
+  const save =
+    draft && orgId && !problem && !busy
+      ? () => {
+          // The server needs a name; the app makes it rather than asking.
+          const toSave = { ...draft, name: templateName(draft) };
+          const apply = () =>
+            run(async () => {
+              await saveScheduleTemplate(orgId, toSave, false, version);
+              setDone(true);
+            }, "Couldn't save the schedule. Check your connection and try again.");
+          return run(async () => {
+            const preview = await saveScheduleTemplate(orgId, toSave, true, version);
+            Alert.alert(
+              templateId ? 'Apply changes?' : 'Apply schedule?',
+              describe(
+                preview,
+                'Shifts that have started or already happened, and days changed by hand, stay as they are.'
+              ),
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Apply', onPress: apply },
+              ]
+            );
+          }, "Couldn't check the schedule. Check your connection and try again.");
+        }
+      : undefined;
+  // Leaving with changes asks first: Keep editing, Discard, or Save (which previews, applies, then leaves).
+  const unsaved = useUnsavedChanges(changed, save);
+  // Back once saved or deleted; after the render that turned the guard off.
+  useEffect(() => {
+    if (done) router.back();
+  }, [done]);
 
-  const save = () =>
-    run(async () => {
-      const preview = await saveScheduleTemplate(orgId, draft, true, version);
-      Alert.alert(
-        templateId ? 'Apply changes?' : 'Apply schedule?',
-        describe(preview, 'Shifts that have started or already happened, and days changed by hand, stay as they are.'),
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Apply', onPress: apply },
-        ]
-      );
-    }, "Couldn't check the schedule. Check your connection and try again.");
+  const title = templateId ? 'Edit Schedule' : 'New Schedule';
+
+  if (missing) {
+    return (
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        <Stack.Screen options={{ title }} />
+        <View style={styles.content}>
+          <Text variant="bodyLarge" style={styles.muted}>
+            This schedule no longer exists. Someone may have just deleted it.
+          </Text>
+          <Button mode="outlined" onPress={() => router.back()} style={styles.gap}>
+            Back
+          </Button>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!orgId || !user || !draft || !locations || !teachers) {
+    return (
+      <>
+        <Stack.Screen options={{ title }} />
+        <LoadingSpinner />
+      </>
+    );
+  }
+
+  const update = (change: Partial<TemplateDraft>) =>
+    setEdits({ draft: { ...draft, ...change }, version: current!.version });
+  const updateSlot = (id: string, change: Partial<TemplateSlot>) =>
+    update({
+      slots: draft.slots.map((s) => (s.id === id ? { ...s, ...change } : s)),
+    });
+
+  // Everyone who can be picked, plus anyone on the template who has since left
+  // the organization, so they can be taken off it.
+  const known = new Set(teachers.map((t) => t.uid));
+  const people = [
+    ...teachers.map((t) => ({
+      uid: t.uid,
+      name: `${t.firstName} ${t.lastName}`,
+    })),
+    ...draft.teacherIds.filter((uid) => !known.has(uid)).map((uid) => ({ uid, name: nameOf(uid) })),
+  ];
+  // The picker's answer arrives after this render, so it builds on whatever
+  // the edits are by then.
+  const choosePeople = () => {
+    const version = current!.version;
+    const before = draft;
+    openPeoplePicker({
+      people,
+      chosen: draft.teacherIds,
+      everyoneOption: false,
+      onDone: (ids) =>
+        setEdits((prev) => ({
+          draft: { ...(prev?.draft ?? before), teacherIds: ids ?? [] },
+          version: prev?.version ?? version,
+        })),
+    });
+  };
 
   const remove = () =>
     run(async () => {
       const preview = await deleteScheduleTemplate(orgId, templateId!, true);
       Alert.alert(
-        `Delete “${draft.name}”?`,
+        'Delete this schedule?',
         describe(preview, 'Shifts that have started or already happened are kept, with their hours.'),
         [
           { text: 'Cancel', style: 'cancel' },
@@ -256,7 +307,7 @@ export default function ScheduleTemplateScreen() {
             onPress: () =>
               run(async () => {
                 await deleteScheduleTemplate(orgId, templateId!, false);
-                router.back();
+                setDone(true);
               }, "Couldn't delete the schedule. Check your connection and try again."),
           },
         ]
@@ -265,19 +316,9 @@ export default function ScheduleTemplateScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <Stack.Screen options={{ title }} />
-      <KeyboardAwareScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" bottomOffset={16}>
-        <TextInput
-          label="Name"
-          placeholder="e.g. Term 1"
-          value={draft.name}
-          onChangeText={(name) => update({ name })}
-          mode="outlined"
-          maxLength={TEMPLATE_NAME_MAX}
-          style={styles.input}
-        />
-
-        <Text variant="titleMedium" style={styles.heading}>
+      <Stack.Screen options={{ title, headerLeft: unsaved.headerLeft }} />
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text variant="titleMedium" style={[styles.heading, styles.first]}>
           Dates
         </Text>
         <View style={styles.row}>
@@ -285,17 +326,16 @@ export default function ScheduleTemplateScreen() {
           <DateField
             value={draft.startDate}
             onChange={(startDate) =>
-              update({ startDate, endDate: endAfterStartMoves(draft.startDate, startDate, draft.endDate) })
+              update({
+                startDate,
+                endDate: endAfterStartMoves(draft.startDate, startDate, draft.endDate),
+              })
             }
           />
         </View>
         <View style={styles.row}>
           <Text variant="bodyLarge">Ends</Text>
-          <DateField
-            value={draft.endDate}
-            onChange={(endDate) => update({ endDate })}
-            minimumDate={draft.startDate}
-          />
+          <DateField value={draft.endDate} onChange={(endDate) => update({ endDate })} minimumDate={draft.startDate} />
         </View>
 
         <Text variant="titleMedium" style={styles.heading}>
@@ -357,7 +397,15 @@ export default function ScheduleTemplateScreen() {
             </Card.Content>
             {draft.slots.length > 1 && (
               <Card.Actions>
-                <Button mode="text" textColor="#d32f2f" onPress={() => update({ slots: draft.slots.filter((s) => s.id !== slot.id) })}>
+                <Button
+                  mode="text"
+                  textColor="#d32f2f"
+                  onPress={() =>
+                    update({
+                      slots: draft.slots.filter((s) => s.id !== slot.id),
+                    })
+                  }
+                >
                   Remove time
                 </Button>
               </Card.Actions>
@@ -369,73 +417,63 @@ export default function ScheduleTemplateScreen() {
             mode="text"
             icon="plus"
             onPress={() =>
-              update({ slots: [...draft.slots, newSlot(locations[0]?.id ?? '', draft.slots[draft.slots.length - 1])] })
+              update({
+                slots: [...draft.slots, newSlot(locations[0]?.id ?? '', draft.slots[draft.slots.length - 1])],
+              })
             }
           >
             Add another time
           </Button>
         )}
 
-        <View style={styles.peopleHeader}>
-          <Text variant="titleMedium" style={styles.heading}>
-            People · {draft.teacherIds.length} chosen
-          </Text>
-          {people.length > 1 && (
-            <Button
-              mode="text"
-              onPress={() => update({ teacherIds: allChosen ? [] : people.map((p) => p.uid) })}
-            >
-              {allChosen ? 'Clear' : 'Select all'}
-            </Button>
-          )}
-        </View>
-        {people.length > SEARCH_FROM && (
-          <Searchbar placeholder="Search people" value={search} onChangeText={setSearch} style={styles.search} />
-        )}
-        {people.length === 0 ? (
+        <Text variant="titleMedium" style={styles.heading}>
+          People
+        </Text>
+        <List.Item
+          title={peopleSummary(draft.teacherIds.map(nameOf), people.length)}
+          description={draft.teacherIds.length === 0 ? 'Who works these shifts' : undefined}
+          left={(props) => <List.Icon {...props} icon="account-multiple-outline" />}
+          right={(props) => <List.Icon {...props} icon="chevron-right" />}
+          onPress={choosePeople}
+          disabled={people.length === 0}
+          style={styles.people}
+        />
+        {people.length === 0 && (
           <Text variant="bodyMedium" style={styles.muted}>
             No one to choose yet. People appear here once they teach one of the organization&apos;s classes.
           </Text>
-        ) : (
-          shown.map((p, i) => (
-            <View key={p.uid}>
-              {i > 0 && <Divider />}
-              <Checkbox.Item
-                label={p.name}
-                status={chosen.has(p.uid) ? 'checked' : 'unchecked'}
-                onPress={() => toggle(p.uid)}
-                position="leading"
-                labelStyle={styles.personLabel}
-              />
-            </View>
-          ))
         )}
 
         <Text variant="bodySmall" style={[styles.muted, styles.gap]}>
-          Applies from today. Shifts that have started or already happened, and days you change by hand in someone&apos;s
-          week, stay as they are.
+          Applies from today. Shifts that have started or already happened, and days you change by hand in
+          someone&apos;s week, stay as they are.
         </Text>
 
-        {(error || problem) && (
+        {error && !changed && (
           <Text variant="bodyMedium" style={styles.error}>
-            {error ?? problem}
+            {error}
           </Text>
         )}
 
-        <View style={styles.actions}>
-          <Button onPress={save} loading={busy} disabled={busy || !!problem}>
+        {templateId && (
+          <Button mode="outlined" textColor="#d32f2f" onPress={remove} disabled={busy} style={styles.delete}>
+            Delete schedule
+          </Button>
+        )}
+      </ScrollView>
+
+      {changed && (
+        <View style={styles.footer}>
+          {(problem || error) && (
+            <Text variant="bodyMedium" style={styles.footerError}>
+              {problem ?? error}
+            </Text>
+          )}
+          <Button onPress={() => save?.()} loading={busy} disabled={!save}>
             {templateId ? 'Save and apply' : 'Apply schedule'}
           </Button>
-          {templateId && (
-            <Button mode="outlined" textColor="#d32f2f" onPress={remove} disabled={busy}>
-              Delete schedule
-            </Button>
-          )}
-          <Button mode="text" onPress={() => router.back()} disabled={busy}>
-            Cancel
-          </Button>
         </View>
-      </KeyboardAwareScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -447,9 +485,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-  },
-  input: {
-    backgroundColor: '#fff',
   },
   heading: {
     fontWeight: '600',
@@ -484,16 +519,12 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 8,
   },
-  peopleHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
+  first: {
+    marginTop: 0,
   },
-  search: {
-    marginBottom: 8,
-  },
-  personLabel: {
-    textAlign: 'left',
+  people: {
+    paddingLeft: 0,
+    marginLeft: -8,
   },
   muted: {
     color: '#666',
@@ -505,7 +536,16 @@ const styles = StyleSheet.create({
     color: '#d32f2f',
     marginTop: 12,
   },
-  actions: {
-    marginTop: 16,
+  delete: {
+    marginTop: 24,
+  },
+  footer: {
+    paddingHorizontal: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#ddd',
+  },
+  footerError: {
+    color: '#d32f2f',
+    paddingTop: 10,
   },
 });

@@ -16,7 +16,6 @@ import {
   subscribeToScheduleTemplates,
   subscribeToTimekeeping,
 } from '../../../../src/services/timekeeping.service';
-import { shareCsv } from '../../../../src/services/export.service';
 import { AppSnackbar, Button, LoadingSpinner } from '../../../../src/components/common';
 import type { Shift, TimeEntry, TimekeepingLocation } from '../../../../src/types';
 import {
@@ -27,7 +26,8 @@ import {
   weekSummary,
   formatDuration,
 } from '../../../../src/utils/timekeeping';
-import { csvFileName, timesheetCsv, timesheetRows, totals, type TimesheetRow } from '../../../../src/utils/timesheet';
+import { templateTitle } from '../../../../src/utils/scheduleTemplates';
+import { timesheetRows, totals, type TimesheetRow } from '../../../../src/utils/timesheet';
 
 function deviceTimezone(): string {
   try {
@@ -62,10 +62,9 @@ function workedLabel(row: TimesheetRow): string {
  * after it was worked still shows, so its hours aren't lost.
  */
 export default function TeacherWeekScreen() {
-  const { teacherId, name, email, weekStart: openOn } = useLocalSearchParams<{
+  const { teacherId, name, weekStart: openOn } = useLocalSearchParams<{
     teacherId: string;
     name?: string;
-    email?: string;
     /** The week to open on (the Timekeeping screen's); otherwise the current one. */
     weekStart?: string;
   }>();
@@ -73,7 +72,7 @@ export default function TeacherWeekScreen() {
   const { selectedOrg } = useOrganizations();
   const orgId = selectedOrg?.id;
   const [shifts, setShifts] = useState<Shift[]>([]);
-  // Template names, to label the shifts a schedule template wrote.
+  // Labels for the shifts a schedule template wrote: 'Schedule Sep 8 – Dec 18'.
   const [templateNames, setTemplateNames] = useState<Map<string, string>>(new Map());
   const [locations, setLocations] = useState<TimekeepingLocation[]>([]);
   const [timezone, setTimezone] = useState<string | null>(null);
@@ -82,11 +81,7 @@ export default function TeacherWeekScreen() {
   const [weekStart, setWeekStart] = useState<string | null>(null);
   const thisWeek = currentWeekStart(timezone);
   const [copying, setCopying] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [entries, setEntries] = useState<TimeEntry[]>([]);
-  // Which week each listener last delivered, or null after an error: the
-  // export waits for both, so it never reports worked shifts as zero.
-  const [loaded, setLoaded] = useState<{ week: string | null; hours: string | null }>({ week: null, hours: null });
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -122,13 +117,9 @@ export default function TeacherWeekScreen() {
       orgId,
       teacherId,
       weekStart,
-      (s) => {
-        setShifts(s);
-        setLoaded((l) => ({ ...l, week: weekStart }));
-      },
+      setShifts,
       (err) => {
         console.error('Error loading week:', err);
-        setLoaded((l) => ({ ...l, week: null }));
         setMessage({ text: "Couldn't load this week.", type: 'error' });
       }
     );
@@ -140,13 +131,9 @@ export default function TeacherWeekScreen() {
     return subscribeToOrgWeekEntries(
       orgId,
       weekStart,
-      (e) => {
-        setEntries(e);
-        setLoaded((l) => ({ ...l, hours: weekStart }));
-      },
+      setEntries,
       (err) => {
         console.error('Error loading hours:', err);
-        setLoaded((l) => ({ ...l, hours: null }));
         setMessage({ text: "Couldn't load this week's hours.", type: 'error' });
       },
       teacherId
@@ -157,7 +144,10 @@ export default function TeacherWeekScreen() {
     if (!orgId) return;
     return subscribeToScheduleTemplates(
       orgId,
-      (templates) => setTemplateNames(new Map(templates.map((t) => [t.id, t.name]))),
+      (templates) => {
+        const thisYear = new Date().getFullYear();
+        setTemplateNames(new Map(templates.map((t) => [t.id, `Schedule ${templateTitle(t, thisYear)}`])));
+      },
       (err) => console.error('Error loading schedules:', err)
     );
   }, [orgId]);
@@ -183,21 +173,13 @@ export default function TeacherWeekScreen() {
 
   const worked = totals(rows);
 
-  const exportWeek = async () => {
-    setExporting(true);
-    try {
-      const teacherName = name || 'Teacher';
-      await shareCsv(
-        csvFileName([teacherName, selectedOrg?.name ?? ''], weekStart),
-        timesheetCsv([{ teacher: { uid: teacherId, name: teacherName, email: email ?? '' }, rows }])
-      );
-    } catch (err) {
-      console.error('Error exporting week:', err);
-      setMessage({ text: "Couldn't export this week.", type: 'error' });
-    } finally {
-      setExporting(false);
-    }
-  };
+  // Export Timesheet, with this person and week already chosen; any dates
+  // can be picked from there.
+  const exportWeek = () =>
+    router.push({
+      pathname: '/(teacher)/organization/timesheet-export',
+      params: { weekStart, teacherId, name: name ?? '' },
+    });
 
 
   const openShift = (params: { shiftId: string } | { date: string }) =>
@@ -356,10 +338,8 @@ export default function TeacherWeekScreen() {
           </Button>
           <Button
             mode="outlined"
-            icon="file-delimited-outline"
+            icon="file-pdf-box"
             onPress={exportWeek}
-            loading={exporting}
-            disabled={exporting || rows.length === 0 || loaded.week !== weekStart || loaded.hours !== weekStart}
             style={styles.footerButton}
           >
             Export

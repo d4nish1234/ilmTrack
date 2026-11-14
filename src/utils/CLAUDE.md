@@ -17,10 +17,12 @@
 - The Timekeeping week grid's logic: `gridCells` (each day's shifts, two shown then "+N"), `rowLines`, `rowHeight` (at least 44 pt), `gridDates` (Mon–Fri always, weekend days only when used), `cellTone` (status → colour), `shortRange` ('4–6', '4:30–6'; no AM/PM), `weekRangeLabel` ('Nov 9 – 15'). Tested in `tests/weekGrid.test.ts`.
 
 ## scheduleTemplates.ts
-- Schedule templates in the app: `formatDays` ('Mon–Thu'), `slotSummary`, `templateDescription` (list rows), `templateProblem` (the editor's checks, same messages as the server's `parseTemplate`), `endAfterStartMoves`, `hasEnded`, and the preview text (`changeSummary`, `skippedLines`). Tested in `tests/scheduleTemplates.test.ts`.
+- Schedule templates in the app: `formatDays` ('Mon–Thu'), `slotSummary`, `templateTitle` / `templateDescription` (list rows: dates, then times and people; schedules have no name on screen), `templateName` (the hidden name the server requires, made from dates and first time, at most 60 characters), `templateChanged` (whether the editor has anything to save), `templateProblem` (the editor's checks, same messages as the server's `parseTemplate`), `endAfterStartMoves`, `hasEnded`, and the preview text (`changeSummary`, `skippedLines`). Tested in `tests/scheduleTemplates.test.ts`.
 
 ## timesheet.ts
-- Admin timesheets: `timesheetRows` (schedule + entries, removed-but-worked shifts kept), `totals` / `workedOfScheduled`, `clockedInNow`, and the CSV (`timesheetCsv`, with formula-injection defused). Tested in `tests/timesheet.test.ts`.
+- Admin timesheets: `timesheetRows` (schedule + entries, removed-but-worked shifts kept), `totals` / `workedOfScheduled`, `clockedInNow`, and `STATUS_LABEL`. Tested in `tests/timesheet.test.ts`.
+- Choose People (`peoplePicker.ts`): `peopleSummary` (a row's 'Aisha Khan and Omar Ali' / 'All 12 people'), `pickResult`, `filterPeople`. Tested in `tests/peoplePicker.test.ts`.
+- Timesheet PDF (`timesheetExport.ts`): date ranges (`rangeProblem`, six months at most; `rangeWeeks`, the Mondays to read; presets), `readChosenOnly` (read just the chosen people's weeks or the whole organization's, whichever reads less), `rowsInRange`, `personTotals`, and `timesheetHtml` for expo-print, with every name, note and location HTML-escaped. Tested in `tests/timesheetExport.test.ts`.
 
 ## authErrors.ts
 - Maps Firebase Auth error codes to user-friendly messages.
