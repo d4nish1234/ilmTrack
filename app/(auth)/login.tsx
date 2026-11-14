@@ -48,13 +48,13 @@ export default function LoginScreen() {
     setError(null);
 
     try {
+      // Resolves once the account has loaded. The root layout then moves on
+      // from this screen, so the spinner stays until it's gone.
       await signIn(data.email, data.password);
-      // Navigation is handled by the root layout based on user role
     } catch (err: unknown) {
       console.error('Login error:', err);
       const errorMessage = getAuthErrorMessage(err as { code?: string; message?: string });
       setError(errorMessage);
-    } finally {
       setLoading(false);
     }
   };

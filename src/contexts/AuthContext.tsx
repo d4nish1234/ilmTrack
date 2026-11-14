@@ -186,10 +186,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const signingUp = React.useRef(false);
+  // signIn waits on this: the listener below calls it once the profile is
+  // loaded (or couldn't be), so sign-in finishes when the app is ready.
+  const profileWaiter = React.useRef<((profile: User | null) => void) | null>(null);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
+      const settle = (profile: User | null) => {
+        profileWaiter.current?.(profile);
+        profileWaiter.current = null;
+      };
+      let profile: User | null = null;
 
       if (fbUser) {
         // Skip Firestore operations during signup — signUp handles everything
@@ -225,8 +233,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 // Refresh user data to include new studentIds
                 const refreshedDoc = await getDoc(doc(firestore, 'users', fbUser.uid));
                 if (refreshedDoc.exists()) {
-                  setUser({ uid: fbUser.uid, ...refreshedDoc.data() } as User);
+                  profile = { uid: fbUser.uid, ...refreshedDoc.data() } as User;
+                  setUser(profile);
                   setLoading(false);
+                  settle(profile);
                   return;
                 }
               }
@@ -244,13 +254,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 // Refresh user data to include new adminClassIds
                 const refreshedDoc = await getDoc(doc(firestore, 'users', fbUser.uid));
                 if (refreshedDoc.exists()) {
-                  setUser({ uid: fbUser.uid, ...refreshedDoc.data() } as User);
+                  profile = { uid: fbUser.uid, ...refreshedDoc.data() } as User;
+                  setUser(profile);
                   setLoading(false);
+                  settle(profile);
                   return;
                 }
               }
             }
 
+            profile = userData;
             setUser(userData);
           } else {
             setUser(null);
@@ -264,13 +277,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setLoading(false);
+      settle(profile);
     });
 
     return unsubscribeAuth;
   }, []);
 
+  /**
+   * Resolves once the account has loaded too (profile, invites), not just
+   * when the password is accepted, so the login button keeps its spinner
+   * until the app moves on. Rejects if the account couldn't be loaded.
+   */
   const signIn = useCallback(async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    const loaded = new Promise<User | null>((resolve) => {
+      profileWaiter.current = resolve;
+    });
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      profileWaiter.current = null;
+      throw err;
+    }
+    // A slow connection shouldn't hold the button forever.
+    const timedOut = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 20000));
+    const profile = await Promise.race([loaded, timedOut]);
+    if (profile === 'timeout') {
+      profileWaiter.current = null;
+      throw new Error('Signing in is taking longer than usual. Check your connection and try again.');
+    }
+    if (!profile) {
+      throw new Error("Couldn't load your account. Check your connection and try again.");
+    }
   }, []);
 
   const signUp = useCallback(
