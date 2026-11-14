@@ -80,11 +80,11 @@ export default function OrganizationLayout() {
           headerShown: false,
         }}
       />
+      {/* An edit screen: back button, Save pinned to the bottom (see "Edit screens"). */}
       <Stack.Screen
         name="location"
         options={{
           title: 'Location',
-          presentation: 'modal',
         }}
       />
     </Stack>

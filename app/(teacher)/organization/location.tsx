@@ -13,7 +13,7 @@ import { LocationForm } from '../../../src/components/timekeeping/LocationForm';
 import type { TimekeepingLocation } from '../../../src/types';
 
 /**
- * Add or edit a timekeeping location, as a sheet over the Timekeeping screen.
+ * Add or edit a timekeeping location, pushed from Timekeeping Settings.
  * Pass `locationId` to edit; omit it to add.
  */
 export default function LocationScreen() {

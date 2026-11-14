@@ -11,7 +11,7 @@ import { colors, headerOptions } from '../../src/constants/theme';
  * edit screen here: see "Edit screens" in app/(teacher)/CLAUDE.md. (Sheets
  * opened with presentation: 'modal' already cover the tabs.)
  */
-const NO_TAB_BAR = new Set(['schedule', 'timesheet-export', 'choose-people']);
+const NO_TAB_BAR = new Set(['schedule', 'timesheet-export', 'choose-people', 'location']);
 
 export default function TeacherLayout() {
   const { organizations } = useOrganizations();

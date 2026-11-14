@@ -15,6 +15,8 @@ import {
   weekDates,
   weekStartOf,
   weekSummary,
+  locationNameFrom,
+  radiusChoice,
 } from '../src/utils/timekeeping';
 import type { Shift } from '../src/types';
 
@@ -179,5 +181,34 @@ describe('current week in the organization timezone', () => {
     expect(currentWeekStart(null, now)).toBe(deviceWeek);
     expect(currentWeekStart(undefined, now)).toBe(deviceWeek);
     expect(currentWeekStart('Not/AZone', now)).toBe(deviceWeek);
+  });
+});
+
+describe('radiusChoice', () => {
+  it('keeps a distance that is still offered', () => {
+    expect(radiusChoice(100)).toBe(100);
+    expect(radiusChoice(250)).toBe(250);
+    expect(radiusChoice(500)).toBe(500);
+  });
+
+  it('moves a retired distance up, never down', () => {
+    expect(radiusChoice(150)).toBe(250);
+  });
+
+  it('defaults to 250 m for a new location', () => {
+    expect(radiusChoice(undefined)).toBe(250);
+  });
+});
+
+describe('locationNameFrom', () => {
+  it('is the first line of the address', () => {
+    expect(locationNameFrom('1250 Markham Rd, Toronto, ON M1H 2Y9, Canada')).toBe('1250 Markham Rd');
+    expect(locationNameFrom('Masjid Al-Noor')).toBe('Masjid Al-Noor');
+  });
+
+  it('keeps the old name, or a plain one, when there is no address', () => {
+    expect(locationNameFrom(undefined, 'Main campus')).toBe('Main campus');
+    expect(locationNameFrom('  ', 'Main campus')).toBe('Main campus');
+    expect(locationNameFrom(undefined)).toBe('School');
   });
 });

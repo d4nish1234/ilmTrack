@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Linking, StyleSheet, View } from 'react-native';
-import { SegmentedButtons, Text, TextInput } from 'react-native-paper';
+import { IconButton, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import * as Location from 'expo-location';
-import { Button } from '../common';
+import { Stack } from 'expo-router';
+import { Button, useUnsavedChanges } from '../common';
 import type { TimekeepingLocation } from '../../types';
-import { DEFAULT_RADIUS_M, RADIUS_OPTIONS_M, errorMessage } from '../../utils/timekeeping';
+import { RADIUS_OPTIONS_M, errorMessage, locationNameFrom, radiusChoice } from '../../utils/timekeeping';
 import { colors, radius, spacing, typography } from '../../constants/theme';
 
 interface LocationFormProps {
@@ -15,11 +16,15 @@ interface LocationFormProps {
   newId: () => string;
   onSave: (location: TimekeepingLocation) => Promise<void>;
   onDelete: (location: TimekeepingLocation) => Promise<void>;
-  /** Called after a save or delete, and on Cancel. */
+  /** Called after a save or delete: go back. */
   onDone: () => void;
 }
 
 type Pin = { latitude: number; longitude: number; address?: string };
+
+const samePin = (a: Pin | null, b: Pin | null) =>
+  a === b ||
+  (!!a && !!b && a.latitude === b.latitude && a.longitude === b.longitude && (a.address ?? '') === (b.address ?? ''));
 
 function describePlace(place: Location.LocationGeocodedAddress | undefined): string | undefined {
   if (!place) return undefined;
@@ -30,9 +35,14 @@ function describePlace(place: Location.LocationGeocodedAddress | undefined): str
 
 /**
  * Pin a location by standing there ("Use my current location") or by typing
- * an address. The address it resolves to is shown so the admin can confirm
- * the pin landed in the right place. Rendered by the organization/location
- * route as a sheet.
+ * an address. Once pinned, the search gives way to the address it resolved
+ * to, so the admin can confirm the pin landed in the right place; the pencil
+ * brings the search back with that address in it. Admins don't name a
+ * location: its name is the address's first line (locationNameFrom).
+ *
+ * An edit screen (see "Edit screens" in app/(teacher)/CLAUDE.md): Save is
+ * pinned to the bottom and shows once something has changed, there's no
+ * Cancel, and going back with changes asks first.
  */
 export function LocationForm({
   location,
@@ -41,13 +51,26 @@ export function LocationForm({
   onDelete,
   onDone,
 }: LocationFormProps) {
-  const [name, setName] = useState(location?.name ?? '');
   const [query, setQuery] = useState('');
   const [pin, setPin] = useState<Pin | null>(location ? { ...location } : null);
-  const [radiusM, setRadiusM] = useState(location?.radiusM ?? DEFAULT_RADIUS_M);
+  // Searching for a place (a new location, or after the pencil) or showing the pin.
+  const [searching, setSearching] = useState(!location);
+  const [radiusM, setRadiusM] = useState(radiusChoice(location?.radiusM));
   const [busy, setBusy] = useState<'locating' | 'finding' | 'saving' | null>(null);
+  // A problem finding the place (shown in the form) or saving (shown by Save).
   const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [needsSettings, setNeedsSettings] = useState(false);
+  // Saved or deleted: nothing left to ask about on the way out.
+  const [done, setDone] = useState(false);
+
+  const startPin: Pin | null = location
+    ? { latitude: location.latitude, longitude: location.longitude, address: location.address }
+    : null;
+  // A saved 150 m shows as 250 m; that alone isn't a change to save.
+  const changed = !done && (!samePin(pin, startPin) || radiusM !== radiusChoice(location?.radiusM));
+  // While searching, a new place hasn't been picked yet.
+  const problem = !pin || searching ? 'Pick an address or use your current location to save.' : null;
 
   /** Location permission is needed both to locate and (on Android) to look up addresses. */
   const ensurePermission = async (): Promise<boolean> => {
@@ -76,6 +99,7 @@ export function LocationForm({
       });
       const { latitude, longitude } = position.coords;
       setPin({ latitude, longitude, address: await resolveAddress(latitude, longitude) });
+      setSearching(false);
     } catch {
       setError("Couldn't get your location. Check that Location Services are on and try again.");
     } finally {
@@ -99,6 +123,7 @@ export function LocationForm({
         longitude: match.longitude,
         address: (await resolveAddress(match.latitude, match.longitude)) ?? query.trim(),
       });
+      setSearching(false);
     } catch {
       setError("Couldn't look up that address. Please try again.");
     } finally {
@@ -106,22 +131,29 @@ export function LocationForm({
     }
   };
 
-  const save = async () => {
-    if (!pin || !name.trim()) return;
-    setBusy('saving');
+  /** The pencil: back to the search, starting from the pinned address. */
+  const changePin = () => {
+    setQuery(pin?.address ?? '');
     setError(null);
+    setSearching(true);
+  };
+
+  const save = async () => {
+    if (!pin || problem) return;
+    setBusy('saving');
+    setSaveError(null);
     try {
       await onSave({
         id: location?.id ?? newId(),
-        name: name.trim(),
+        name: locationNameFrom(pin.address, location?.name),
         ...(pin.address ? { address: pin.address } : {}),
         latitude: pin.latitude,
         longitude: pin.longitude,
         radiusM,
       });
-      onDone();
+      setDone(true);
     } catch (err) {
-      setError(errorMessage(err, "Couldn't save. Check your connection and try again."));
+      setSaveError(errorMessage(err, "Couldn't save. Check your connection and try again."));
     } finally {
       setBusy(null);
     }
@@ -132,7 +164,7 @@ export function LocationForm({
     setBusy('saving');
     try {
       await onDelete(location);
-      onDone();
+      setDone(true);
     } catch (err) {
       setError(errorMessage(err, "Couldn't delete. Check your connection and try again."));
     } finally {
@@ -154,63 +186,81 @@ export function LocationForm({
     );
   };
 
+  // Leaving with changes asks first: Keep editing, Discard, or Save.
+  const unsaved = useUnsavedChanges(changed, problem ? undefined : save);
+  // Back once saved or deleted, after the render that turned the guard off;
+  // once, however often the screen re-renders on the way out.
+  const onDoneRef = useRef(onDone);
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  });
+  useEffect(() => {
+    if (done) onDoneRef.current();
+  }, [done]);
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <Stack.Screen options={{ headerLeft: unsaved.headerLeft }} />
       <KeyboardAwareScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         bottomOffset={16}
       >
-        <TextInput
-          label="Name"
-          placeholder="Main campus"
-          value={name}
-          onChangeText={setName}
-          mode="outlined"
-          style={styles.input}
-          autoCapitalize="words"
-        />
+        {searching ? (
+          <>
+            <Button
+              mode="outlined"
+              icon="crosshairs-gps"
+              onPress={useCurrentLocation}
+              loading={busy === 'locating'}
+              disabled={!!busy}
+            >
+              Use my current location
+            </Button>
 
-        <Button
-          mode="outlined"
-          icon="crosshairs-gps"
-          onPress={useCurrentLocation}
-          loading={busy === 'locating'}
-          disabled={!!busy}
-        >
-          Use my current location
-        </Button>
+            <Text variant={typography.caption} style={styles.or}>
+              or
+            </Text>
 
-        <Text variant={typography.caption} style={styles.or}>
-          or
-        </Text>
-
-        <TextInput
-          label="Address"
-          value={query}
-          onChangeText={setQuery}
-          mode="outlined"
-          style={styles.input}
-          returnKeyType="search"
-          onSubmitEditing={findAddress}
-          right={
-            <TextInput.Icon
-              icon="magnify"
-              onPress={findAddress}
-              disabled={!!busy || !query.trim()}
+            <TextInput
+              label="Address"
+              value={query}
+              onChangeText={setQuery}
+              mode="outlined"
+              style={styles.input}
+              returnKeyType="search"
+              onSubmitEditing={findAddress}
+              // After the pencil, straight into the address to change it.
+              autoFocus={!!pin}
+              right={
+                <TextInput.Icon
+                  icon="magnify"
+                  onPress={findAddress}
+                  disabled={!!busy || !query.trim()}
+                />
+              }
             />
-          }
-        />
-
-        {pin && (
-          <View style={styles.pin}>
-            <Text variant={typography.labelMedium} style={styles.pinLabel}>
-              Pinned at
-            </Text>
-            <Text variant={typography.body}>
-              {pin.address ?? `${pin.latitude.toFixed(5)}, ${pin.longitude.toFixed(5)}`}
-            </Text>
-          </View>
+          </>
+        ) : (
+          pin && (
+            <View style={styles.pin}>
+              <View style={styles.pinText}>
+                <Text variant={typography.labelMedium} style={styles.pinLabel}>
+                  Address
+                </Text>
+                <Text variant={typography.body}>
+                  {pin.address ?? `${pin.latitude.toFixed(5)}, ${pin.longitude.toFixed(5)}`}
+                </Text>
+              </View>
+              <IconButton
+                icon="pencil"
+                iconColor={colors.primary}
+                onPress={changePin}
+                disabled={!!busy}
+                accessibilityLabel="Change address"
+              />
+            </View>
+          )
         )}
 
         <Text variant={typography.bodyLarge} style={styles.radiusLabel}>
@@ -233,24 +283,31 @@ export function LocationForm({
           </Button>
         )}
 
-        <View style={styles.actions}>
+        {location && (
           <Button
-            onPress={save}
-            loading={busy === 'saving'}
-            disabled={!!busy || !pin || !name.trim()}
+            mode="outlined"
+            textColor={colors.danger}
+            onPress={confirmRemove}
+            disabled={!!busy}
+            style={styles.delete}
           >
+            Delete location
+          </Button>
+        )}
+      </KeyboardAwareScrollView>
+
+      {changed && (
+        <View style={styles.footer}>
+          {(problem || saveError) && (
+            <Text variant={typography.body} style={styles.footerError}>
+              {problem ?? saveError}
+            </Text>
+          )}
+          <Button onPress={save} loading={busy === 'saving'} disabled={!!busy || !!problem}>
             Save
           </Button>
-          {location && (
-            <Button mode="outlined" textColor={colors.danger} onPress={confirmRemove} disabled={!!busy}>
-              Delete location
-            </Button>
-          )}
-          <Button mode="text" onPress={onDone} disabled={!!busy}>
-            Cancel
-          </Button>
         </View>
-      </KeyboardAwareScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -273,10 +330,16 @@ const styles = StyleSheet.create({
     marginVertical: spacing.sm,
   },
   pin: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    padding: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingLeft: spacing.md,
     marginBottom: spacing.md,
+  },
+  pinText: {
+    flex: 1,
   },
   pinLabel: {
     color: colors.textSecondary,
@@ -290,7 +353,16 @@ const styles = StyleSheet.create({
     color: colors.danger,
     marginTop: spacing.md,
   },
-  actions: {
-    marginTop: spacing.lg,
+  delete: {
+    marginTop: spacing.xl,
+  },
+  footer: {
+    paddingHorizontal: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  footerError: {
+    color: colors.danger,
+    paddingTop: 10,
   },
 });

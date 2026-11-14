@@ -11,7 +11,7 @@ import { addDays, addWeeks, format, parseISO, startOfWeek } from 'date-fns';
 import type { Shift } from '../types';
 
 /** How close a teacher must be to a location, in metres. */
-export const RADIUS_OPTIONS_M = [100, 150, 250] as const;
+export const RADIUS_OPTIONS_M = [100, 250, 500] as const;
 
 /** Shift times move in steps of this many minutes on every platform. */
 export const MINUTE_STEP = 5;
@@ -28,7 +28,27 @@ export function errorMessage(err: unknown, fallback: string): string {
   return err instanceof TimekeepingError ? err.message : fallback;
 }
 
-export const DEFAULT_RADIUS_M = 150;
+export const DEFAULT_RADIUS_M = 250;
+
+/**
+ * The option to show for a saved distance. Locations saved with a distance
+ * that's no longer offered (150 m was) move to the next one up, so a saved
+ * location never gets stricter by being edited.
+ */
+export function radiusChoice(radiusM: number | undefined): number {
+  if (!radiusM || !Number.isFinite(radiusM)) return DEFAULT_RADIUS_M;
+  return RADIUS_OPTIONS_M.find((m) => m >= radiusM) ?? RADIUS_OPTIONS_M[RADIUS_OPTIONS_M.length - 1];
+}
+
+/**
+ * A location's name, from its address: the first line ('1250 Markham Rd').
+ * Admins don't type one; it's what teachers see on their shifts and in the
+ * timesheet. Without an address, keeps the name it had.
+ */
+export function locationNameFrom(address: string | undefined, previous?: string): string {
+  const first = address?.split(',')[0]?.trim();
+  return first || previous?.trim() || 'School';
+}
 
 const DATE_FORMAT = 'yyyy-MM-dd';
 
