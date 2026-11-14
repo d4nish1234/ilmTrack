@@ -160,8 +160,10 @@ components never hard-code it (`tests/theme.test.ts` fails if they do).
 - **Headers:** spread `headerOptions` into a stack's `screenOptions`.
 - **One component per job** (`src/components/common` unless noted):
   `Button` (never Paper's directly), `Tappable` for anything tappable that
-  isn't a button, list row or chip (never `TouchableOpacity`), `DateField`
-  (`components/timekeeping`) for every date, `AppSnackbar` for messages,
+  isn't a button, list row or chip (never `TouchableOpacity`), `DateField` and
+  `TimeField` (`components/timekeeping`) for every date and time (on iOS a
+  `PickerSheet`: the calendar or time wheel in a bottom sheet with Confirm /
+  Cancel; on Android the system dialog), `AppSnackbar` for messages,
   `HelpSheet` / `HelpLink`, `useUnsavedChanges`. Teacher and parent share
   `SettingsScreen` and `HelpAndSupportScreen` (`components/settings`); their
   routes pass only what differs.

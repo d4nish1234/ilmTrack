@@ -1,9 +1,9 @@
-import React from 'react';
-import { Platform, Pressable, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import React, { useState } from 'react';
+import { Platform, StyleSheet } from 'react-native';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { PickerFieldButton, PickerSheet } from '../common';
 import { MINUTE_STEP, formatTime, fromMinutes, snapToStep } from '../../utils/timekeeping';
-import { colors, radius, spacing, typography } from '../../constants/theme';
+import { colors } from '../../constants/theme';
 
 interface TimeFieldProps {
   /** 'HH:mm' */
@@ -32,53 +32,65 @@ function toTime(date: Date): string {
 }
 
 /**
- * A time, in the platform's own picker: the compact inline control on iOS,
- * the clock dialog on Android. Both move in MINUTE_STEP steps.
+ * A time, shown as a tappable '4:00 PM', in MINUTE_STEP steps. On iOS it opens
+ * the time wheel in a PickerSheet (Confirm / Cancel; nothing changes until
+ * Confirm), like DateField. Android opens the system's clock dialog.
  */
 export function TimeField({ value, onChange }: TimeFieldProps) {
-  if (Platform.OS === 'ios') {
-    return (
-      <DateTimePicker
-        value={toDate(value)}
-        mode="time"
-        display="compact"
-        minuteInterval={MINUTE_STEP}
-        onChange={(_, date) => date && onChange(toTime(date))}
-      />
-    );
-  }
+  const [open, setOpen] = useState(false);
+  // The time picked in the sheet, kept until Confirm.
+  const [draft, setDraft] = useState(value);
+
+  const show = () => {
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: toDate(value),
+        mode: 'time',
+        is24Hour: false,
+        minuteInterval: MINUTE_STEP,
+        // Only when a time is picked; dismissing does nothing.
+        onValueChange: (_, date) => onChange(toTime(date)),
+      });
+      return;
+    }
+    setDraft(value);
+    setOpen(true);
+  };
 
   return (
-    <Pressable
-      style={styles.androidButton}
-      accessibilityRole="button"
-      onPress={() =>
-        DateTimePickerAndroid.open({
-          value: toDate(value),
-          mode: 'time',
-          is24Hour: false,
-          minuteInterval: MINUTE_STEP,
-          onChange: (event, date) => {
-            if (event.type === 'set' && date) onChange(toTime(date));
-          },
-        })
-      }
-    >
-      <Text variant={typography.h4} style={styles.androidText}>
-        {formatTime(value)}
-      </Text>
-    </Pressable>
+    <>
+      <PickerFieldButton
+        label={formatTime(value)}
+        accessibilityLabel={`Time, ${formatTime(value)}. Change`}
+        onPress={show}
+      />
+      {Platform.OS === 'ios' && (
+        <PickerSheet
+          visible={open}
+          onConfirm={() => {
+            setOpen(false);
+            onChange(draft);
+          }}
+          onCancel={() => setOpen(false)}
+        >
+          <DateTimePicker
+            value={toDate(draft)}
+            mode="time"
+            display="spinner"
+            minuteInterval={MINUTE_STEP}
+            textColor={colors.text}
+            themeVariant="light"
+            style={styles.wheel}
+            onValueChange={(_, date) => setDraft(toTime(date))}
+          />
+        </PickerSheet>
+      )}
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  androidButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: radius.md,
-    backgroundColor: colors.primarySoft,
-  },
-  androidText: {
-    color: colors.primary,
+  wheel: {
+    alignSelf: 'center',
   },
 });
