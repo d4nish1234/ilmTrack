@@ -10,7 +10,7 @@ import { fontWeight, radius, spacing, typography, useAppTheme } from '../../cons
 /**
  * One slim row on the Classes screen, so the student list keeps its room.
  * Its colour says where the teacher stands — green on shift, amber on break,
- * blue when a shift can be started, grey otherwise — and a tap opens the Time
+ * teal when a shift can be started, grey otherwise — and a tap opens the Time
  * sheet. Shown when the selected class's organization has timekeeping on,
  * even before the teacher is scheduled, so they know it exists; also while a
  * shift is open anywhere, and for org admins with no classes. Hidden

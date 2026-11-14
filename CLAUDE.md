@@ -144,12 +144,19 @@ teacher's shifts week by week (Organization tab → Timekeeping).
 ## Theme
 Everything about the look lives in `src/constants/theme.ts`; screens and
 components never hard-code it (`tests/theme.test.ts` fails if they do).
-- **Colours by meaning:** `colors.primary`, `text` / `textSecondary` /
-  `textDisabled`, `background` / `surface` / `border` / `divider`,
-  `success` / `warning` / `danger` (each with a `…Soft` fill), `star`,
-  `scrim`. One shade per meaning. The brand blue is in
-  `src/constants/brand.json`, which `app.config.js` also reads (splash,
-  Android icon).
+- **Colours by meaning:** `colors.brand` (dark indigo #2c2e78, in `src/constants/brand.json`,
+  which `app.config.js` also reads: the header bar, selected tab, splash),
+  `primary` (Young Momins' indigo #3b3e9e: everything you tap or that's selected:
+  buttons, links, chips, toggles, date and time fields; Paper's primary
+  too), `info` (teal: a state, not an action: assigned, excused, on shift,
+  ready), `text` / `textSecondary` / `textDisabled`, `background` (white;
+  Young Momins' cream is noted beside it) / `card` (raised: cards, inputs,
+  menus, pop-ups, sheets) / `surface` / `border` / `divider`, `success` /
+  `warning` / `danger` (each with a `…Soft` fill), `star`, `scrim`. One
+  shade per meaning. Paper's purple MD3 defaults are mapped to these.
+- **Headings** (`typography.display`, `h1`–`h3`) use Young Momins' serif:
+  Iowan Old Style on iOS, the phone's serif on Android (as on the site; the
+  font is Apple's and can't be shipped). Everything else is the system font.
 - **Status colours:** `statusColor(status)` / `statusSoftColor(status)` for
   attendance and homework; don't write another switch.
 - **Type scale:** `<Text variant={typography.h2}>` (display, h1–h5,
@@ -159,11 +166,14 @@ components never hard-code it (`tests/theme.test.ts` fails if they do).
   circles use half their size), `spacing.*`.
 - **Headers:** spread `headerOptions` into a stack's `screenOptions`.
 - **One component per job** (`src/components/common` unless noted):
-  `Button` (never Paper's directly), `Tappable` for anything tappable that
+  `Button` (never Paper's directly), `AddButton` (the round floating +), `Tappable` for anything tappable that
   isn't a button, list row or chip (never `TouchableOpacity`), `DateField` and
   `TimeField` (`components/timekeeping`) for every date and time (on iOS a
   `PickerSheet`: the calendar or time wheel in a bottom sheet with Confirm /
-  Cancel; on Android the system dialog), `AppSnackbar` for messages,
+  Cancel; on Android the system dialog), `AppSnackbar` for
+  messages (not a one-button alert; in a sheet presented as a modal pass
+  `wrapInPortal={false}`, or the sheet hides it; inside a pop-up keep an
+  alert, which shows above it),
   `HelpSheet` / `HelpLink`, `useUnsavedChanges`. Teacher and parent share
   `SettingsScreen` and `HelpAndSupportScreen` (`components/settings`); their
   routes pass only what differs.

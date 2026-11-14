@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
   },
   slot: {
     marginBottom: spacing.md,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   days: {
     flexDirection: 'row',

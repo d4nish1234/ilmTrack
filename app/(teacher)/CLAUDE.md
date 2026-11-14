@@ -30,7 +30,7 @@ A feature that needs explaining gets a help sheet: what you can do there, as a f
 - **Easy to dismiss:** unlike editors and other sheets (where `gestureEnabled: false` stops a stray swipe losing work), help sheets close by Got it, a swipe down, or a tap on the dimmed screen behind them. Set `gestureEnabled: true` and `sheetLargestUndimmedDetentIndex: 'none'` on the route; the organization stack turns gestures off for everything else.
 - **First visit:** the feature's screen opens it by itself if `hasSeenHelp(feature)` (`utils/storage.ts`) is false. Check once per mount (a ref) and only when the feature is usable.
 - **Closing marks it seen,** however it's closed (Got it, swipe, or tap outside): the help route calls `markHelpSeen(feature)` when it unmounts, which covers all three. Per device (AsyncStorage), so a new phone shows it again.
-- **After that,** a `HelpLink` (bold blue, circled ! icon) on the screen opens it, placed just above the screen's main list.
+- **After that,** a `HelpLink` (bold indigo, circled ! icon) on the screen opens it, placed just above the screen's main list.
 - Add the feature's name to `HelpFeature` in `utils/storage.ts`.
 
 ## Top-level screens
@@ -41,7 +41,7 @@ A feature that needs explaining gets a help sheet: what you can do there, as a f
 ## classes/
 - **index.tsx** — Class list. Uses `subscribeToClasses(teacherId, ...)`.
 - **create.tsx** — Create new class form.
-- **time.tsx** — The Time sheet (`TimeClockSheet`): start / break / resume / end, the end summary with a note, and this week's shifts. Opened from `TimeClockBar`, a slim colour-coded row under the class picker on the Classes screen (green on shift, amber on break, blue ready, grey otherwise; colours in `src/constants/theme.ts`). Follows the selected class: shown when its org has timekeeping on (even with no shifts yet, so teachers know it exists), hidden for classes outside one. An open shift always shows, whatever class is selected; org admins with no classes see their org. The sheet's **Past weeks** (`TimeHistory`) pages back a week at a time, for the same org.
+- **time.tsx** — The Time sheet (`TimeClockSheet`): start / break / resume / end, the end summary with a note, and this week's shifts. Opened from `TimeClockBar`, a slim colour-coded row under the class picker on the Classes screen (green on shift, amber on break, teal ready, grey otherwise; colours in `src/constants/theme.ts`). Follows the selected class: shown when its org has timekeeping on (even with no shifts yet, so teachers know it exists), hidden for classes outside one. An open shift always shows, whatever class is selected; org admins with no classes see their org. The sheet's **Past weeks** (`TimeHistory`) pages back a week at a time, for the same org.
 - **add-attendance.tsx** — The one Add Attendance sheet (`AddAttendanceForm`, params `classId`, `studentId`). Opened by the student screen's Add Attendance button and Attendance History's +. Same reason as add-homework for living here.
 - **evaluate-homework.tsx** — Evaluate Homework sheet (`EvaluateHomeworkForm`, param `studentId`), opened by the Classes swipe "Evaluate": rate up to 3 pending items and mark each Complete / Late / Incomplete.
 - **add-homework.tsx** — The one Add Homework sheet (`AddHomeworkForm`, params `classId`, `studentId`). Opened by the Classes swipe "New", the student screen's Add Homework button and Homework History's +. Kept in the classes stack so it is always presented as a modal sheet; asks before a second assignment on the same day.

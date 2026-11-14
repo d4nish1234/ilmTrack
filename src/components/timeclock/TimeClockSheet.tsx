@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
   },
   note: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   edited: {
     marginBottom: spacing.md,

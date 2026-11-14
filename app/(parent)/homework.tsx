@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: spacing.md,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   header: {
     flexDirection: 'row',

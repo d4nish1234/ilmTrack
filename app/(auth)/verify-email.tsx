@@ -4,7 +4,7 @@ import { Text, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/contexts/AuthContext';
-import { Button } from '../../src/components/common';
+import { AppSnackbar, Button } from '../../src/components/common';
 import { auth } from '../../src/config/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { colors, fontWeight, spacing, typography } from '../../src/constants/theme';
@@ -14,24 +14,19 @@ export default function VerifyEmailScreen() {
     useAuth();
   const [resending, setResending] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [message, setMessage] = useState<{ text: string; type: 'error' | 'success' } | null>(null);
 
   const handleResendEmail = async () => {
     setResending(true);
     try {
       await resendVerificationEmail();
-      Alert.alert(
-        'Email Sent',
-        'A new verification email has been sent. Please check your inbox and spam/junk folder.'
-      );
+      setMessage({ text: 'Verification email sent. Check your inbox and spam folder.', type: 'success' });
     } catch (error: any) {
       console.error('Error resending verification email:', error);
       if (error.code === 'auth/too-many-requests') {
-        Alert.alert(
-          'Too Many Requests',
-          'Please wait a few minutes before requesting another verification email.'
-        );
+        setMessage({ text: 'Please wait a few minutes before asking for another email.', type: 'error' });
       } else {
-        Alert.alert('Error', 'Failed to send verification email. Please try again.');
+        setMessage({ text: "Couldn't send the verification email. Please try again.", type: 'error' });
       }
     } finally {
       setResending(false);
@@ -59,7 +54,7 @@ export default function VerifyEmailScreen() {
       }
     } catch (error) {
       console.error('Error checking verification:', error);
-      Alert.alert('Error', 'Failed to check verification status. Please try again.');
+      setMessage({ text: "Couldn't check your email. Please try again.", type: 'error' });
     } finally {
       setChecking(false);
     }
@@ -120,6 +115,7 @@ export default function VerifyEmailScreen() {
           </Button>
         </View>
       </View>
+      <AppSnackbar type={message?.type} message={message?.text ?? null} onDismiss={() => setMessage(null)} />
     </SafeAreaView>
   );
 }

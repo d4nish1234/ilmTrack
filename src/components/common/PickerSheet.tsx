@@ -89,7 +89,7 @@ interface PickerFieldButtonProps {
   onPress: () => void;
 }
 
-/** The light-blue value a DateField or TimeField shows; tap to change it. */
+/** The light-indigo value a DateField or TimeField shows; tap to change it. */
 export function PickerFieldButton({ label, accessibilityLabel, onPress }: PickerFieldButtonProps) {
   return (
     <Tappable style={styles.field} onPress={onPress} accessibilityLabel={accessibilityLabel}>
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
     paddingHorizontal: spacing.lg,

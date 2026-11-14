@@ -5,7 +5,7 @@ import { List, Divider, Text, Avatar, Portal, Modal, TextInput, IconButton, Swit
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
-import { Button } from '../common';
+import { AppSnackbar, Button } from '../common';
 import { firestore } from '../../config/firebase';
 import { removePushToken } from '../../services/notification.service';
 import { colors, fontWeight, radius, spacing, typography } from '../../constants/theme';
@@ -38,6 +38,7 @@ export function SettingsScreen({ roleLabel, helpHref, deleteSummary, deleteAccou
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
+  const [message, setMessage] = useState<{ text: string; type: 'error' | 'success' } | null>(null);
 
   const notificationsEnabled = user?.notificationsEnabled ?? false;
 
@@ -58,7 +59,7 @@ export function SettingsScreen({ roleLabel, helpHref, deleteSummary, deleteAccou
       await refreshUser();
     } catch (error) {
       console.error('Error toggling notifications:', error);
-      Alert.alert('Error', 'Failed to update notification settings.');
+      setMessage({ text: "Couldn't change notifications. Please try again.", type: 'error' });
     } finally {
       setTogglingNotifications(false);
     }
@@ -77,10 +78,10 @@ export function SettingsScreen({ roleLabel, helpHref, deleteSummary, deleteAccou
           onPress: async () => {
             try {
               await resetPassword(user.email);
-              Alert.alert('Email Sent', 'Check your inbox for the password reset link. Remember to check spam/junk folder.');
+              setMessage({ text: 'Password reset link sent. Check your inbox and spam folder.', type: 'success' });
             } catch (error) {
               console.error('Error sending password reset:', error);
-              Alert.alert('Error', 'Failed to send password reset email. Please try again.');
+              setMessage({ text: "Couldn't send the reset link. Please try again.", type: 'error' });
             }
           },
         },
@@ -321,6 +322,8 @@ export function SettingsScreen({ roleLabel, helpHref, deleteSummary, deleteAccou
           </View>
         </Modal>
       </Portal>
+
+      <AppSnackbar type={message?.type} message={message?.text ?? null} onDismiss={() => setMessage(null)} />
     </SafeAreaView>
   );
 }
@@ -434,7 +437,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   modalContainer: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
     margin: 20,
     padding: spacing.xl,
     borderRadius: radius.lg,
@@ -446,7 +449,7 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: spacing.md,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   modalActions: {
     marginTop: spacing.sm,

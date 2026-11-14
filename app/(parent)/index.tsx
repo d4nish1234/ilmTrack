@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   card: {
     margin: spacing.lg,
     marginBottom: 0,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   studentItem: {
     paddingVertical: spacing.sm,

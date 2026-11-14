@@ -74,15 +74,15 @@ function wrapHtml(title: string, dateRange: string, tableContent: string): strin
   <meta charset="utf-8">
   <style>
     body { font-family: Helvetica, Arial, sans-serif; padding: 20px; color: #333; }
-    h1 { font-size: 18px; color: #1a73e8; margin-bottom: 4px; }
+    h1 { font-size: 18px; color: #222; margin-bottom: 4px; }
     h2 { font-size: 13px; color: #666; margin-top: 0; margin-bottom: 16px; }
     table { width: 100%; border-collapse: collapse; font-size: 11px; }
-    th { background: #1a73e8; color: #fff; padding: 8px 6px; text-align: center; white-space: nowrap; }
+    th { background: #f0f0f0; color: #222; border-bottom: 2px solid #333; padding: 8px 6px; text-align: center; white-space: nowrap; }
     th:first-child { text-align: left; }
     td { padding: 7px 6px; border-bottom: 1px solid #e0e0e0; text-align: center; }
     td:first-child { text-align: left; font-weight: 500; }
     tr:nth-child(even) { background: #f9f9f9; }
-    .totals td { font-weight: 700; border-top: 2px solid #1a73e8; background: #e8f0fe; }
+    .totals td { font-weight: 700; border-top: 2px solid #333; background: #f0f0f0; }
     .footer { margin-top: 16px; font-size: 10px; color: #999; }
   </style>
 </head>

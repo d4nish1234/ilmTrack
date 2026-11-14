@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
   card: {
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   parentItem: {
     flexDirection: 'row',
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   menuContent: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   headerButton: {
     margin: 0,

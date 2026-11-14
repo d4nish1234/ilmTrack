@@ -5,7 +5,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   Linking,
 } from 'react-native';
 import { Text } from 'react-native-paper';
@@ -55,7 +54,6 @@ export default function LoginScreen() {
       console.error('Login error:', err);
       const errorMessage = getAuthErrorMessage(err as { code?: string; message?: string });
       setError(errorMessage);
-      Alert.alert('Sign In Failed', errorMessage);
     } finally {
       setLoading(false);
     }

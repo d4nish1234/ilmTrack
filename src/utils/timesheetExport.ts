@@ -225,7 +225,7 @@ export function timesheetHtml({ orgName, range, timezone, people, preparedAt }: 
 <style>
   @page { margin: 36px; }
   body { font-family: -apple-system, Roboto, Helvetica, Arial, sans-serif; color: #222; font-size: 11px; margin: 0; }
-  h1 { font-size: 20px; margin: 0 0 4px; color: #1a73e8; }
+  h1 { font-size: 20px; margin: 0 0 4px; color: #222; }
   h2 { font-size: 14px; margin: 0 0 2px; break-after: avoid; page-break-after: avoid; }
   .sub { color: #666; margin-bottom: 8px; }
   .meta { color: #666; margin-bottom: 18px; }

@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: spacing.lg,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   cardTitle: {
     fontWeight: fontWeight.semibold,
@@ -178,10 +178,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   accordion: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   answerContainer: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
     // Paper indents accordion content by 40; the question's text starts at 16.
     paddingLeft: spacing.lg,
     paddingRight: spacing.xl,

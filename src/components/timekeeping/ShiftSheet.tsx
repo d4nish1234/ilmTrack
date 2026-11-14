@@ -51,7 +51,7 @@ const TONE: Record<StatusTone, { bg: string; fg: string }> = {
   success: { bg: colors.successSoft, fg: colors.success },
   danger: { bg: colors.dangerSoft, fg: colors.danger },
   warning: { bg: colors.warningSoft, fg: colors.warning },
-  primary: { bg: colors.primarySoft, fg: colors.primary },
+  primary: { bg: colors.infoSoft, fg: colors.info },
   neutral: { bg: colors.surface, fg: colors.textSecondary },
 };
 
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   input: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
     marginTop: spacing.sm,
   },
   delete: {

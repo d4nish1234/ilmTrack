@@ -8,7 +8,7 @@ export default function ParentLayout() {
     <ChildFilterProvider>
       <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: colors.brand,
         tabBarInactiveTintColor: colors.textSecondary,
         headerShown: true,
         ...headerOptions,

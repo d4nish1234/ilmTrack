@@ -1,4 +1,4 @@
-// The brand blue, shared with the app's theme (src/constants/theme.ts).
+// The brand colour (dark indigo), shared with the app's theme (src/constants/theme.ts).
 const brand = require('./src/constants/brand.json');
 
 module.exports = {
@@ -23,7 +23,7 @@ module.exports = {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: './assets/icon.png',
+        foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: brand.primary,
       },
       package: 'com.danishmahboob.ilmtrack',
@@ -38,7 +38,7 @@ module.exports = {
       [
         'expo-splash-screen',
         {
-          image: './assets/icon.png',
+          image: './assets/splash-icon.png',
           backgroundColor: brand.primary,
           imageWidth: 200,
         },

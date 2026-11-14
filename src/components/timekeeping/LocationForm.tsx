@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: spacing.md,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   or: {
     textAlign: 'center',

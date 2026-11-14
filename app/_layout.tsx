@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -14,7 +14,7 @@ import {
   addNotificationListeners,
 } from '../src/services/notification.service';
 import { auth } from '../src/config/firebase';
-import { theme } from '../src/constants/theme';
+import { navigationTheme, theme } from '../src/constants/theme';
 
 
 function RootLayoutNav() {
@@ -125,7 +125,9 @@ export default function RootLayout() {
               <AuthProvider>
                 {/* Subscribes only for teachers; parents get an empty list. */}
                 <OrganizationProvider>
-                  <RootLayoutNav />
+                  <ThemeProvider value={navigationTheme}>
+                    <RootLayoutNav />
+                  </ThemeProvider>
                 </OrganizationProvider>
               </AuthProvider>
             </VersionGate>

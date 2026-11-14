@@ -1,10 +1,10 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { StyleSheet, View, FlatList, Keyboard, TouchableWithoutFeedback } from 'react-native';
-import { Text, Card, Chip, FAB, Menu, IconButton, Portal, Modal, Divider, TextInput } from 'react-native-paper';
+import { Text, Card, Chip, Menu, IconButton, Portal, Modal, Divider, TextInput } from 'react-native-paper';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { getHomeworkPaginatedAsTeacher, updateHomework, deleteHomework } from '../../../../../../../src/services/homework.service';
 import { useAuth } from '../../../../../../../src/contexts/AuthContext';
-import { Button, LoadingSpinner, Tappable } from '../../../../../../../src/components/common';
+import { AddButton, Button, LoadingSpinner, Tappable } from '../../../../../../../src/components/common';
 import { Homework, HomeworkStatus, HomeworkEvaluation, EVALUATION_LABELS } from '../../../../../../../src/types';
 import { format } from 'date-fns';
 import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
@@ -352,9 +352,8 @@ export default function HomeworkListScreen() {
         </View>
       )}
 
-      <FAB
-        icon="plus"
-        style={styles.fab}
+      <AddButton
+        accessibilityLabel="Add homework"
         onPress={() =>
           router.push({
             pathname: '/(teacher)/classes/add-homework',
@@ -430,7 +429,7 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: spacing.md,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   header: {
     flexDirection: 'row',
@@ -488,14 +487,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     marginBottom: spacing.lg,
   },
-  fab: {
-    position: 'absolute',
-    right: 16,
-    bottom: 16,
-    backgroundColor: colors.primary,
-  },
   modalContainer: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
     margin: 20,
     padding: spacing.xl,
     borderRadius: radius.lg,
@@ -512,7 +505,7 @@ const styles = StyleSheet.create({
   },
   commentInput: {
     marginTop: spacing.lg,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   modalActions: {
     marginTop: spacing.xl,

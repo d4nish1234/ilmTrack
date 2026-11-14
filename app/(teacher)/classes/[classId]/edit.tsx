@@ -418,8 +418,8 @@ export default function EditClassScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
 
-        <AppSnackbar message={error} onDismiss={() => setError(null)} />
-        <AppSnackbar type="success" message={success} onDismiss={() => setSuccess(null)} />
+        <AppSnackbar message={error} onDismiss={() => setError(null)} wrapInPortal={false} />
+        <AppSnackbar type="success" message={success} onDismiss={() => setSuccess(null)} wrapInPortal={false} />
       </SafeAreaView>
     </>
   );

@@ -123,7 +123,7 @@ export default function EditHomeworkScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <AppSnackbar message={error} onDismiss={() => setError(null)} />
+      <AppSnackbar message={error} onDismiss={() => setError(null)} wrapInPortal={false} />
     </SafeAreaView>
   );
 }

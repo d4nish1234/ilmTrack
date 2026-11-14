@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
     marginHorizontal: spacing.lg,
     borderRadius: radius.lg,
     maxHeight: SCREEN_HEIGHT * 0.7,

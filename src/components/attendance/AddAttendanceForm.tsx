@@ -193,7 +193,7 @@ export function AddAttendanceForm({ classId, studentId, onDone }: AddAttendanceF
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <AppSnackbar message={error} onDismiss={() => setError(null)} />
+      <AppSnackbar message={error} onDismiss={() => setError(null)} wrapInPortal={false} />
     </SafeAreaView>
   );
 }

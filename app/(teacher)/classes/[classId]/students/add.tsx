@@ -326,7 +326,7 @@ export default function AddStudentScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
 
-        <AppSnackbar message={error} onDismiss={() => setError(null)} />
+        <AppSnackbar message={error} onDismiss={() => setError(null)} wrapInPortal={false} />
       </SafeAreaView>
     );
   }
@@ -409,7 +409,7 @@ export default function AddStudentScreen() {
           </View>
         </ScrollView>
 
-        <AppSnackbar message={error} onDismiss={() => setError(null)} />
+        <AppSnackbar message={error} onDismiss={() => setError(null)} wrapInPortal={false} />
       </SafeAreaView>
     );
   }
@@ -583,8 +583,8 @@ export default function AddStudentScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <AppSnackbar message={error} onDismiss={() => setError(null)} />
-      <AppSnackbar type="success" message={success} onDismiss={() => setSuccess(null)} />
+      <AppSnackbar message={error} onDismiss={() => setError(null)} wrapInPortal={false} />
+      <AppSnackbar type="success" message={success} onDismiss={() => setSuccess(null)} wrapInPortal={false} />
     </SafeAreaView>
   );
 }
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
   },
   studentCard: {
     marginBottom: spacing.md,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   studentCardSelected: {
     borderColor: colors.primary,

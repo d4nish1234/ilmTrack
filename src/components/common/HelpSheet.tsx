@@ -69,7 +69,7 @@ interface HelpLinkProps {
   onPress: () => void;
 }
 
-/** The way back to a feature's HelpSheet after the first visit: bold blue text with an info icon. */
+/** The way back to a feature's HelpSheet after the first visit: bold indigo text with an info icon. */
 export function HelpLink({ label, onPress }: HelpLinkProps) {
   return (
     <Pressable
@@ -88,7 +88,7 @@ export function HelpLink({ label, onPress }: HelpLinkProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
     paddingHorizontal: spacing.xl,
     paddingTop: 28,
   },

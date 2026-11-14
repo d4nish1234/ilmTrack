@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   input: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   dismissContainer: {
     flex: 1,

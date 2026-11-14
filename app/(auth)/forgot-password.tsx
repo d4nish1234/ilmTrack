@@ -5,8 +5,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
-} from 'react-native';
+  } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Link } from 'expo-router';
 import { useForm } from 'react-hook-form';
@@ -50,7 +49,6 @@ export default function ForgotPasswordScreen() {
       console.error('Password reset error:', err);
       const errorMessage = getAuthErrorMessage(err as { code?: string; message?: string });
       setError(errorMessage);
-      Alert.alert('Password Reset Failed', errorMessage);
     } finally {
       setLoading(false);
     }

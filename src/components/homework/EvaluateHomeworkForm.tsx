@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Card, IconButton, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -34,6 +34,7 @@ export function EvaluateHomeworkForm({ studentId, onDone }: EvaluateHomeworkForm
   >({});
   const [homeworkComments, setHomeworkComments] = useState<Record<string, string>>({});
   const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const uid = user?.uid;
 
@@ -44,7 +45,7 @@ export function EvaluateHomeworkForm({ studentId, onDone }: EvaluateHomeworkForm
       .then(setPendingHomework)
       .catch((error) => {
         console.error('Error fetching pending homework:', error);
-        Alert.alert('Error', 'Failed to load homework');
+        setErrorMessage("Couldn't load homework. Please try again.");
       })
       .finally(() => setLoading(false));
   }, [studentId, uid]);
@@ -52,7 +53,7 @@ export function EvaluateHomeworkForm({ studentId, onDone }: EvaluateHomeworkForm
   const handleQuickStatusUpdate = async (homeworkId: string, status: HomeworkStatus) => {
     const evaluation = selectedEvaluations[homeworkId];
     if (!evaluation) {
-      Alert.alert('Rating Required', 'Please select a star rating before marking the homework.');
+      setErrorMessage('Choose a star rating before marking the homework.');
       return;
     }
 
@@ -85,7 +86,7 @@ export function EvaluateHomeworkForm({ studentId, onDone }: EvaluateHomeworkForm
       }
     } catch (error) {
       console.error('Error updating homework:', error);
-      Alert.alert('Error', 'Failed to update homework');
+      setErrorMessage("Couldn't update the homework. Please try again.");
     } finally {
       setUpdatingHomeworkId(null);
     }
@@ -207,7 +208,9 @@ export function EvaluateHomeworkForm({ studentId, onDone }: EvaluateHomeworkForm
         type="success"
         message={snackbarMessage}
         onDismiss={() => setSnackbarMessage(null)}
+        wrapInPortal={false}
       />
+      <AppSnackbar message={errorMessage} onDismiss={() => setErrorMessage(null)} wrapInPortal={false} />
     </SafeAreaView>
   );
 }
@@ -268,7 +271,7 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   commentInput: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
     fontSize: fontSize.md,
   },
   statusButtons: {

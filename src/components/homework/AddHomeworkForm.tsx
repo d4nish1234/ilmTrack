@@ -292,7 +292,7 @@ export function AddHomeworkForm({ classId, studentId, onDone }: AddHomeworkFormP
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <AppSnackbar message={error} onDismiss={() => setError(null)} />
+      <AppSnackbar message={error} onDismiss={() => setError(null)} wrapInPortal={false} />
     </SafeAreaView>
   );
 }
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.scrim,
   },
   menuContent: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     paddingVertical: spacing.xs,
     minWidth: 180,

@@ -160,7 +160,7 @@ export function WeekGrid({ people, rowsFor, dates, today, column, onScrollX, onP
       <View style={styles.legend}>
         {(['worked', 'live', 'missed', 'late', 'upcoming'] as CellTone[]).map((tone) => (
           <View key={tone} style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: tone === 'live' ? colors.primary : TONE[tone].color }]} />
+            <View style={[styles.dot, { backgroundColor: tone === 'live' ? colors.info : TONE[tone].color }]} />
             <Text variant={typography.caption} style={styles.muted}>
               {TONE[tone].label}
             </Text>
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   live: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.info,
     borderRadius: radius.sm,
     overflow: 'hidden',
   },

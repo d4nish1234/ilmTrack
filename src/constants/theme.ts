@@ -1,4 +1,6 @@
-import { MD3LightTheme, useTheme } from 'react-native-paper';
+import { Platform } from 'react-native';
+import { MD3LightTheme, configureFonts, useTheme } from 'react-native-paper';
+import { DefaultTheme } from 'expo-router/react-navigation';
 import brand from './brand.json';
 
 /**
@@ -6,23 +8,42 @@ import brand from './brand.json';
  * these everywhere: never a hex code in a screen or component. One shade per
  * meaning: success is always `success`, whether it's text, an icon or a bar.
  *
- * `brand.json` holds the brand blue on its own so app.config.js (the splash
+ * `brand.json` holds the brand colour on its own so app.config.js (the splash
  * screen and Android icon background) can read it too.
  *
  * Static, so StyleSheet.create can use it directly; useAppTheme() gives the
  * same values through react-native-paper's theme.
  */
 export const colors = {
-  /** Brand blue: headers, links, main buttons, selected things. */
-  primary: brand.primary,
-  /** Darker blue, for bold links on white. */
-  primaryDark: '#1557b0',
-  /** Light blue fill: selected chips, today, a pressed row, highlighted cards. */
-  primarySoft: '#e8f0fe',
-  /** Faintest blue, for large areas (the week grid's today column). */
-  primaryFaint: '#f6f9fe',
-  /** Text and icons on primary (the header, filled buttons). */
+  /**
+   * The brand colour (Young Momins' dark indigo, in brand.json): the header
+   * bar, the selected tab, the splash screen. Change it there to re-brand
+   * the frame; the logo in assets/ is drawn in it too.
+   */
+  brand: brand.primary,
+  /**
+   * Everything you tap or that's selected: main buttons, links, selected
+   * chips and toggles, date and time fields. Young Momins' indigo (white
+   * text on it 8.9:1).
+   */
+  primary: '#3b3e9e',
+  /** Lighter indigo, for floating + buttons (white icon on it 5.4:1). */
+  primaryLight: '#5b5fc7',
+  /** Darker indigo, for bold links on white: the brand colour itself. */
+  primaryDark: brand.primary,
+  /** Light indigo fill: selected chips and toggles, today, a pressed row. */
+  primarySoft: '#e9e9f6',
+  /** Faintest indigo, for large areas (the week grid's today column). */
+  primaryFaint: '#f5f5fb',
+  /** Text and icons on brand or primary (the header, filled buttons). */
   onPrimary: '#ffffff',
+  /**
+   * A state, not an action: assigned or excused, on shift, ready to start.
+   * Teal: clearly not indigo, so it never reads as something to tap, and
+   * never as an error next to danger (white on it 5.3:1; on infoSoft 4.6:1).
+   */
+  info: '#00796b',
+  infoSoft: '#e0f2f1',
 
   /** Main text. */
   text: '#333333',
@@ -33,8 +54,14 @@ export const colors = {
   /** Disabled or empty icons and marks (unfilled stars, a past day's dot). */
   disabled: '#c4c4c4',
 
-  /** Screen background. */
+  /**
+   * Screen background. Change it here to change every screen (Young Momins'
+   * cream is '#faf3ea', with surface '#f3e9dc', border '#e6dac8' and divider
+   * '#eee4d6' to match).
+   */
   background: '#ffffff',
+  /** Raised things on the background: cards, inputs, menus, pop-ups and sheets. */
+  card: '#ffffff',
   /** A grey panel on the background: section rows, read-only boxes. */
   surface: '#f5f5f5',
   /** Lines around inputs and cards. */
@@ -79,7 +106,7 @@ export function statusColor(status: Status | string | null | undefined): string 
       return colors.warning;
     case 'excused':
     case 'assigned':
-      return colors.primary;
+      return colors.info;
     default:
       return colors.textSecondary;
   }
@@ -97,7 +124,7 @@ export function statusSoftColor(status: Status | string | null | undefined): str
       return colors.warningSoft;
     case 'excused':
     case 'assigned':
-      return colors.primarySoft;
+      return colors.infoSoft;
     default:
       return colors.surface;
   }
@@ -128,6 +155,16 @@ export const typography = {
   labelMedium: 'labelMedium',
   labelSmall: 'labelSmall',
 } as const;
+
+/**
+ * Headings use Young Momins' serif. The site asks for Iowan Old Style, built
+ * into iOS (and Apple's, so it can't be shipped for Android); Android has no
+ * Iowan, so the site falls back to the phone's serif, and so does the app.
+ */
+export const headingFont = Platform.select({ ios: 'Iowan Old Style', default: 'serif' });
+
+/** The Paper variants behind typography.display and h1–h3, set in the serif. */
+const SERIF_VARIANTS = ['displaySmall', 'headlineMedium', 'headlineSmall', 'titleLarge'] as const;
 
 /** For the few places that set a size outside a Paper Text (chips, inputs, hand-drawn controls). */
 export const fontSize = {
@@ -166,9 +203,9 @@ export const spacing = {
   xl: 24,
 } as const;
 
-/** Every stack's header: brand blue with white text. Spread into screenOptions. */
+/** Every stack's header: the brand colour with white text. Spread into screenOptions. */
 export const headerOptions = {
-  headerStyle: { backgroundColor: colors.primary },
+  headerStyle: { backgroundColor: colors.brand },
   headerTintColor: colors.onPrimary,
   headerTitleStyle: { fontWeight: fontWeight.semibold },
 } as const;
@@ -179,11 +216,36 @@ export const headerOptions = {
  */
 export const theme = {
   ...MD3LightTheme,
+  fonts: configureFonts({
+    config: Object.fromEntries(SERIF_VARIANTS.map((v) => [v, { fontFamily: headingFont }])),
+  }),
   colors: {
     ...MD3LightTheme.colors,
     primary: colors.primary,
     secondary: colors.textSecondary,
     error: colors.danger,
+    background: colors.background,
+    surface: colors.card,
+    // Paper's defaults are purple-tinted (MD3's baseline palette): selected
+    // segments and chips, and the tint on cards, menus and dialogs.
+    primaryContainer: colors.primarySoft,
+    onPrimaryContainer: colors.primaryDark,
+    secondaryContainer: colors.primarySoft,
+    onSecondaryContainer: colors.primaryDark,
+    onSurface: colors.text,
+    onSurfaceVariant: colors.textSecondary,
+    onBackground: colors.text,
+    surfaceVariant: colors.surface,
+    outline: colors.border,
+    outlineVariant: colors.divider,
+    elevation: {
+      level0: 'transparent',
+      level1: colors.card,
+      level2: colors.card,
+      level3: colors.card,
+      level4: colors.card,
+      level5: colors.card,
+    },
     /**
      * The time clock's states: the Classes bar and the Time sheet. `bg` is
      * the bar's fill, `fg` its text and icon (and the sheet's status labels).
@@ -191,9 +253,25 @@ export const theme = {
     timeClock: {
       running: { bg: colors.successSoft, fg: colors.success },
       paused: { bg: colors.warningSoft, fg: colors.warning },
-      ready: { bg: colors.primarySoft, fg: colors.primary },
+      ready: { bg: colors.infoSoft, fg: colors.info },
       idle: { bg: colors.surface, fg: colors.textSecondary },
     },
+  },
+};
+
+/**
+ * The navigation theme: the same background behind every screen and during
+ * transitions (react-navigation's default is a light grey), white tab bar.
+ */
+export const navigationTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: colors.brand,
+    background: colors.background,
+    card: colors.card,
+    text: colors.text,
+    border: colors.border,
   },
 };
 

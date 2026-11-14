@@ -183,7 +183,7 @@ export default function EditParentsScreen() {
 
   const handleRemoveParent = (index: number) => {
     if (fields.length <= 1) {
-      Alert.alert('Error', 'At least one parent is required');
+      setError('A student needs at least one parent.');
       return;
     }
     Alert.alert(

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, View, FlatList, Alert, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, FlatList, type StyleProp, type ViewStyle } from 'react-native';
 import {
   Text,
   Card,
@@ -25,7 +25,7 @@ import { useSelectedClass } from '../../../src/hooks/useSelectedClass';
 import { ClassDropdown } from '../../../src/components/teacher';
 import { TimeClockBar } from '../../../src/components/timeclock/TimeClockBar';
 import { useTimeClock } from '../../../src/contexts/TimeClockContext';
-import { AppSnackbar, LoadingSpinner, Tappable } from '../../../src/components/common';
+import { AddButton, AppSnackbar, LoadingSpinner, Tappable } from '../../../src/components/common';
 import { Student, AttendanceStatus } from '../../../src/types';
 import { firestore } from '../../../src/config/firebase';
 import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
@@ -73,6 +73,7 @@ export default function ClassesScreen() {
 
   // Snackbar state
   const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Menu handlers
   const MENU_DEBOUNCE_MS = 300;
@@ -226,7 +227,7 @@ export default function ClassesScreen() {
       swipeableRefs.current.get(student.id)?.close();
     } catch (error) {
       console.error('Error toggling attendance:', error);
-      Alert.alert('Error', 'Failed to update attendance');
+      setErrorMessage("Couldn't update attendance. Please try again.");
     }
   };
 
@@ -473,9 +474,8 @@ export default function ClassesScreen() {
             </View>
           )}
 
-          <FAB
-            icon="plus"
-            style={styles.fab}
+          <AddButton
+            accessibilityLabel="Add student"
             onPress={() =>
               router.push(`/(teacher)/classes/${selectedClassId}/students/add`)
             }
@@ -512,6 +512,7 @@ export default function ClassesScreen() {
         message={snackbarMessage}
         onDismiss={() => setSnackbarMessage(null)}
       />
+      <AppSnackbar message={errorMessage} onDismiss={() => setErrorMessage(null)} />
     </GestureHandlerRootView>
   );
 }
@@ -583,7 +584,7 @@ const styles = StyleSheet.create({
   },
   studentCard: {
     marginBottom: spacing.md,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   cardContent: {
     flexDirection: 'column',
@@ -671,12 +672,6 @@ const styles = StyleSheet.create({
   emptyMessage: {
     color: colors.textSecondary,
     textAlign: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    right: 16,
-    bottom: 16,
-    backgroundColor: colors.primary,
   },
   createClassFab: {
     marginTop: spacing.xl,

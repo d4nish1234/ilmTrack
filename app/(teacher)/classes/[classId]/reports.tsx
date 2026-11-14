@@ -13,6 +13,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useAuth } from '../../../../src/contexts/AuthContext';
 import { getClass } from '../../../../src/services/class.service';
+import { AppSnackbar } from '../../../../src/components/common';
 import { DateField } from '../../../../src/components/timekeeping/DateField';
 import ReportModal, { ReportColumn, ReportRow } from '../../../../src/components/reports/ReportModal';
 import { firestore } from '../../../../src/config/firebase';
@@ -77,6 +78,7 @@ export default function ReportsScreen() {
   const [endDate, setEndDate] = useState(new Date());
   const [exporting, setExporting] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Report modal state
   const [showReportModal, setShowReportModal] = useState(false);
@@ -211,7 +213,7 @@ export default function ReportsScreen() {
       );
     } catch (error) {
       console.error('Error generating attendance report:', error);
-      Alert.alert('Error', 'Failed to generate attendance report');
+      setError("Couldn't make the attendance report. Please try again.");
     } finally {
       setExporting(false);
     }
@@ -234,7 +236,7 @@ export default function ReportsScreen() {
       );
     } catch (error) {
       console.error('Error generating homework report:', error);
-      Alert.alert('Error', 'Failed to generate homework report');
+      setError("Couldn't make the homework report. Please try again.");
     } finally {
       setExporting(false);
     }
@@ -268,7 +270,7 @@ export default function ReportsScreen() {
       );
     } catch (error) {
       console.error('Error generating summary:', error);
-      Alert.alert('Error', 'Failed to generate class summary');
+      setError("Couldn't make the class summary. Please try again.");
     } finally {
       setExporting(false);
     }
@@ -370,6 +372,7 @@ export default function ReportsScreen() {
             </View>
           )}
         </ScrollView>
+        <AppSnackbar message={error} onDismiss={() => setError(null)} wrapInPortal={false} />
       </SafeAreaView>
 
       {/* Report Modal (used for all three reports) */}

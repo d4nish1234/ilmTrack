@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   ayahField: {
     flex: 1,

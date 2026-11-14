@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   dropdownContainer: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
     borderColor: colors.border,
     borderRadius: radius.md,
   },

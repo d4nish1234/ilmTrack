@@ -1,10 +1,10 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { StyleSheet, View, FlatList } from 'react-native';
-import { Text, Card, Chip, FAB, Menu, IconButton, Divider } from 'react-native-paper';
+import { Text, Card, Chip, Menu, IconButton, Divider } from 'react-native-paper';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { getAttendancePaginatedAsTeacher, updateAttendance, deleteAttendance } from '../../../../../../../src/services/attendance.service';
 import { useAuth } from '../../../../../../../src/contexts/AuthContext';
-import { Button, LoadingSpinner } from '../../../../../../../src/components/common';
+import { AddButton, Button, LoadingSpinner } from '../../../../../../../src/components/common';
 import { Attendance, AttendanceStatus } from '../../../../../../../src/types';
 import { format } from 'date-fns';
 import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
@@ -220,9 +220,8 @@ export default function AttendanceListScreen() {
         </View>
       )}
 
-      <FAB
-        icon="plus"
-        style={styles.fab}
+      <AddButton
+        accessibilityLabel="Add attendance"
         onPress={() =>
           router.push({
             pathname: '/(teacher)/classes/add-attendance',
@@ -245,7 +244,7 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: spacing.md,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   row: {
     flexDirection: 'row',
@@ -274,11 +273,5 @@ const styles = StyleSheet.create({
   loadMoreButton: {
     marginTop: spacing.sm,
     marginBottom: spacing.lg,
-  },
-  fab: {
-    position: 'absolute',
-    right: 16,
-    bottom: 16,
-    backgroundColor: colors.primary,
   },
 });

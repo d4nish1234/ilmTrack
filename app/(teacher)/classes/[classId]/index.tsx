@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, FlatList } from 'react-native';
-import { Text, Card, FAB, IconButton, Menu } from 'react-native-paper';
+import { Text, Card, IconButton, Menu } from 'react-native-paper';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { getClass } from '../../../../src/services/class.service';
 import { subscribeToStudents, subscribeToStudentsAsAdmin } from '../../../../src/services/student.service';
-import { LoadingSpinner, Tappable } from '../../../../src/components/common';
+import { AddButton, LoadingSpinner, Tappable } from '../../../../src/components/common';
 import { useAuth } from '../../../../src/contexts/AuthContext';
 import { Class, Student } from '../../../../src/types';
 import { colors, fontWeight, spacing, typography } from '../../../../src/constants/theme';
@@ -169,9 +169,8 @@ export default function ClassDetailScreen() {
           </View>
         )}
 
-        <FAB
-          icon="plus"
-          style={styles.fab}
+        <AddButton
+          accessibilityLabel="Add student"
           onPress={() => router.push(`/(teacher)/classes/${classId}/students/add`)}
         />
       </View>
@@ -185,7 +184,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   descriptionContainer: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
     padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -206,7 +205,7 @@ const styles = StyleSheet.create({
   },
   studentCard: {
     marginBottom: spacing.md,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   cardContent: {
     flexDirection: 'row',
@@ -227,11 +226,5 @@ const styles = StyleSheet.create({
   },
   emptyMessage: {
     color: colors.textSecondary,
-  },
-  fab: {
-    position: 'absolute',
-    right: 16,
-    bottom: 16,
-    backgroundColor: colors.primary,
   },
 });

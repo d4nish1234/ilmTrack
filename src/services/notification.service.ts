@@ -84,7 +84,7 @@ export async function setupNotificationChannel(): Promise<void> {
       // eslint-disable-next-line import/namespace
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: colors.primary,
+      lightColor: colors.brand,
     });
   }
 }

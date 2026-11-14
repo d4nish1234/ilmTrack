@@ -23,7 +23,7 @@ export default function TeacherLayout() {
       <TimeClockProvider>
         <Tabs
           screenOptions={{
-            tabBarActiveTintColor: colors.primary,
+            tabBarActiveTintColor: colors.brand,
             tabBarInactiveTintColor: colors.textSecondary,
             headerShown: true,
             ...headerOptions,

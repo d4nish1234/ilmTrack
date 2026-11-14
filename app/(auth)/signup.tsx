@@ -5,8 +5,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
-} from 'react-native';
+  } from 'react-native';
 import { Text, SegmentedButtons } from 'react-native-paper';
 import { Link } from 'expo-router';
 import { useForm, useWatch } from 'react-hook-form';
@@ -109,7 +108,6 @@ export default function SignupScreen() {
       console.error('Signup error:', err);
       const errorMessage = getAuthErrorMessage(err as { code?: string; message?: string });
       setError(errorMessage);
-      Alert.alert('Sign Up Failed', errorMessage);
     } finally {
       setLoading(false);
     }
